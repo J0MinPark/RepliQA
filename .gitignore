@@ -1,0 +1,16 @@
+# Claude Code session files
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Firebase local emulator artifacts
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log

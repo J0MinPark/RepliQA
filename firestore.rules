@@ -1,0 +1,41 @@
+rules_version = '2';
+
+// 모든 쓰기는 backend가 firebase-admin(SDK 자체가 규칙을 우회)으로만 수행한다.
+// 클라이언트(프론트엔드)는 로그인한 자기 테넌트 데이터를 "읽기"만 할 수 있고,
+// 어떤 컬렉션도 직접 쓸 수 없다 — 결과/쿼터/검증 상태를 클라이언트가 조작하는 걸 막기 위함.
+function isSignedIn() {
+  return request.auth != null;
+}
+
+function belongsToTenant(tenantId) {
+  return isSignedIn() && request.auth.token.tenantId == tenantId;
+}
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /tenants/{tenantId} {
+      allow read: if belongsToTenant(tenantId);
+      allow write: if false;
+
+      match /registeredUrls/{urlId} {
+        allow read: if belongsToTenant(tenantId);
+        allow write: if false;
+      }
+
+      match /testRuns/{runId} {
+        allow read: if belongsToTenant(tenantId);
+        allow write: if false;
+      }
+
+      match /usage/{day} {
+        allow read: if belongsToTenant(tenantId);
+        allow write: if false;
+      }
+    }
+
+    match /personas/{personaId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+  }
+}

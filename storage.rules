@@ -1,0 +1,12 @@
+rules_version = '2';
+
+// 스크린샷도 Firestore와 동일한 원칙: 워커가 admin SDK로만 업로드하고,
+// 클라이언트는 자기 테넌트 경로만 읽을 수 있다.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /tenants/{tenantId}/{allPaths=**} {
+      allow read: if request.auth != null && request.auth.token.tenantId == tenantId;
+      allow write: if false;
+    }
+  }
+}

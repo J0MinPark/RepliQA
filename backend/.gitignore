@@ -1,0 +1,20 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# 환경 변수
+.env
+
+# IDE 및 OS 시스템 파일
+.vscode/
+.idea/
+.DS_Store
+
+# 테스트 결과 및 로컬 로그
+prototype_result.json
+error_log.txt
+
+# 플레이라이트 브라우저 프로필 및 계정 세션
+auth_state.json
+temp_chrome_profile/
