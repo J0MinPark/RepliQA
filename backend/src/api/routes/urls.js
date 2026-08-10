@@ -18,10 +18,22 @@ const credentialsSchema = z.object({
   username: z.string().min(1),
   password: z.string().min(1),
 });
+// PG사마다 요구 필드가 달라서(카드번호/유효기간/CVC/생년월일 또는 사업자번호/예금주명 등)
+// 고정 스키마 대신 전부 선택값으로 받는다. 실제 카드값은 LLM에 절대 노출되지 않는다
+// (engine/llm/geminiAdapter.js의 identifyPaymentFields는 필드 "위치"만 묻는다).
+const paymentMethodSchema = z
+  .object({
+    cardNumber: z.string().min(1).optional(),
+    expiry: z.string().min(1).optional(),
+    cvc: z.string().min(1).optional(),
+    birthOrBusinessNo: z.string().min(1).optional(),
+    cardHolderName: z.string().min(1).optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, { message: '결제 정보를 하나 이상 입력하세요.' });
 
 function stripSecrets(doc) {
-  const { testCredentials, verificationToken, ...rest } = doc;
-  return { ...rest, hasTestCredentials: !!testCredentials };
+  const { testCredentials, testPaymentMethod, verificationToken, ...rest } = doc;
+  return { ...rest, hasTestCredentials: !!testCredentials, hasTestPaymentMethod: !!testPaymentMethod };
 }
 
 // 테스트 대상으로 쓸 URL을 등록한다. 이 시점엔 아직 verified=false이고,
@@ -82,6 +94,25 @@ router.put('/:id/test-credentials', async (req, res) => {
     testCredentialsUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
   res.json({ id: snap.id, hasTestCredentials: true });
+});
+
+// 결제 체크포인트([결제] 태그)에서 자동 입력에 쓸 테스트 카드/계좌 정보. 반드시 PG
+// 테스트/샌드박스 모드용 값만 등록하도록 안내 문구를 프론트에서 함께 보여준다.
+router.put('/:id/test-payment-method', async (req, res) => {
+  const parseResult = paymentMethodSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    return res.status(400).json({ error: '유효한 결제 정보가 필요합니다 (카드번호/유효기간/CVC 등 중 1개 이상).' });
+  }
+  const ref = collections.registeredUrls(req.tenantId).doc(req.params.id);
+  const snap = await ref.get();
+  if (!snap.exists) return res.status(404).json({ error: '등록된 URL을 찾을 수 없습니다.' });
+
+  const encrypted = encryptSecret(JSON.stringify(parseResult.data));
+  await ref.update({
+    testPaymentMethod: encrypted,
+    testPaymentMethodUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  res.json({ id: snap.id, hasTestPaymentMethod: true });
 });
 
 router.post('/:id/verify', async (req, res) => {

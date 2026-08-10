@@ -41,7 +41,9 @@ export default function RouteBuilder({ verifiedUrls, routes, onRefresh }) {
       </h3>
       <p className="text-xs text-slate-500 mb-4">
         로그인→결제처럼 반드시 확인하고 싶은 흐름을 단계별로 정의하면, 페르소나가 그 순서대로
-        진행을 시도합니다. 정의하지 않으면 자유 탐색으로 실행됩니다.
+        진행을 시도합니다. 정의하지 않으면 자유 탐색으로 실행됩니다. 결제 단계는 줄 맨 앞에{' '}
+        <code className="bg-slate-100 px-1 rounded">[결제]</code>를 붙이세요 — 테스트 결제수단이
+        자동 입력되고, 최종 제출 버튼은 항상 자동 클릭이 생략됩니다.
       </p>
 
       {verifiedUrls.length === 0 ? (
@@ -72,7 +74,9 @@ export default function RouteBuilder({ verifiedUrls, routes, onRefresh }) {
           <textarea
             required
             rows={4}
-            placeholder={'한 줄에 체크포인트 하나씩 입력하세요. 예:\n로그인 페이지에서 로그인 완료\n상품 목록에서 아무 상품이나 상세 페이지로 이동\n장바구니에 담고 결제 페이지까지 진입'}
+            placeholder={
+              '한 줄에 체크포인트 하나씩 입력하세요. 예:\n로그인 페이지에서 로그인 완료\n상품 목록에서 아무 상품이나 상세 페이지로 이동\n[결제] 결제 정보 입력 후 최종 제출 화면까지 진입'
+            }
             value={checkpointsText}
             onChange={(e) => setCheckpointsText(e.target.value)}
             className="w-full border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono"

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Globe, CheckCircle2, Circle, KeyRound, Loader2 } from 'lucide-react';
+import { Globe, CheckCircle2, Circle, KeyRound, CreditCard, Loader2 } from 'lucide-react';
 import { api } from '../lib/api';
 
 function CredentialsForm({ urlId, onSaved }) {
@@ -55,6 +55,76 @@ function CredentialsForm({ urlId, onSaved }) {
       </button>
       <p className="text-[11px] text-slate-400 w-full">
         실 사용자 계정이 아닌, 별도 발급한 테스트 전용 계정만 입력하세요.
+      </p>
+    </form>
+  );
+}
+
+function PaymentMethodForm({ urlId, onSaved }) {
+  const [open, setOpen] = useState(false);
+  const [fields, setFields] = useState({ cardNumber: '', expiry: '', cvc: '', cardHolderName: '' });
+  const [saving, setSaving] = useState(false);
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="text-xs text-slate-500 hover:text-blue-600 flex items-center gap-1 mt-2"
+      >
+        <CreditCard size={12} /> 테스트 결제 수단 등록 (선택)
+      </button>
+    );
+  }
+
+  const save = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const payload = Object.fromEntries(Object.entries(fields).filter(([, v]) => v.trim()));
+      await api.setTestPaymentMethod(urlId, payload);
+      setOpen(false);
+      onSaved?.();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form onSubmit={save} className="mt-2 flex flex-wrap gap-2 items-center">
+      <input
+        placeholder="테스트 카드번호"
+        value={fields.cardNumber}
+        onChange={(e) => setFields({ ...fields, cardNumber: e.target.value })}
+        className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white w-32"
+      />
+      <input
+        placeholder="MM/YY"
+        value={fields.expiry}
+        onChange={(e) => setFields({ ...fields, expiry: e.target.value })}
+        className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white w-20"
+      />
+      <input
+        placeholder="CVC"
+        value={fields.cvc}
+        onChange={(e) => setFields({ ...fields, cvc: e.target.value })}
+        className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white w-16"
+      />
+      <input
+        placeholder="카드소유자명"
+        value={fields.cardHolderName}
+        onChange={(e) => setFields({ ...fields, cardHolderName: e.target.value })}
+        className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white w-28"
+      />
+      <button
+        type="submit"
+        disabled={saving}
+        className="text-xs bg-slate-900 text-white rounded-lg px-3 py-1.5 font-semibold disabled:opacity-60"
+      >
+        {saving ? '저장 중...' : '저장'}
+      </button>
+      <p className="text-[11px] text-amber-600 w-full">
+        반드시 PG사 테스트/샌드박스 모드용 카드 정보만 입력하세요. 최종 결제 제출 버튼은 항상 자동 클릭을
+        생략합니다.
       </p>
     </form>
   );
@@ -163,6 +233,10 @@ export default function UrlRegistrationPanel({ urls, onRefresh }) {
             {!u.hasTestCredentials && <CredentialsForm urlId={u.id} onSaved={onRefresh} />}
             {u.hasTestCredentials && (
               <p className="text-xs text-emerald-600 mt-2">테스트 계정이 등록되어 있습니다.</p>
+            )}
+            {!u.hasTestPaymentMethod && <PaymentMethodForm urlId={u.id} onSaved={onRefresh} />}
+            {u.hasTestPaymentMethod && (
+              <p className="text-xs text-emerald-600 mt-2">테스트 결제 수단이 등록되어 있습니다.</p>
             )}
           </li>
         ))}

@@ -34,12 +34,48 @@ async function executeAction(page, action, elements) {
     } else if (action.type === 'type') {
       await page.mouse.click(x, y);
       await page.keyboard.type(action.text || '', { delay: 20 });
+    } else if (action.type === 'select') {
+      await selectOptionAt(page, target, x, y, action);
     } else {
       return { ok: false, error: `알 수 없는 action.type: ${action.type}` };
     }
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err.message };
+  }
+}
+
+// 헤드리스 브라우저에서 네이티브 <select>가 열리는 OS 드롭다운은 스크린샷에 안 잡히고
+// 좌표 클릭으로 옵션을 고를 수도 없다. 그래서 select 요소만 좌표로 다시 찾아
+// Playwright의 selectOption()으로 값을 직접 지정한다 — 커스텀(비-select) 드롭다운은
+// 그냥 한 번 클릭해서 열기만 한다(다음 스텝 캡처에서 드러난 옵션을 click으로 고르면 됨).
+async function selectOptionAt(page, target, x, y, action) {
+  if (target.tag !== 'select') {
+    await page.mouse.click(x, y);
+    return;
+  }
+  const marker = `data-repliqa-tmp-${Date.now()}`;
+  await page.evaluate(
+    ({ px, py, m }) => {
+      const el = document.elementFromPoint(px, py);
+      if (el) el.setAttribute(m, '1');
+    },
+    { px: x, py: y, m: marker }
+  );
+  try {
+    const locator = page.locator(`[${marker}]`);
+    if (action.optionValue) {
+      await locator.selectOption({ value: action.optionValue });
+    } else {
+      await locator.selectOption({ label: action.optionLabel || '' });
+    }
+  } finally {
+    await page
+      .evaluate((m) => {
+        const el = document.querySelector(`[${m}]`);
+        if (el) el.removeAttribute(m);
+      }, marker)
+      .catch(() => {});
   }
 }
 

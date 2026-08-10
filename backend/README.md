@@ -45,7 +45,8 @@ npm run start:worker
 - `POST /api/urls` — 테스트 대상 URL 등록 (아직 미검증 상태로 생성됨)
 - `POST /api/urls/:id/verify` — `.well-known/repliqa-verify-<token>.txt` 파일로 소유권 검증
 - `PUT /api/urls/:id/test-credentials` — 테스트 전용 계정 자격증명 등록(암호화 저장, 실 사용자 계정 금지)
-- `POST /api/routes` / `GET /api/routes?registeredUrlId=` — 여정(체크포인트 목록) 생성/조회. 체크포인트는 자연어 한 줄 = 한 단계
+- `PUT /api/urls/:id/test-payment-method` — 결제 체크포인트용 테스트 카드/계좌 정보 등록(암호화 저장). 반드시 PG 테스트/샌드박스 모드용 값만 등록
+- `POST /api/routes` / `GET /api/routes?registeredUrlId=` — 여정(체크포인트 목록) 생성/조회. 체크포인트는 자연어 한 줄 = 한 단계, 줄 맨 앞에 `[결제]`를 붙이면 결제 전용 체크포인트로 처리됨
 - `GET /api/personas` — 사용 가능한 페르소나 목록
 - `POST /api/test-runs` — 테스트 실행 큐 등록 (검증된 URL만 가능, 쿼터 체크). `routeId`를 넘기면 그 여정을 순서대로 따라가며 각 체크포인트에서 기능 에러 + UI/UX 평가를 함께 수행하고, 생략하면 기존처럼 자유 탐색으로 실행
 - `GET /api/test-runs/:id` — 실행 상태/결과 조회 (실시간 갱신은 프론트에서 Firestore `onSnapshot` 사용 권장)
@@ -55,6 +56,13 @@ npm run start:worker
 
 - 체크포인트 목표 없이(자유 탐색) 실행하던 기존 방식은 여전히 지원됨 — `routeId`를 안 넘기면 자동으로 목표 없는 체크포인트 1개로 흘러감.
 - 각 체크포인트 진입 시 1회, `backend/src/engine/uiuxChecks.js`(WCAG 명암비·터치 타겟 크기·가로 스크롤·alt 누락 등 결정론적 계산)와 `geminiAdapter.evaluateUiUx()`(Toss/Google Material/Kakao·Naver 공개 디자인 원칙 기반 체크리스트 — `backend/src/engine/uiuxChecklist.js`)를 함께 실행해 기능 에러와 별개로 UI/UX 이슈를 리포트에 남김.
+
+## 결제 체크포인트
+
+- 여정 체크포인트 줄 앞에 `[결제]`를 붙이면 그 단계는 `type: 'payment'`로 저장되고, 진입 시 등록된 테스트 카드 정보를 자동으로 입력함(`runEngine.js`의 `attemptPaymentFill` — 로그인과 동일하게 LLM에는 실제 카드값을 넘기지 않고 필드 위치만 물어봄).
+- **안전핀**: "결제하기/구매확정" 류 최종 제출 버튼(`backend/src/engine/paymentSafety.js`의 키워드 목록)은 결제 체크포인트에서 절대 자동 클릭하지 않는다. 그 지점에 도달한 것 자체를 체크포인트 성공으로 기록하고 멈춘다 — 실제 결제·부정거래 탐지 위험을 원천 차단하기 위함.
+- PG 위젯이 팝업이나 iframe으로 뜨는 경우를 지원함: `capture.js`가 iframe 내부 요소도 좌표를 페이지 좌표계로 변환해서 함께 수집하고, 결제 체크포인트 동안은 팝업이 열리면 이후 캡처/실행 대상이 자동으로 그 팝업으로 전환됨.
+- 카드사/은행 선택 같은 `<select>` 드롭다운은 헤드리스 브라우저에서 OS 네이티브 팝업이 스크린샷에 안 잡혀서 좌표 클릭으로 옵션을 고를 수 없다 — `action.type: 'select'`를 지원해서 `Locator.selectOption()`으로 직접 값을 지정한다(`executor.js`). `capture.js`가 select의 `<option>` 목록을 텍스트로 함께 넘겨주므로, 화면엔 안 보이는 옵션도 LLM이 선택할 수 있다.
 
 ## 보안 메모
 

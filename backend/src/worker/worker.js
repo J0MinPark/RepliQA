@@ -41,13 +41,21 @@ async function processRun(doc) {
     if (urlData?.testCredentials) {
       credentials = JSON.parse(decryptSecret(urlData.testCredentials));
     }
+    let paymentInfo = null;
+    if (urlData?.testPaymentMethod) {
+      paymentInfo = JSON.parse(decryptSecret(urlData.testPaymentMethod));
+    }
 
     // checkpoints는 Firestore에 맵({"0": {...}, "1": {...}})으로 저장돼 있어서, 엔진에
     // 넘기기 전에 숫자 키 순서대로 정렬한 배열로 복원한다.
     const checkpoints = Object.keys(claimed.checkpoints || {})
       .map(Number)
       .sort((a, b) => a - b)
-      .map((index) => ({ index, goal: claimed.checkpoints[index].goal }));
+      .map((index) => ({
+        index,
+        goal: claimed.checkpoints[index].goal,
+        type: claimed.checkpoints[index].type || 'generic',
+      }));
 
     const result = await runTest({
       tenantId,
@@ -57,6 +65,7 @@ async function processRun(doc) {
       checkpoints,
       maxActionsPerCheckpoint: claimed.maxActionsPerCheckpoint || 5,
       credentials,
+      paymentInfo,
       onCheckpointStatus: async (checkpointIndex, status) => {
         await ref.update({ [`checkpoints.${checkpointIndex}.status`]: status });
       },

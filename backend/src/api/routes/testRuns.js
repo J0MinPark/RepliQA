@@ -35,7 +35,7 @@ router.post('/', testRunCreationLimiter, async (req, res) => {
   // routeId가 있으면 그 여정의 체크포인트를, 없으면 "목표 없는 체크포인트 1개"를 합성해서
   // 자유 탐색(기존 동작)을 동일한 체크포인트 파이프라인으로 흘려보낸다.
   let routeName = null;
-  let checkpointGoals;
+  let checkpointDefs;
   if (routeId) {
     const routeSnap = await collections.routes(req.tenantId).doc(routeId).get();
     if (!routeSnap.exists) return res.status(404).json({ error: '여정을 찾을 수 없습니다.' });
@@ -44,9 +44,9 @@ router.post('/', testRunCreationLimiter, async (req, res) => {
       return res.status(400).json({ error: '이 여정은 선택한 URL과 연결되어 있지 않습니다.' });
     }
     routeName = routeData.name;
-    checkpointGoals = routeData.checkpoints.map((c) => c.goal);
+    checkpointDefs = routeData.checkpoints.map((c) => ({ goal: c.goal, type: c.type || 'generic' }));
   } else {
-    checkpointGoals = [null];
+    checkpointDefs = [{ goal: null, type: 'generic' }];
   }
 
   let quota;
@@ -61,11 +61,11 @@ router.post('/', testRunCreationLimiter, async (req, res) => {
 
   // 페르소나가 스스로 정한 행동 수 상한을 존중하되, 테넌트 쿼터를 넘지는 못하게 min을 취한다.
   const maxActions = Math.min(persona.maxActions || quota.maxActionsPerRun, quota.maxActionsPerRun);
-  const maxActionsPerCheckpoint = Math.max(3, Math.floor(maxActions / checkpointGoals.length));
+  const maxActionsPerCheckpoint = Math.max(3, Math.floor(maxActions / checkpointDefs.length));
 
   const checkpoints = {};
-  checkpointGoals.forEach((goal, index) => {
-    checkpoints[index] = { goal, status: 'pending', steps: [], uiuxFindings: [] };
+  checkpointDefs.forEach(({ goal, type }, index) => {
+    checkpoints[index] = { goal, type, status: 'pending', steps: [], uiuxFindings: [] };
   });
 
   const runRef = await collections.testRuns(req.tenantId).add({

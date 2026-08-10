@@ -19,14 +19,16 @@ const ACTION_SCHEMA_HINT = `
 {
   "thought": "현재 화면 상황과 왜 이 행동을 선택했는지 (1~2문장)",
   "action": {
-    "type": "click 또는 type 또는 wait 또는 go_back 또는 finish",
+    "type": "click 또는 type 또는 select 또는 wait 또는 go_back 또는 finish",
     "elementIndex": 0,
     "text": "type일 때만 입력할 문자열",
+    "optionLabel": "select일 때만, 그 요소의 options 목록에 있는 라벨 중 정확히 하나",
     "waitMs": 500
   },
   "done": false
 }
 요소는 반드시 제공된 interactiveElements 배열의 "index" 값으로만 지정해라. 자유 텍스트로 요소를 설명하지 마라.
+드롭다운(select) 요소는 options 필드에 고를 수 있는 항목이 나열되어 있다 — 그 화면에는 안 보일 수 있으니(예: 국가/카드사 선택) 반드시 options 목록을 참고해서 optionLabel을 정확히 그 중 하나로 골라라.
 더 이상 테스트할 행동이 없다고 판단되면 action.type을 "finish"로, done을 true로 설정해라.
 `;
 
@@ -150,4 +152,38 @@ ${JSON.stringify(elements)}
   return JSON.parse(result.response.text());
 }
 
-module.exports = { generateNextAction, generateReport, identifyLoginFields, evaluateUiUx };
+// 로그인 필드 탐지와 동일한 원칙: 실제 카드번호/CVC 값은 LLM에게 절대 보여주지 않는다.
+// "어떤 요소가 카드번호/유효기간/CVC/생년월일-사업자번호/예금주명 칸인지"만 물어보고,
+// 실제 문자열 입력은 서버가 직접 한다.
+async function identifyPaymentFields({ screenshotBase64, elements }) {
+  const model = getModel();
+  const prompt = `아래는 결제 정보 입력 화면(카드/계좌 정보 입력 폼)의 인터랙티브 요소 목록이다.
+카드번호, 유효기간(MM/YY), CVC, 생년월일 또는 사업자번호, 예금주/카드소유자명 입력창에
+해당하는 요소의 index를 찾아라. 해당 요소가 화면에 없으면 null로 응답해라.
+
+{
+  "cardNumberIndex": 0,
+  "expiryIndex": 1,
+  "cvcIndex": 2,
+  "birthOrBusinessIndex": 3,
+  "cardHolderNameIndex": 4
+}
+
+<interactive_elements>
+${JSON.stringify(elements)}
+</interactive_elements>`;
+
+  const result = await model.generateContent([
+    { text: prompt },
+    { inlineData: { mimeType: 'image/jpeg', data: screenshotBase64 } },
+  ]);
+  return JSON.parse(result.response.text());
+}
+
+module.exports = {
+  generateNextAction,
+  generateReport,
+  identifyLoginFields,
+  identifyPaymentFields,
+  evaluateUiUx,
+};

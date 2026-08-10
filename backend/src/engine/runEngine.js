@@ -2,6 +2,7 @@ const { chromium } = require('playwright');
 const { captureState } = require('./capture');
 const { executeAction, attachErrorCollectors, centerOf } = require('./executor');
 const { runObjectiveChecks } = require('./uiuxChecks');
+const { isPaymentSubmitElement } = require('./paymentSafety');
 const geminiAdapter = require('./llm/geminiAdapter');
 const { bucket } = require('../db/firestore');
 const { assertHttpUrl, resolveSafeIp } = require('../security/ssrfGuard');
@@ -46,13 +47,53 @@ async function attemptLogin(page, credentials) {
   return { attempted: true };
 }
 
-function toPromptElements(elements) {
-  return elements.map(({ index, tag, role, text, box }) => ({ index, tag, role, text, box }));
+// 로그인과 같은 원칙: 실제 카드번호/CVC 값은 LLM에 절대 보여주지 않는다 — 필드 "위치"만
+// 물어보고 실제 입력은 서버가 한다. 제출 버튼은 여기서 누르지 않는다(안전핀은 상위
+// 루프에서 별도로 처리) — 입력까지만 하고 그다음 판단은 정상 페르소나 루프에 맡긴다.
+async function attemptPaymentFill(page, paymentInfo) {
+  const state = await captureState(page);
+  const plan = await geminiAdapter.identifyPaymentFields({
+    screenshotBase64: state.screenshotBase64,
+    elements: state.elements.map(({ index, tag, role, text, box }) => ({ index, tag, role, text, box })),
+  });
+
+  const fieldMap = [
+    ['cardNumberIndex', 'cardNumber'],
+    ['expiryIndex', 'expiry'],
+    ['cvcIndex', 'cvc'],
+    ['birthOrBusinessIndex', 'birthOrBusinessNo'],
+    ['cardHolderNameIndex', 'cardHolderName'],
+  ];
+
+  let filledAny = false;
+  for (const [indexKey, valueKey] of fieldMap) {
+    const idx = plan[indexKey];
+    const value = paymentInfo[valueKey];
+    if (idx == null || !value) continue;
+    const el = state.elements[idx];
+    if (!el) continue;
+    const c = centerOf(el.box);
+    await page.mouse.click(c.x, c.y);
+    await page.keyboard.type(value, { delay: 20 });
+    filledAny = true;
+  }
+  return { attempted: filledAny };
 }
 
-// 체크포인트(여정 단계) 하나를 처리한다: 진입 시 UI/UX 1회 평가 → 목표 달성까지
-// capture→plan→execute 루프를 maxActionsPerCheckpoint까지 반복.
-// routeId 없이 실행된 자유 탐색도 "goal: null인 체크포인트 1개"로 동일하게 흐른다.
+function toPromptElements(elements) {
+  return elements.map(({ index, tag, role, text, box, options }) => ({
+    index,
+    tag,
+    role,
+    text,
+    box,
+    ...(options ? { options } : {}),
+  }));
+}
+
+// 체크포인트(여정 단계) 하나를 처리한다: 진입 시 UI/UX 1회 평가 → (결제 단계면 테스트
+// 결제정보 자동입력) → 목표 달성까지 capture→plan→execute 루프를 maxActionsPerCheckpoint까지
+// 반복. routeId 없이 실행된 자유 탐색도 "goal: null인 체크포인트 1개"로 동일하게 흐른다.
 async function runCheckpoint({
   page,
   context,
@@ -60,11 +101,14 @@ async function runCheckpoint({
   runId,
   checkpoint,
   persona,
+  paymentInfo,
   maxActionsPerCheckpoint,
   collectedErrors,
   onStep,
   onUiuxFindings,
 }) {
+  const isPayment = checkpoint.type === 'payment';
+
   const entryState = await captureState(page);
   const objectiveFindings = await runObjectiveChecks(page).catch((err) => {
     collectedErrors.push(`[UIUX Objective Check Error] ${err.message}`);
@@ -99,60 +143,105 @@ async function runCheckpoint({
     });
   }
 
+  // 결제 위젯은 팝업(새 탭)이나 iframe으로 뜨는 경우가 흔하다. 팝업이 열리면 이후
+  // capture/execute 대상을 그 팝업으로 전환한다(iframe은 capture.js가 알아서 훑는다).
+  let activePage = page;
+  let popupListener = null;
+  if (isPayment) {
+    popupListener = (newPage) => {
+      activePage = newPage;
+      attachErrorCollectors(newPage, collectedErrors);
+      newPage.on('close', () => {
+        if (activePage === newPage) activePage = page;
+      });
+    };
+    context.on('page', popupListener);
+
+    if (paymentInfo) {
+      await attemptPaymentFill(activePage, paymentInfo).catch((err) => {
+        collectedErrors.push(`[Payment Fill Error] ${err.message}`);
+      });
+    }
+  }
+
   let done = false;
   let offline = false;
   let stepInCheckpoint = 0;
   const history = [];
   const steps = [];
 
-  while (!done && stepInCheckpoint < maxActionsPerCheckpoint) {
-    stepInCheckpoint += 1;
+  try {
+    while (!done && stepInCheckpoint < maxActionsPerCheckpoint) {
+      stepInCheckpoint += 1;
 
-    if (persona.networkChaos) {
-      offline = !offline;
-      await context.setOffline(offline);
+      if (persona.networkChaos) {
+        offline = !offline;
+        await context.setOffline(offline);
+      }
+
+      const state = stepInCheckpoint === 1 && activePage === page ? entryState : await captureState(activePage);
+      const plan = await geminiAdapter.generateNextAction({
+        screenshotBase64: state.screenshotBase64,
+        elements: toPromptElements(state.elements),
+        personaPrompt: persona.systemPromptTemplate,
+        checkpointGoal: checkpoint.goal,
+        history,
+        stepNumber: stepInCheckpoint,
+        maxActions: maxActionsPerCheckpoint,
+      });
+
+      // 안전핀: 결제 체크포인트에서 "결제하기/구매확정" 류 최종 제출 버튼은 절대 자동
+      // 클릭하지 않는다. 그 지점까지 정상적으로 도달했다는 것 자체를 체크포인트 성공으로
+      // 기록하고 멈춘다 — 실제 결제·부정거래 탐지 위험을 원천 차단하기 위한 하드 가드.
+      const targetEl = plan.action?.type === 'click' ? state.elements[plan.action.elementIndex] : null;
+      if (isPayment && targetEl && isPaymentSubmitElement(targetEl.text)) {
+        const step = {
+          stepNumber: stepInCheckpoint,
+          thought: '결제 최종 제출 버튼으로 판단되어 안전상 자동 클릭을 생략함',
+          action: { type: 'safety_stop', elementIndex: plan.action.elementIndex },
+          execOk: true,
+          execError: null,
+          screenshotPath: stepInCheckpoint === 1 ? entryScreenshotPath : null,
+          timestamp: new Date().toISOString(),
+        };
+        steps.push(step);
+        if (onStep) await onStep(checkpoint.index, step);
+        done = true;
+        break;
+      }
+
+      const execResult = await executeAction(activePage, plan.action, state.elements);
+      const screenshotPath =
+        stepInCheckpoint === 1 && activePage === page
+          ? entryScreenshotPath
+          : await uploadScreenshot(
+              tenantId,
+              runId,
+              `checkpoint-${checkpoint.index}-step-${stepInCheckpoint}`,
+              state.screenshotBuffer
+            ).catch((err) => {
+              collectedErrors.push(`[Storage Error] 스크린샷 업로드 실패: ${err.message}`);
+              return null;
+            });
+
+      const step = {
+        stepNumber: stepInCheckpoint,
+        thought: plan.thought || '',
+        action: plan.action || null,
+        execOk: execResult.ok,
+        execError: execResult.error || null,
+        screenshotPath,
+        timestamp: new Date().toISOString(),
+      };
+      history.push({ thought: step.thought, action: step.action });
+      steps.push(step);
+      if (onStep) await onStep(checkpoint.index, step);
+
+      done = Boolean(plan.done) || plan.action?.type === 'finish';
+      await activePage.waitForTimeout(300);
     }
-
-    const state = stepInCheckpoint === 1 ? entryState : await captureState(page);
-    const plan = await geminiAdapter.generateNextAction({
-      screenshotBase64: state.screenshotBase64,
-      elements: toPromptElements(state.elements),
-      personaPrompt: persona.systemPromptTemplate,
-      checkpointGoal: checkpoint.goal,
-      history,
-      stepNumber: stepInCheckpoint,
-      maxActions: maxActionsPerCheckpoint,
-    });
-
-    const execResult = await executeAction(page, plan.action, state.elements);
-    const screenshotPath =
-      stepInCheckpoint === 1
-        ? entryScreenshotPath
-        : await uploadScreenshot(
-            tenantId,
-            runId,
-            `checkpoint-${checkpoint.index}-step-${stepInCheckpoint}`,
-            state.screenshotBuffer
-          ).catch((err) => {
-            collectedErrors.push(`[Storage Error] 스크린샷 업로드 실패: ${err.message}`);
-            return null;
-          });
-
-    const step = {
-      stepNumber: stepInCheckpoint,
-      thought: plan.thought || '',
-      action: plan.action || null,
-      execOk: execResult.ok,
-      execError: execResult.error || null,
-      screenshotPath,
-      timestamp: new Date().toISOString(),
-    };
-    history.push({ thought: step.thought, action: step.action });
-    steps.push(step);
-    if (onStep) await onStep(checkpoint.index, step);
-
-    done = Boolean(plan.done) || plan.action?.type === 'finish';
-    await page.waitForTimeout(300);
+  } finally {
+    if (popupListener) context.off('page', popupListener);
   }
 
   if (persona.networkChaos && offline) {
@@ -173,6 +262,7 @@ async function runTest({
   checkpoints,
   maxActionsPerCheckpoint,
   credentials,
+  paymentInfo,
   onCheckpointStatus,
   onStep,
   onUiuxFindings,
@@ -214,6 +304,7 @@ async function runTest({
         runId,
         checkpoint,
         persona,
+        paymentInfo,
         maxActionsPerCheckpoint,
         collectedErrors,
         onStep,

@@ -14,6 +14,7 @@ import {
   CircleDot,
   CheckCircle2,
   XCircle,
+  ShieldCheck,
 } from 'lucide-react';
 import { db, storage } from '../lib/firebase';
 
@@ -45,18 +46,31 @@ function StepTimeline({ steps }) {
   }
   return (
     <div className="space-y-3">
-      {steps.map((s) => (
-        <div key={s.stepNumber} className="flex items-start gap-3 bg-slate-50 border border-slate-200 rounded-xl p-3">
-          <StepScreenshot path={s.screenshotPath} />
-          <div className="min-w-0">
-            <p className="text-xs font-bold text-slate-700">
-              #{s.stepNumber} {s.action?.type} {!s.execOk && <span className="text-red-500">(실패)</span>}
-            </p>
-            <p className="text-xs text-slate-500 mt-1 leading-relaxed">{s.thought}</p>
-            {s.execError && <p className="text-xs text-red-500 mt-1">{s.execError}</p>}
+      {steps.map((s) =>
+        s.action?.type === 'safety_stop' ? (
+          <div
+            key={s.stepNumber}
+            className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3"
+          >
+            <ShieldCheck size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-amber-800">#{s.stepNumber} 결제 최종 제출 생략 (안전핀)</p>
+              <p className="text-xs text-amber-700 mt-1 leading-relaxed">{s.thought}</p>
+            </div>
           </div>
-        </div>
-      ))}
+        ) : (
+          <div key={s.stepNumber} className="flex items-start gap-3 bg-slate-50 border border-slate-200 rounded-xl p-3">
+            <StepScreenshot path={s.screenshotPath} />
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-slate-700">
+                #{s.stepNumber} {s.action?.type} {!s.execOk && <span className="text-red-500">(실패)</span>}
+              </p>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">{s.thought}</p>
+              {s.execError && <p className="text-xs text-red-500 mt-1">{s.execError}</p>}
+            </div>
+          </div>
+        )
+      )}
     </div>
   );
 }

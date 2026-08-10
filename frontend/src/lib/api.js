@@ -31,6 +31,8 @@ export const api = {
   verifyUrl: (id) => apiFetch(`/api/urls/${id}/verify`, { method: 'POST' }),
   setTestCredentials: (id, username, password) =>
     apiFetch(`/api/urls/${id}/test-credentials`, { method: 'PUT', body: { username, password } }),
+  setTestPaymentMethod: (id, paymentMethod) =>
+    apiFetch(`/api/urls/${id}/test-payment-method`, { method: 'PUT', body: paymentMethod }),
   listPersonas: () => apiFetch('/api/personas'),
   listRoutes: (registeredUrlId) =>
     apiFetch(`/api/routes${registeredUrlId ? `?registeredUrlId=${registeredUrlId}` : ''}`),
