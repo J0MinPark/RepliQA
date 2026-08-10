@@ -1,12 +1,13 @@
 const { chromium } = require('playwright');
 const { captureState } = require('./capture');
 const { executeAction, attachErrorCollectors, centerOf } = require('./executor');
+const { runObjectiveChecks } = require('./uiuxChecks');
 const geminiAdapter = require('./llm/geminiAdapter');
 const { bucket } = require('../db/firestore');
 const { assertHttpUrl, resolveSafeIp } = require('../security/ssrfGuard');
 
-async function uploadScreenshot(tenantId, runId, stepNumber, buffer) {
-  const path = `tenants/${tenantId}/testRuns/${runId}/step-${stepNumber}.jpg`;
+async function uploadScreenshot(tenantId, runId, label, buffer) {
+  const path = `tenants/${tenantId}/testRuns/${runId}/${label}.jpg`;
   await bucket.file(path).save(buffer, { contentType: 'image/jpeg' });
   return path;
 }
@@ -45,10 +46,137 @@ async function attemptLogin(page, credentials) {
   return { attempted: true };
 }
 
-// capture → (Gemini Vision) planner → executor 루프를 persona.maxActions까지 돌리고,
-// 완료 시 에러 로그를 바탕으로 vibe-coding 수정 프롬프트를 생성해 리턴한다.
-// onStep(step)이 주어지면 매 스텝마다 호출되어 worker가 Firestore를 실시간 업데이트할 수 있다.
-async function runTest({ tenantId, runId, targetUrl, persona, maxActions, credentials, onStep }) {
+function toPromptElements(elements) {
+  return elements.map(({ index, tag, role, text, box }) => ({ index, tag, role, text, box }));
+}
+
+// 체크포인트(여정 단계) 하나를 처리한다: 진입 시 UI/UX 1회 평가 → 목표 달성까지
+// capture→plan→execute 루프를 maxActionsPerCheckpoint까지 반복.
+// routeId 없이 실행된 자유 탐색도 "goal: null인 체크포인트 1개"로 동일하게 흐른다.
+async function runCheckpoint({
+  page,
+  context,
+  tenantId,
+  runId,
+  checkpoint,
+  persona,
+  maxActionsPerCheckpoint,
+  collectedErrors,
+  onStep,
+  onUiuxFindings,
+}) {
+  const entryState = await captureState(page);
+  const objectiveFindings = await runObjectiveChecks(page).catch((err) => {
+    collectedErrors.push(`[UIUX Objective Check Error] ${err.message}`);
+    return [];
+  });
+  const uiuxResult = await geminiAdapter
+    .evaluateUiUx({
+      screenshotBase64: entryState.screenshotBase64,
+      elements: toPromptElements(entryState.elements),
+      objectiveFindings,
+      checkpointGoal: checkpoint.goal,
+    })
+    .catch((err) => {
+      collectedErrors.push(`[UIUX Eval Error] ${err.message}`);
+      return { findings: [] };
+    });
+
+  const entryScreenshotPath = await uploadScreenshot(
+    tenantId,
+    runId,
+    `checkpoint-${checkpoint.index}-entry`,
+    entryState.screenshotBuffer
+  ).catch((err) => {
+    collectedErrors.push(`[Storage Error] 스크린샷 업로드 실패: ${err.message}`);
+    return null;
+  });
+
+  if (onUiuxFindings) {
+    await onUiuxFindings(checkpoint.index, {
+      findings: [...objectiveFindings, ...(uiuxResult.findings || [])],
+      screenshotPath: entryScreenshotPath,
+    });
+  }
+
+  let done = false;
+  let offline = false;
+  let stepInCheckpoint = 0;
+  const history = [];
+  const steps = [];
+
+  while (!done && stepInCheckpoint < maxActionsPerCheckpoint) {
+    stepInCheckpoint += 1;
+
+    if (persona.networkChaos) {
+      offline = !offline;
+      await context.setOffline(offline);
+    }
+
+    const state = stepInCheckpoint === 1 ? entryState : await captureState(page);
+    const plan = await geminiAdapter.generateNextAction({
+      screenshotBase64: state.screenshotBase64,
+      elements: toPromptElements(state.elements),
+      personaPrompt: persona.systemPromptTemplate,
+      checkpointGoal: checkpoint.goal,
+      history,
+      stepNumber: stepInCheckpoint,
+      maxActions: maxActionsPerCheckpoint,
+    });
+
+    const execResult = await executeAction(page, plan.action, state.elements);
+    const screenshotPath =
+      stepInCheckpoint === 1
+        ? entryScreenshotPath
+        : await uploadScreenshot(
+            tenantId,
+            runId,
+            `checkpoint-${checkpoint.index}-step-${stepInCheckpoint}`,
+            state.screenshotBuffer
+          ).catch((err) => {
+            collectedErrors.push(`[Storage Error] 스크린샷 업로드 실패: ${err.message}`);
+            return null;
+          });
+
+    const step = {
+      stepNumber: stepInCheckpoint,
+      thought: plan.thought || '',
+      action: plan.action || null,
+      execOk: execResult.ok,
+      execError: execResult.error || null,
+      screenshotPath,
+      timestamp: new Date().toISOString(),
+    };
+    history.push({ thought: step.thought, action: step.action });
+    steps.push(step);
+    if (onStep) await onStep(checkpoint.index, step);
+
+    done = Boolean(plan.done) || plan.action?.type === 'finish';
+    await page.waitForTimeout(300);
+  }
+
+  if (persona.networkChaos && offline) {
+    await context.setOffline(false);
+  }
+
+  return { done, steps };
+}
+
+// checkpoints를 순서대로 처리한다. 하나가 예산 안에 끝나지 못하면(done=false) 그 지점에서
+// 런을 중단한다 — 로그인이 안 되는데 결제 체크포인트를 계속 시도해봐야 의미 있는 신호가
+// 아니고, "어디서 막혔는지" 자체가 리포트의 핵심 가치이기 때문.
+async function runTest({
+  tenantId,
+  runId,
+  targetUrl,
+  persona,
+  checkpoints,
+  maxActionsPerCheckpoint,
+  credentials,
+  onCheckpointStatus,
+  onStep,
+  onUiuxFindings,
+}) {
   assertHttpUrl(targetUrl);
   const hostname = new URL(targetUrl).hostname;
   const pinnedIp = await resolveSafeIp(hostname);
@@ -60,7 +188,8 @@ async function runTest({ tenantId, runId, targetUrl, persona, maxActions, creden
   });
 
   const collectedErrors = [];
-  const steps = [];
+  const allSteps = [];
+  let haltedAtCheckpoint = null;
 
   try {
     const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
@@ -75,65 +204,38 @@ async function runTest({ tenantId, runId, targetUrl, persona, maxActions, creden
       });
     }
 
-    let done = false;
-    let stepNumber = 0;
-    let offline = false;
+    for (const checkpoint of checkpoints) {
+      if (onCheckpointStatus) await onCheckpointStatus(checkpoint.index, 'running');
 
-    while (!done && stepNumber < maxActions) {
-      stepNumber += 1;
-
-      if (persona.networkChaos) {
-        offline = !offline;
-        await context.setOffline(offline);
-      }
-
-      const state = await captureState(page);
-      const plan = await geminiAdapter.generateNextAction({
-        screenshotBase64: state.screenshotBase64,
-        elements: state.elements.map(({ index, tag, role, text, box }) => ({ index, tag, role, text, box })),
-        personaPrompt: persona.systemPromptTemplate,
-        history: steps.map((s) => ({ thought: s.thought, action: s.action })),
-        stepNumber,
-        maxActions,
-      });
-
-      const execResult = await executeAction(page, plan.action, state.elements);
-      const screenshotPath = await uploadScreenshot(
+      const result = await runCheckpoint({
+        page,
+        context,
         tenantId,
         runId,
-        stepNumber,
-        state.screenshotBuffer
-      ).catch((err) => {
-        collectedErrors.push(`[Storage Error] 스크린샷 업로드 실패: ${err.message}`);
-        return null;
+        checkpoint,
+        persona,
+        maxActionsPerCheckpoint,
+        collectedErrors,
+        onStep,
+        onUiuxFindings,
       });
 
-      const step = {
-        stepNumber,
-        thought: plan.thought || '',
-        action: plan.action || null,
-        execOk: execResult.ok,
-        execError: execResult.error || null,
-        screenshotPath,
-        timestamp: new Date().toISOString(),
-      };
-      steps.push(step);
-      if (onStep) await onStep(step);
+      allSteps.push(...result.steps.map((s) => ({ ...s, checkpointIndex: checkpoint.index })));
 
-      done = Boolean(plan.done) || plan.action?.type === 'finish';
-      await page.waitForTimeout(300);
+      if (!result.done) {
+        if (onCheckpointStatus) await onCheckpointStatus(checkpoint.index, 'failed');
+        haltedAtCheckpoint = checkpoint.index;
+        break;
+      }
+      if (onCheckpointStatus) await onCheckpointStatus(checkpoint.index, 'completed');
     }
 
-    if (persona.networkChaos && offline) {
-      await context.setOffline(false);
-    }
-
-    const report = await geminiAdapter.generateReport({ errors: collectedErrors, steps });
+    const report = await geminiAdapter.generateReport({ errors: collectedErrors, steps: allSteps });
 
     return {
-      steps,
       collectedErrors,
-      summary: { totalErrors: collectedErrors.length, totalActions: steps.length },
+      haltedAtCheckpoint,
+      summary: { totalErrors: collectedErrors.length, totalActions: allSteps.length },
       vibeCoderPrompt: report.vibe_coder_prompt,
       errorAnalysis: report.error_analysis,
     };

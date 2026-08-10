@@ -45,10 +45,16 @@ npm run start:worker
 - `POST /api/urls` — 테스트 대상 URL 등록 (아직 미검증 상태로 생성됨)
 - `POST /api/urls/:id/verify` — `.well-known/repliqa-verify-<token>.txt` 파일로 소유권 검증
 - `PUT /api/urls/:id/test-credentials` — 테스트 전용 계정 자격증명 등록(암호화 저장, 실 사용자 계정 금지)
+- `POST /api/routes` / `GET /api/routes?registeredUrlId=` — 여정(체크포인트 목록) 생성/조회. 체크포인트는 자연어 한 줄 = 한 단계
 - `GET /api/personas` — 사용 가능한 페르소나 목록
-- `POST /api/test-runs` — 테스트 실행 큐 등록 (검증된 URL만 가능, 쿼터 체크)
+- `POST /api/test-runs` — 테스트 실행 큐 등록 (검증된 URL만 가능, 쿼터 체크). `routeId`를 넘기면 그 여정을 순서대로 따라가며 각 체크포인트에서 기능 에러 + UI/UX 평가를 함께 수행하고, 생략하면 기존처럼 자유 탐색으로 실행
 - `GET /api/test-runs/:id` — 실행 상태/결과 조회 (실시간 갱신은 프론트에서 Firestore `onSnapshot` 사용 권장)
 - `GET /api/usage/today` — 오늘 사용량 + 쿼터
+
+## 여정 & UI/UX 평가
+
+- 체크포인트 목표 없이(자유 탐색) 실행하던 기존 방식은 여전히 지원됨 — `routeId`를 안 넘기면 자동으로 목표 없는 체크포인트 1개로 흘러감.
+- 각 체크포인트 진입 시 1회, `backend/src/engine/uiuxChecks.js`(WCAG 명암비·터치 타겟 크기·가로 스크롤·alt 누락 등 결정론적 계산)와 `geminiAdapter.evaluateUiUx()`(Toss/Google Material/Kakao·Naver 공개 디자인 원칙 기반 체크리스트 — `backend/src/engine/uiuxChecklist.js`)를 함께 실행해 기능 에러와 별개로 UI/UX 이슈를 리포트에 남김.
 
 ## 보안 메모
 

@@ -1,5 +1,6 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const env = require('../../config/env');
+const { UIUX_CHECKLIST } = require('../uiuxChecklist');
 
 // LLM 프로바이더를 여기 뒤로 숨겨둔다. 지금은 Gemini만 구현하지만, 나중에 다른
 // 모델로 바꾸더라도 이 파일의 함수 시그니처(generateNextAction/generateReport/
@@ -29,10 +30,21 @@ const ACTION_SCHEMA_HINT = `
 더 이상 테스트할 행동이 없다고 판단되면 action.type을 "finish"로, done을 true로 설정해라.
 `;
 
-async function generateNextAction({ screenshotBase64, elements, personaPrompt, history, stepNumber, maxActions }) {
+async function generateNextAction({
+  screenshotBase64,
+  elements,
+  personaPrompt,
+  checkpointGoal,
+  history,
+  stepNumber,
+  maxActions,
+}) {
   const model = getModel();
+  const goalBlock = checkpointGoal
+    ? `\n너의 현재 목표(체크포인트): "${checkpointGoal}"\n이 목표를 달성했다고 판단되면 action.type을 "finish"로, done을 true로 설정해라. 목표와 무관한 행동은 하지 마라.\n`
+    : '';
   const prompt = `${personaPrompt}
-
+${goalBlock}
 너는 지금 이 웹페이지에서 ${stepNumber}/${maxActions} 번째 행동을 결정해야 한다.
 스크린샷과 아래 인터랙티브 요소 목록(좌표 포함)을 보고 판단해라.
 
@@ -105,4 +117,37 @@ ${JSON.stringify(elements)}
   return JSON.parse(result.response.text());
 }
 
-module.exports = { generateNextAction, generateReport, identifyLoginFields };
+// 체크포인트에 처음 진입했을 때 1회 호출. 매 마이크로스텝마다 부르면 같은 화면에 대해
+// 중복된 지적이 반복돼서 노이즈가 되므로, "이 화면에 도착한 시점"에만 평가한다.
+// objectiveFindings(uiuxChecks.js의 결정론적 결과)를 함께 보여줘서 LLM이 중복 탐지를
+// 반복하지 않고, 객관적으로 못 잡는 부분(위계·카피톤·일관성 등)에 집중하게 한다.
+async function evaluateUiUx({ screenshotBase64, elements, objectiveFindings, checkpointGoal }) {
+  const model = getModel();
+  const prompt = `너는 시니어 프론트엔드 개발자 겸 프로덕트 디자이너로서 아래 화면을 평가한다.
+${checkpointGoal ? `사용자는 지금 "${checkpointGoal}" 단계에 있다.\n` : ''}
+${UIUX_CHECKLIST}
+
+아래는 이미 결정론적으로 계산된 객관적 이슈들이다(참고만 하고 중복 보고하지 마라):
+<objective_findings>
+${JSON.stringify(objectiveFindings || [])}
+</objective_findings>
+
+<interactive_elements>
+${JSON.stringify(elements)}
+</interactive_elements>
+
+명백한 문제만 findings로 반환해라. 문제가 없으면 빈 배열을 반환해라.
+{
+  "findings": [
+    { "category": "consistency|layout|feedback|typography|hierarchy", "severity": "info" | "warning", "description": "구체적인 문제와 위치" }
+  ]
+}`;
+
+  const result = await model.generateContent([
+    { text: prompt },
+    { inlineData: { mimeType: 'image/jpeg', data: screenshotBase64 } },
+  ]);
+  return JSON.parse(result.response.text());
+}
+
+module.exports = { generateNextAction, generateReport, identifyLoginFields, evaluateUiUx };

@@ -5,6 +5,7 @@ const env = require('../config/env');
 const { generalLimiter } = require('./middleware/rateLimit');
 const tenantsRouter = require('./routes/tenants');
 const urlsRouter = require('./routes/urls');
+const routesRouter = require('./routes/routes');
 const testRunsRouter = require('./routes/testRuns');
 const personasRouter = require('./routes/personas');
 const usageRouter = require('./routes/usage');
@@ -25,6 +26,7 @@ app.get('/health', (req, res) => res.json({ ok: true }));
 
 app.use('/api/tenants', tenantsRouter);
 app.use('/api/urls', urlsRouter);
+app.use('/api/routes', routesRouter);
 app.use('/api/test-runs', testRunsRouter);
 app.use('/api/personas', personasRouter);
 app.use('/api/usage', usageRouter);

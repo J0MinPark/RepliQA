@@ -2,20 +2,27 @@ import React, { useState } from 'react';
 import { ArrowRight, AlertCircle } from 'lucide-react';
 import { api } from '../lib/api';
 
-export default function TestRunForm({ verifiedUrls, personas, onCreated }) {
+export default function TestRunForm({ verifiedUrls, personas, routes, onCreated }) {
   const [registeredUrlId, setRegisteredUrlId] = useState('');
   const [personaId, setPersonaId] = useState('');
+  const [routeId, setRouteId] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   const canSubmit = registeredUrlId && personaId && !submitting;
+  const routesForUrl = routes.filter((r) => r.registeredUrlId === registeredUrlId);
+
+  const handleUrlChange = (e) => {
+    setRegisteredUrlId(e.target.value);
+    setRouteId(''); // URL이 바뀌면 이전에 고른 여정은 더 이상 유효하지 않을 수 있음
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSubmitting(true);
     try {
-      const { id } = await api.createTestRun(registeredUrlId, personaId);
+      const { id } = await api.createTestRun(registeredUrlId, personaId, routeId || undefined);
       onCreated(id);
     } catch (err) {
       setError(err.message);
@@ -43,7 +50,7 @@ export default function TestRunForm({ verifiedUrls, personas, onCreated }) {
           <label className="block text-sm font-bold text-slate-700 mb-2">타겟 URL (검증됨)</label>
           <select
             value={registeredUrlId}
-            onChange={(e) => setRegisteredUrlId(e.target.value)}
+            onChange={handleUrlChange}
             className="w-full border border-slate-200 rounded-xl p-4 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500 text-sm text-slate-900"
             required
           >
@@ -73,6 +80,23 @@ export default function TestRunForm({ verifiedUrls, personas, onCreated }) {
             {personas.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name} — {p.description}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-slate-700 mb-2">테스트 여정 (선택)</label>
+          <select
+            value={routeId}
+            onChange={(e) => setRouteId(e.target.value)}
+            disabled={!registeredUrlId}
+            className="w-full border border-slate-200 rounded-xl p-4 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500 text-sm text-slate-900 disabled:opacity-50"
+          >
+            <option value="">자유 탐색 (여정 없이)</option>
+            {routesForUrl.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name} ({r.checkpoints.length}단계)
               </option>
             ))}
           </select>

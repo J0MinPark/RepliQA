@@ -22,6 +22,7 @@ const bucket = admin.storage().bucket();
 const collections = {
   tenants: () => db.collection('tenants'),
   registeredUrls: (tenantId) => db.collection('tenants').doc(tenantId).collection('registeredUrls'),
+  routes: (tenantId) => db.collection('tenants').doc(tenantId).collection('routes'),
   testRuns: (tenantId) => db.collection('tenants').doc(tenantId).collection('testRuns'),
   usage: (tenantId) => db.collection('tenants').doc(tenantId).collection('usage'),
   personas: () => db.collection('personas'),

@@ -3,6 +3,7 @@ import { Activity, Bot, Zap, ShieldCheck, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import UrlRegistrationPanel from '../components/UrlRegistrationPanel';
+import RouteBuilder from '../components/RouteBuilder';
 import TestRunForm from '../components/TestRunForm';
 import TestRunProgress from '../components/TestRunProgress';
 import UsagePanel from '../components/UsagePanel';
@@ -10,6 +11,7 @@ import UsagePanel from '../components/UsagePanel';
 export default function DashboardPage() {
   const { user, tenantId, logout } = useAuth();
   const [urls, setUrls] = useState([]);
+  const [routes, setRoutes] = useState([]);
   const [personas, setPersonas] = useState([]);
   const [usageInfo, setUsageInfo] = useState(null);
   const [activeRunId, setActiveRunId] = useState(null);
@@ -17,6 +19,11 @@ export default function DashboardPage() {
   const refreshUrls = useCallback(async () => {
     const data = await api.listUrls();
     setUrls(data);
+  }, []);
+
+  const refreshRoutes = useCallback(async () => {
+    const data = await api.listRoutes();
+    setRoutes(data);
   }, []);
 
   const refreshUsage = useCallback(async () => {
@@ -28,9 +35,10 @@ export default function DashboardPage() {
     if (!tenantId) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 로그인 직후 1회성 초기 데이터 로드
     refreshUrls();
+    refreshRoutes();
     refreshUsage();
     api.listPersonas().then(setPersonas);
-  }, [tenantId, refreshUrls, refreshUsage]);
+  }, [tenantId, refreshUrls, refreshRoutes, refreshUsage]);
 
   const handleReset = () => {
     setActiveRunId(null);
@@ -124,10 +132,16 @@ export default function DashboardPage() {
 
               {usageInfo && <UsagePanel usage={usageInfo.usage} quota={usageInfo.quota} />}
               <UrlRegistrationPanel urls={urls} onRefresh={refreshUrls} />
+              <RouteBuilder verifiedUrls={verifiedUrls} routes={routes} onRefresh={refreshRoutes} />
             </div>
 
             <div className="lg:col-span-7">
-              <TestRunForm verifiedUrls={verifiedUrls} personas={personas} onCreated={setActiveRunId} />
+              <TestRunForm
+                verifiedUrls={verifiedUrls}
+                personas={personas}
+                routes={routes}
+                onCreated={setActiveRunId}
+              />
             </div>
           </div>
         )}

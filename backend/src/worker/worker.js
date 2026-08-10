@@ -42,15 +42,34 @@ async function processRun(doc) {
       credentials = JSON.parse(decryptSecret(urlData.testCredentials));
     }
 
+    // checkpoints는 Firestore에 맵({"0": {...}, "1": {...}})으로 저장돼 있어서, 엔진에
+    // 넘기기 전에 숫자 키 순서대로 정렬한 배열로 복원한다.
+    const checkpoints = Object.keys(claimed.checkpoints || {})
+      .map(Number)
+      .sort((a, b) => a - b)
+      .map((index) => ({ index, goal: claimed.checkpoints[index].goal }));
+
     const result = await runTest({
       tenantId,
       runId,
       targetUrl: claimed.targetUrl,
       persona,
-      maxActions: claimed.maxActions || persona.maxActions || 12,
+      checkpoints,
+      maxActionsPerCheckpoint: claimed.maxActionsPerCheckpoint || 5,
       credentials,
-      onStep: async (step) => {
-        await ref.update({ steps: admin.firestore.FieldValue.arrayUnion(step) });
+      onCheckpointStatus: async (checkpointIndex, status) => {
+        await ref.update({ [`checkpoints.${checkpointIndex}.status`]: status });
+      },
+      onStep: async (checkpointIndex, step) => {
+        await ref.update({
+          [`checkpoints.${checkpointIndex}.steps`]: admin.firestore.FieldValue.arrayUnion(step),
+        });
+      },
+      onUiuxFindings: async (checkpointIndex, { findings, screenshotPath }) => {
+        await ref.update({
+          [`checkpoints.${checkpointIndex}.uiuxFindings`]: findings,
+          [`checkpoints.${checkpointIndex}.entryScreenshotPath`]: screenshotPath,
+        });
       },
     });
 
@@ -60,10 +79,11 @@ async function processRun(doc) {
       vibeCoderPrompt: result.vibeCoderPrompt,
       errorAnalysis: result.errorAnalysis,
       collectedErrors: result.collectedErrors,
+      haltedAtCheckpoint: result.haltedAtCheckpoint,
       finishedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    await recordActionUsage(tenantId, result.steps.length);
+    await recordActionUsage(tenantId, result.summary.totalActions);
   } catch (err) {
     console.error(`[worker] 실행 실패 (${tenantId}/${runId}):`, err);
     await ref.update({

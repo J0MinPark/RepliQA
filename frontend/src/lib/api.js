@@ -32,8 +32,12 @@ export const api = {
   setTestCredentials: (id, username, password) =>
     apiFetch(`/api/urls/${id}/test-credentials`, { method: 'PUT', body: { username, password } }),
   listPersonas: () => apiFetch('/api/personas'),
-  createTestRun: (registeredUrlId, personaId) =>
-    apiFetch('/api/test-runs', { method: 'POST', body: { registeredUrlId, personaId } }),
+  listRoutes: (registeredUrlId) =>
+    apiFetch(`/api/routes${registeredUrlId ? `?registeredUrlId=${registeredUrlId}` : ''}`),
+  createRoute: (name, registeredUrlId, checkpoints) =>
+    apiFetch('/api/routes', { method: 'POST', body: { name, registeredUrlId, checkpoints } }),
+  createTestRun: (registeredUrlId, personaId, routeId) =>
+    apiFetch('/api/test-runs', { method: 'POST', body: { registeredUrlId, personaId, routeId } }),
   getTestRun: (id) => apiFetch(`/api/test-runs/${id}`),
   getUsageToday: () => apiFetch('/api/usage/today'),
 };

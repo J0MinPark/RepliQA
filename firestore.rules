@@ -22,6 +22,11 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      match /routes/{routeId} {
+        allow read: if belongsToTenant(tenantId);
+        allow write: if false;
+      }
+
       match /testRuns/{runId} {
         allow read: if belongsToTenant(tenantId);
         allow write: if false;

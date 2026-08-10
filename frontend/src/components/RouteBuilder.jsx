@@ -1,0 +1,104 @@
+import React, { useState } from 'react';
+import { Route, ListChecks } from 'lucide-react';
+import { api } from '../lib/api';
+
+export default function RouteBuilder({ verifiedUrls, routes, onRefresh }) {
+  const [name, setName] = useState('');
+  const [registeredUrlId, setRegisteredUrlId] = useState('');
+  const [checkpointsText, setCheckpointsText] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    const checkpoints = checkpointsText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+    if (checkpoints.length === 0) {
+      setError('체크포인트를 한 줄에 하나씩 입력하세요.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await api.createRoute(name, registeredUrlId, checkpoints);
+      setName('');
+      setRegisteredUrlId('');
+      setCheckpointsText('');
+      onRefresh();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 sm:p-8">
+      <h3 className="font-bold text-slate-900 mb-1 flex items-center gap-2 text-lg">
+        <Route size={20} className="text-slate-400" /> 테스트 여정 (선택)
+      </h3>
+      <p className="text-xs text-slate-500 mb-4">
+        로그인→결제처럼 반드시 확인하고 싶은 흐름을 단계별로 정의하면, 페르소나가 그 순서대로
+        진행을 시도합니다. 정의하지 않으면 자유 탐색으로 실행됩니다.
+      </p>
+
+      {verifiedUrls.length === 0 ? (
+        <p className="text-sm text-slate-400">먼저 URL을 등록·검증하면 여정을 만들 수 있습니다.</p>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-3 mb-6">
+          <input
+            type="text"
+            required
+            placeholder="여정 이름 (예: 회원가입 → 결제)"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          />
+          <select
+            required
+            value={registeredUrlId}
+            onChange={(e) => setRegisteredUrlId(e.target.value)}
+            className="w-full border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500 text-sm text-slate-900"
+          >
+            <option value="">대상 URL 선택</option>
+            {verifiedUrls.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.url}
+              </option>
+            ))}
+          </select>
+          <textarea
+            required
+            rows={4}
+            placeholder={'한 줄에 체크포인트 하나씩 입력하세요. 예:\n로그인 페이지에서 로그인 완료\n상품 목록에서 아무 상품이나 상세 페이지로 이동\n장바구니에 담고 결제 페이지까지 진입'}
+            value={checkpointsText}
+            onChange={(e) => setCheckpointsText(e.target.value)}
+            className="w-full border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono"
+          />
+          {error && <p className="text-xs text-red-600">{error}</p>}
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full bg-slate-900 text-white text-sm font-bold py-2.5 rounded-xl hover:bg-slate-800 disabled:opacity-60"
+          >
+            {submitting ? '저장 중...' : '여정 저장'}
+          </button>
+        </form>
+      )}
+
+      {routes.length > 0 && (
+        <div className="border-t border-slate-100 pt-4 space-y-2">
+          {routes.map((r) => (
+            <div key={r.id} className="flex items-center gap-2 text-sm text-slate-700">
+              <ListChecks size={14} className="text-slate-400 flex-shrink-0" />
+              <span className="font-semibold">{r.name}</span>
+              <span className="text-slate-400 text-xs">({r.checkpoints.length}단계)</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
