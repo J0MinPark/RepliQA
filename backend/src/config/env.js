@@ -26,6 +26,12 @@ const env = {
     ? process.env.FRONTEND_ORIGIN.split(',').map((o) => o.trim())
     : 'http://localhost:5173',
   credentialEncryptionKey: process.env.CREDENTIAL_ENCRYPTION_KEY || null,
+  // 2026-02부터 Firebase Storage는 Blaze(카드 등록) 없이는 못 쓴다. 둘 다 설정돼 있으면
+  // 스크린샷 저장을 카드 없이 되는 Supabase Storage(무료)로 대신한다 — screenshotStore.js.
+  // 로컬 개발은 미설정이 기본값이라 지금까지처럼 Firebase Storage 에뮬레이터를 그대로 쓴다.
+  supabaseUrl: process.env.SUPABASE_URL || null,
+  supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY || null,
+  supabaseScreenshotBucket: process.env.SUPABASE_SCREENSHOT_BUCKET || 'screenshots',
   workerConcurrency: parseInt(process.env.WORKER_CONCURRENCY || '2', 10),
   workerPollIntervalMs: parseInt(process.env.WORKER_POLL_INTERVAL_MS || '3000', 10),
   // 파일럿/로컬 고객 조사 전용 우회 스위치. 기본값 false — 프로덕션에서는 절대 켜면 안 됨

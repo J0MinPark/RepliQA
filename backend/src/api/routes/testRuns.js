@@ -4,6 +4,7 @@ const { collections, admin } = require('../../db/firestore');
 const { requireAuth, requireTenant } = require('../middleware/auth');
 const { reserveRunQuota, QuotaExceededError } = require('../../db/quota');
 const { testRunCreationLimiter } = require('../middleware/rateLimit');
+const { getScreenshotUrl } = require('../../engine/screenshotStore');
 
 const router = express.Router();
 router.use(requireAuth, requireTenant);
@@ -100,6 +101,24 @@ router.get('/:id', async (req, res) => {
   const snap = await collections.testRuns(req.tenantId).doc(req.params.id).get();
   if (!snap.exists) return res.status(404).json({ error: '테스트 실행을 찾을 수 없습니다.' });
   res.json({ id: snap.id, ...snap.data() });
+});
+
+// 스크린샷 저장소(Supabase/Firebase)는 클라이언트가 직접 접근할 권한이 없다 — 이 런이
+// 정말 요청자의 테넌트 소유인지 먼저 확인한 뒤, 백엔드가 대신 서명 URL/데이터를 발급한다.
+router.get('/:id/screenshots/:label', async (req, res) => {
+  if (!/^[a-zA-Z0-9-]+$/.test(req.params.label)) {
+    return res.status(400).json({ error: '잘못된 스크린샷 식별자입니다.' });
+  }
+  const snap = await collections.testRuns(req.tenantId).doc(req.params.id).get();
+  if (!snap.exists) return res.status(404).json({ error: '테스트 실행을 찾을 수 없습니다.' });
+
+  const path = `tenants/${req.tenantId}/testRuns/${req.params.id}/${req.params.label}.jpg`;
+  try {
+    const url = await getScreenshotUrl(path);
+    res.json({ url });
+  } catch {
+    res.status(404).json({ error: '스크린샷을 찾을 수 없습니다.' });
+  }
 });
 
 module.exports = router;

@@ -71,4 +71,4 @@ npm run start:worker
 - 테스트 대상 URL은 소유권 검증(`.well-known`) 없이는 실행 불가. (`SKIP_OWNERSHIP_VERIFICATION=true`로 파일럿/고객 조사 단계에서만 우회 가능 — **프로덕션에서는 절대 켜면 안 됨**. 이 플래그를 켜도 SSRF 가드는 그대로 적용된다.)
 - SSRF 가드가 사설/예약 IP 대역·클라우드 메타데이터 엔드포인트로의 요청을 차단하고, 실행 직전 resolve한 IP를 Playwright `--host-resolver-rules`로 고정해 DNS 리바인딩을 막는다.
 - 테스트 계정 자격증명은 AES-256-GCM으로 암호화 저장되며, 로그인 시 LLM에는 비밀번호 값 자체를 절대 넘기지 않는다(필드 위치만 식별).
-- Firestore/Storage 보안 규칙상 클라이언트는 자기 테넌트 데이터를 읽기만 할 수 있고 모든 쓰기는 backend(firebase-admin)를 통해서만 이뤄진다.
+- Firestore 보안 규칙상 클라이언트는 자기 테넌트 데이터를 읽기만 할 수 있고 모든 쓰기는 backend(firebase-admin)를 통해서만 이뤄진다. 스크린샷은 클라이언트가 저장소에 직접 접근하지 않고, `GET /api/test-runs/:id/screenshots/:label`로 소유권 확인 후 백엔드가 대신 URL을 발급한다(`screenshotStore.js` — 운영은 Supabase Storage, 로컬은 Firebase Storage 에뮬레이터).

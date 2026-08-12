@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { ref, getDownloadURL } from 'firebase/storage';
 import {
   AlertCircle,
   CheckCircle,
@@ -16,21 +15,31 @@ import {
   XCircle,
   ShieldCheck,
 } from 'lucide-react';
-import { db, storage } from '../lib/firebase';
+import { db } from '../lib/firebase';
+import { api } from '../lib/api';
 
-function StepScreenshot({ path }) {
+// screenshotPath는 저장소 안 전체 경로(tenants/.../checkpoint-0-step-1.jpg)라, 백엔드가
+// 소유권을 확인해줄 수 있게 파일명(label)만 뽑아서 넘긴다 — 실제 서명 URL 발급은 백엔드가 한다
+// (저장소가 Firebase든 Supabase든 프론트는 몰라도 됨).
+function labelFromPath(path) {
+  return path?.split('/').pop()?.replace(/\.jpg$/, '');
+}
+
+function StepScreenshot({ runId, path }) {
   const [url, setUrl] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
-    if (!path) return undefined;
-    getDownloadURL(ref(storage, path))
-      .then((u) => !cancelled && setUrl(u))
+    const label = labelFromPath(path);
+    if (!label) return undefined;
+    api
+      .getScreenshotUrl(runId, label)
+      .then(({ url: u }) => !cancelled && setUrl(u))
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [path]);
+  }, [runId, path]);
 
   if (!url) {
     return <div className="w-20 h-14 bg-slate-100 rounded-lg flex-shrink-0 animate-pulse" />;
@@ -40,7 +49,7 @@ function StepScreenshot({ path }) {
   );
 }
 
-function StepTimeline({ steps }) {
+function StepTimeline({ runId, steps }) {
   if (!steps || steps.length === 0) {
     return <p className="text-sm text-slate-400">아직 기록된 행동이 없습니다.</p>;
   }
@@ -60,7 +69,7 @@ function StepTimeline({ steps }) {
           </div>
         ) : (
           <div key={s.stepNumber} className="flex items-start gap-3 bg-slate-50 border border-slate-200 rounded-xl p-3">
-            <StepScreenshot path={s.screenshotPath} />
+            <StepScreenshot runId={runId} path={s.screenshotPath} />
             <div className="min-w-0">
               <p className="text-xs font-bold text-slate-700">
                 #{s.stepNumber} {s.action?.type} {!s.execOk && <span className="text-red-500">(실패)</span>}
@@ -112,7 +121,7 @@ function orderedCheckpoints(checkpointsMap) {
     .sort((a, b) => a.index - b.index);
 }
 
-function CheckpointSection({ checkpoint }) {
+function CheckpointSection({ runId, checkpoint }) {
   return (
     <div className="border border-slate-100 rounded-2xl p-5 bg-white">
       <div className="flex items-center gap-2 mb-4">
@@ -126,7 +135,7 @@ function CheckpointSection({ checkpoint }) {
           <UiuxFindings findings={checkpoint.uiuxFindings} />
         </div>
       )}
-      <StepTimeline steps={checkpoint.steps} />
+      <StepTimeline runId={runId} steps={checkpoint.steps} />
     </div>
   );
 }
@@ -201,7 +210,7 @@ export default function TestRunProgress({ tenantId, runId, onReset }) {
           </p>
           <div className="w-full max-w-2xl px-6 space-y-4">
             {checkpoints.map((c) => (
-              <CheckpointSection key={c.index} checkpoint={c} />
+              <CheckpointSection key={c.index} runId={runId} checkpoint={c} />
             ))}
           </div>
         </div>
@@ -307,7 +316,7 @@ export default function TestRunProgress({ tenantId, runId, onReset }) {
             <h3 className="font-bold text-slate-900 mb-4 text-lg">여정 단계별 상세 리포트</h3>
             <div className="space-y-4">
               {checkpoints.map((c) => (
-                <CheckpointSection key={c.index} checkpoint={c} />
+                <CheckpointSection key={c.index} runId={runId} checkpoint={c} />
               ))}
             </div>
           </div>

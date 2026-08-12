@@ -42,6 +42,7 @@ export const api = {
   createTestRun: (registeredUrlId, personaId, routeId) =>
     apiFetch('/api/test-runs', { method: 'POST', body: { registeredUrlId, personaId, routeId } }),
   getTestRun: (id) => apiFetch(`/api/test-runs/${id}`),
+  getScreenshotUrl: (runId, label) => apiFetch(`/api/test-runs/${runId}/screenshots/${label}`),
   getUsageToday: () => apiFetch('/api/usage/today'),
 };
 

@@ -1,11 +1,12 @@
 rules_version = '2';
 
-// 스크린샷도 Firestore와 동일한 원칙: 워커가 admin SDK로만 업로드하고,
-// 클라이언트는 자기 테넌트 경로만 읽을 수 있다.
+// 워커가 admin SDK로만 업로드하고, 클라이언트는 직접 읽지 않는다 — 스크린샷 URL은
+// 백엔드가 소유권을 확인한 뒤 대신 발급한다(screenshotStore.js). admin SDK는 이 규칙과
+// 무관하게 항상 접근 가능하므로, 클라이언트 접근을 전면 차단해도 백엔드 동작엔 영향 없다.
 service firebase.storage {
   match /b/{bucket}/o {
     match /tenants/{tenantId}/{allPaths=**} {
-      allow read: if request.auth != null && request.auth.token.tenantId == tenantId;
+      allow read: if false;
       allow write: if false;
     }
   }

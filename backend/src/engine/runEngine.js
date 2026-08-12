@@ -4,13 +4,12 @@ const { runObjectiveChecks } = require('./uiuxChecks');
 const { isPaymentSubmitElement } = require('./paymentSafety');
 const { launchBrowser } = require('./browserEngines');
 const geminiAdapter = require('./llm/geminiAdapter');
-const { bucket } = require('../db/firestore');
+const screenshotStore = require('./screenshotStore');
 const { assertHttpUrl, resolveSafeIp } = require('../security/ssrfGuard');
 
 async function uploadScreenshot(tenantId, runId, label, buffer) {
   const path = `tenants/${tenantId}/testRuns/${runId}/${label}.jpg`;
-  await bucket.file(path).save(buffer, { contentType: 'image/jpeg' });
-  return path;
+  return screenshotStore.uploadScreenshot(path, buffer);
 }
 
 // 실 사용자 비밀번호를 LLM에 절대 보여주지 않는다 — "어떤 요소가 로그인 필드인지"만
