@@ -66,12 +66,22 @@ npm run start:worker
 - `click`, `type`(`clear:true`로 지우고 재입력), `clear`(지우기만), `select`
 - `hover`(클릭 없이 마우스만 올림 — 툴팁 확인), `drag`(elementIndex→targetElementIndex)
 - `paste`(타이핑이 아니라 실제 clipboard 붙여넣기 — 붙여넣기 방지 필드 우회 테스트용)
-- `key`(Enter/Tab/Escape/Backspace 등, `times`로 반복), `scroll`, `go_back`/`go_forward`, `reload`
-- `resize_viewport`(mobile/tablet/desktop 프리셋 — 반응형 확인)
+- `key`(Enter/Tab/Escape/Backspace 등, `times`로 반복), `rapid_click`(같은 요소를 빠르게
+  연속 클릭 — 중복 제출 방지 테스트용), `scroll`, `go_back`/`go_forward`, `reload`
+- `resize_viewport`(mobile/tablet/desktop 프리셋 + `orientation: portrait|landscape` — 반응형·화면 회전 확인)
+- `set_color_scheme`(dark/light 강제 전환), `set_network`(offline 강제 on/off)
+- `clear_storage`(cookies/localStorage/sessionStorage 강제 초기화 — 강제 로그아웃 시나리오)
+- `navigate`(등록된 대상과 같은 호스트로만 직접 URL 이동 — 관리자 페이지 강제 접근, IDOR용
+  파라미터 변조 등 인가 테스트용. 다른 호스트로는 SSRF 가드와 별개로 이 자체에서도 막힘)
+- `open_duplicate_tab`/`switch_tab`(같은 로그인 세션을 공유하는 두 번째 탭을 열고 전환 —
+  동시성/경합 조건 테스트용)
+- `read_test_inbox`(설정된 테스트 인박스에서 최신 메일을 읽어 인증 코드 자동 입력 또는
+  재설정 링크로 자동 이동 — 아래 "외부 시스템 연동" 참고)
 - `upload_file`(`fixtureType`: valid_image/valid_document/disallowed_extension/oversized —
   실제 파일은 `testFixtures.js`가 그때그때 만들어서 재사용. 사이트별 실제 파일은 못 씀)
-- `wait`, `finish`(`finishReason: goal_achieved | blocked`로 성공/실패를 반드시 구분 — 목표를
-  못 이루고 포기한 경우까지 "완료"로 잘못 찍히는 걸 막기 위한 장치)
+- `wait`(`[장시간]` 태그 체크포인트가 아니면 최대 5초로 제한), `finish`(`finishReason:
+  goal_achieved | blocked`로 성공/실패를 반드시 구분 — 목표를 못 이루고 포기한 경우까지
+  "완료"로 잘못 찍히는 걸 막기 위한 장치)
 
 **알려진 한계**:
 - `drag`는 마우스 이벤트 시퀀스 + 진짜 `DragEvent` 디스패치를 둘 다 시도한다. 순수 마우스
@@ -80,18 +90,35 @@ npm run start:worker
   디스패치를 추가해서 해결.
 - `alert`/`confirm`/`prompt` 같은 네이티브 다이얼로그는 자동으로 승인(accept)된다 — "취소"
   분기까지 테스트하려면 아직 지원하지 않는다. 어떤 다이얼로그가 떴었는지는 콘솔 로그에 남는다.
-- 이메일/문자 인증, OAuth 소셜 로그인, 장시간 세션 만료 대기는 외부 시스템 연동이 필요해서
-  아직 지원하지 않는다.
 - 다운로드는 파일명/크기/sha256 해시만 기록한다 — 내용이 "올바른지"는 비교 기준이 없어
   판단할 수 없고, 사람이 리포트에서 직접 확인해야 한다.
 
-## 네트워크·콘솔 로그 캡처
+## 네트워크·콘솔·웹소켓 로그 캡처
 
-에러가 아닌 것도 포함해서 런 전체의 XHR/fetch 호출(method/url/status)과 콘솔 로그를 전부
+에러가 아닌 것도 포함해서 런 전체의 XHR/fetch 호출(method/url/status), 콘솔 로그,
+WebSocket 이벤트(연결/프레임 송수신/종료 — 실시간 채팅·대시보드의 재연결 확인용)를 전부
 기록한다(`executor.js`의 `attachErrorCollectors`, 최대 80건씩). "200은 떨어졌는데 데이터가
 잘못된" 것처럼 겉보기엔 정상인 버그도 사람이나 코딩 에이전트가 원본을 직접 훑어볼 수 있게
-하기 위함이다. 요청/응답 바디는 로그인 폼 등에서 비밀번호 같은 민감정보가 그대로 들어갈 수
-있어 의도적으로 캡처하지 않는다.
+하기 위함이다. 요청/응답 바디, 웹소켓 프레임 내용은 로그인 폼 등에서 비밀번호 같은
+민감정보가 그대로 들어갈 수 있어 의도적으로 캡처하지 않는다(이벤트 종류·시각만 남김).
+
+## 외부 시스템 연동이 필요한 여정
+
+- **이메일/문자 인증, 비밀번호 재설정 링크**: `PUT /api/urls/:id/test-inbox`로 테스트
+  인박스(현재는 Mailosaur만 지원, `engine/testInbox.js`)를 등록해두면, 여정 중
+  `read_test_inbox` 액션으로 최신 메일을 읽어 코드를 자동 입력하거나 링크로 자동 이동한다.
+  이메일 본문 전체를 LLM에 보여주지 않고 서버가 직접 코드/링크만 추출해서 쓴다(로그인
+  자격증명과 동일한 원칙). ⚠️ Mailosaur 어댑터는 공개 API 스펙대로 구현했지만, 실제 계정
+  없이 라이브로 검증하지는 못했다 — 실사용 전 직접 확인 필요.
+- **소셜 로그인(OAuth)**: 매번 자동화로 로그인을 시도하지 않는다(구글 검색 테스트에서
+  직접 확인했듯, 대부분 봇 탐지로 막힘). 대신 `scripts/capture-session.js`로 사람이 한 번
+  수동으로 로그인해서 세션(쿠키+로컬스토리지)을 캡처해두면, 이후 테스트는 그 세션을 불러와
+  "이미 로그인된 상태"로 시작한다(`PUT /api/urls/:id/test-session`, `runEngine.js`가
+  `browser.newContext({ storageState })`로 복원). storageState 왕복 자체는 직접
+  검증했다(쿠키가 정확히 복원되는 것 확인).
+- **세션 만료 대기**: 여정 체크포인트 줄 앞에 `[장시간]`을 붙이면 그 단계에서만 `wait`
+  액션의 상한이 5초 → 30분으로 늘어난다. 실제 시간이 그만큼 걸리고 워커 슬롯을 그 시간
+  내내 점유하므로, 일반 체크포인트에는 이 태그를 절대 붙이지 말 것.
 
 ## 결제 체크포인트
 

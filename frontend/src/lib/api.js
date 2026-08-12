@@ -34,6 +34,7 @@ export const api = {
     apiFetch(`/api/urls/${id}/test-credentials`, { method: 'PUT', body: { username, password } }),
   setTestPaymentMethod: (id, paymentMethod) =>
     apiFetch(`/api/urls/${id}/test-payment-method`, { method: 'PUT', body: paymentMethod }),
+  setTestInbox: (id, config) => apiFetch(`/api/urls/${id}/test-inbox`, { method: 'PUT', body: config }),
   listPersonas: () => apiFetch('/api/personas'),
   listRoutes: (registeredUrlId) =>
     apiFetch(`/api/routes${registeredUrlId ? `?registeredUrlId=${registeredUrlId}` : ''}`),

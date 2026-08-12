@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Globe, CheckCircle2, Circle, KeyRound, CreditCard, Loader2 } from 'lucide-react';
+import { Globe, CheckCircle2, Circle, KeyRound, CreditCard, Loader2, Mail } from 'lucide-react';
 import { api } from '../lib/api';
 
 function CredentialsForm({ urlId, onSaved }) {
@@ -130,6 +130,74 @@ function PaymentMethodForm({ urlId, onSaved }) {
   );
 }
 
+function InboxConfigForm({ urlId, onSaved }) {
+  const [open, setOpen] = useState(false);
+  const [fields, setFields] = useState({ provider: 'mailosaur', apiKey: '', serverId: '', address: '' });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="text-xs text-slate-500 hover:text-blue-600 flex items-center gap-1 mt-2"
+      >
+        <Mail size={12} /> 테스트 인박스 등록 (선택 — 이메일 인증코드 자동 입력용)
+      </button>
+    );
+  }
+
+  const save = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSaving(true);
+    try {
+      await api.setTestInbox(urlId, fields);
+      setOpen(false);
+      onSaved?.();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form onSubmit={save} className="mt-2 flex flex-wrap gap-2 items-center">
+      <input
+        placeholder="API 키"
+        value={fields.apiKey}
+        onChange={(e) => setFields({ ...fields, apiKey: e.target.value })}
+        className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white w-32"
+      />
+      <input
+        placeholder="서버 ID"
+        value={fields.serverId}
+        onChange={(e) => setFields({ ...fields, serverId: e.target.value })}
+        className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white w-28"
+      />
+      <input
+        placeholder="테스트 이메일 주소 (선택)"
+        value={fields.address}
+        onChange={(e) => setFields({ ...fields, address: e.target.value })}
+        className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white w-44"
+      />
+      <button
+        type="submit"
+        disabled={saving}
+        className="text-xs bg-slate-900 text-white rounded-lg px-3 py-1.5 font-semibold disabled:opacity-60"
+      >
+        {saving ? '저장 중...' : '저장'}
+      </button>
+      {error && <p className="text-xs text-red-600 w-full">{error}</p>}
+      <p className="text-xs text-slate-500 w-full">
+        Mailosaur 등 테스트 인박스 서비스의 정보입니다. 회원가입 인증메일, 비밀번호 재설정 링크를
+        여정 중 자동으로 읽어 입력하는 데 씁니다.
+      </p>
+    </form>
+  );
+}
+
 export default function UrlRegistrationPanel({ urls, onRefresh }) {
   const [newUrl, setNewUrl] = useState('');
   const [registering, setRegistering] = useState(false);
@@ -244,6 +312,13 @@ export default function UrlRegistrationPanel({ urls, onRefresh }) {
             {u.hasTestPaymentMethod && (
               <p className="text-xs text-emerald-600 mt-2">테스트 결제 수단이 등록되어 있습니다.</p>
             )}
+            {!u.hasTestInbox && <InboxConfigForm urlId={u.id} onSaved={onRefresh} />}
+            {u.hasTestInbox && <p className="text-xs text-emerald-600 mt-2">테스트 인박스가 등록되어 있습니다.</p>}
+            <p className="text-xs text-slate-400 mt-2">
+              {u.hasTestSession
+                ? '소셜 로그인 세션이 저장되어 있어 로그인된 상태로 시작합니다.'
+                : '소셜 로그인(OAuth)이 필요하면 scripts/capture-session.js로 세션을 한 번 캡처해두세요.'}
+            </p>
           </li>
         ))}
       </ul>

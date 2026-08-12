@@ -3,6 +3,7 @@ const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
 const { getFixturePath } = require('./testFixtures');
+const { fetchLatestMessage, extractCodeOrLink } = require('./testInbox');
 
 function centerOf(box) {
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
@@ -18,13 +19,21 @@ const VIEWPORT_PRESETS = {
 // 좌표 클릭한다. 텍스트 재검색(getByText)을 하지 않으므로 동일 텍스트 중복이나
 // 요소가 사라진 경우에도 "어떤 요소를 시도했는지"가 명확하게 남는다.
 //
-// context는 clipboard 권한 부여(paste)에만 쓰인다 — 나머지 액션은 전부 page만으로 충분하다.
-async function executeAction(page, action, elements, context) {
+// ctx는 액션 실행에 필요한 부가 정보를 모아둔 객체다:
+//   context: Playwright BrowserContext (clipboard 권한/새 탭/스토리지 초기화용)
+//   allowedHostname: navigate/read_test_inbox가 벗어날 수 없는 호스트(등록된 대상 사이트) —
+//     타인 사이트로 유도되는 걸 막는 안전장치
+//   testInboxConfig: read_test_inbox용 프로바이더 설정(암호 해제된 상태로 worker가 넘김)
+//   tabs: open_duplicate_tab으로 열린 탭들의 목록(switch_tab이 이 배열의 인덱스를 씀)
+//   allowLongWait: [장시간] 체크포인트에서만 true — wait의 상한을 크게 늘림
+//   runStartedAt: read_test_inbox가 "이번 실행 이후 도착한 메일"만 보게 하는 기준 시각
+async function executeAction(page, action, elements, ctx = {}) {
   if (!action || action.type === 'finish') {
     return { ok: true };
   }
   if (action.type === 'wait') {
-    await page.waitForTimeout(Math.min(action.waitMs || 500, 5000));
+    const cap = ctx.allowLongWait ? 30 * 60 * 1000 : 5000;
+    await page.waitForTimeout(Math.min(action.waitMs || 500, cap));
     return { ok: true };
   }
   if (action.type === 'go_back') {
@@ -62,9 +71,113 @@ async function executeAction(page, action, elements, context) {
   }
   if (action.type === 'resize_viewport') {
     try {
-      await page.setViewportSize(VIEWPORT_PRESETS[action.preset] || VIEWPORT_PRESETS.desktop);
+      const base = VIEWPORT_PRESETS[action.preset] || VIEWPORT_PRESETS.desktop;
+      const size = action.orientation === 'landscape' ? { width: base.height, height: base.width } : base;
+      await page.setViewportSize(size);
       await settleAfterAction(page);
       return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  }
+  if (action.type === 'set_network') {
+    try {
+      await ctx.context.setOffline(Boolean(action.offline));
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  }
+  if (action.type === 'clear_storage') {
+    try {
+      const scope = action.scope || 'all';
+      if (scope === 'cookies' || scope === 'all') await ctx.context.clearCookies();
+      if (scope === 'localStorage' || scope === 'all') await page.evaluate(() => localStorage.clear()).catch(() => {});
+      if (scope === 'sessionStorage' || scope === 'all') await page.evaluate(() => sessionStorage.clear()).catch(() => {});
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  }
+  if (action.type === 'set_color_scheme') {
+    try {
+      await page.emulateMedia({ colorScheme: action.scheme === 'light' ? 'light' : 'dark' });
+      await settleAfterAction(page);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  }
+  if (action.type === 'navigate') {
+    try {
+      const url = new URL(action.url, page.url());
+      if (ctx.allowedHostname && url.hostname !== ctx.allowedHostname) {
+        return { ok: false, error: `등록된 대상(${ctx.allowedHostname}) 밖의 호스트로는 이동할 수 없습니다: ${url.hostname}` };
+      }
+      await page.goto(url.toString(), { waitUntil: 'domcontentloaded', timeout: 15000 });
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  }
+  if (action.type === 'open_duplicate_tab') {
+    // 여기서 새 페이지를 만들기만 하면, 이미 등록된 context의 'page' 리스너(runEngine.js)가
+    // 자동으로 tabs 목록에 추가하고 활성 탭으로 전환한다 — 결제 팝업 추적과 동일한 메커니즘을
+    // 재사용해서, 동시성/경합 조건 테스트용으로 "같은 세션의 두 번째 탭"을 여는 것.
+    try {
+      const newPage = await ctx.context.newPage();
+      await newPage.goto(page.url(), { waitUntil: 'domcontentloaded', timeout: 15000 });
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  }
+  if (action.type === 'switch_tab') {
+    const idx = action.tabIndex ?? 0;
+    const targetPage = ctx.tabs && ctx.tabs[idx];
+    if (!targetPage) return { ok: false, error: `tabIndex ${idx}에 해당하는 탭이 없습니다.` };
+    return { ok: true, switchTo: targetPage };
+  }
+  if (action.type === 'rapid_click') {
+    const target = elements[action.elementIndex];
+    if (!target) return { ok: false, error: `elementIndex ${action.elementIndex}가 유효하지 않습니다.` };
+    const { x, y } = centerOf(target.box);
+    const times = Math.min(Math.max(action.times || 2, 2), 10);
+    try {
+      for (let i = 0; i < times; i += 1) {
+        // eslint-disable-next-line no-await-in-loop
+        await page.mouse.click(x, y);
+      }
+      await settleAfterAction(page);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  }
+  if (action.type === 'read_test_inbox') {
+    if (!ctx.testInboxConfig) return { ok: false, error: '테스트 인박스가 설정되어 있지 않습니다.' };
+    try {
+      const msg = await fetchLatestMessage(ctx.testInboxConfig, { sentAfter: ctx.runStartedAt });
+      if (!msg) return { ok: false, error: '받은 메일이 아직 도착하지 않았습니다.' };
+      const { code, link } = extractCodeOrLink(msg.body);
+      if (action.elementIndex != null && code) {
+        const target = elements[action.elementIndex];
+        if (!target) return { ok: false, error: `elementIndex ${action.elementIndex}가 유효하지 않습니다.` };
+        const { x, y } = centerOf(target.box);
+        await page.mouse.click(x, y);
+        await page.keyboard.type(code, { delay: 20 });
+        await settleAfterAction(page);
+        return { ok: true };
+      }
+      if (link) {
+        const linkUrl = new URL(link);
+        if (ctx.allowedHostname && linkUrl.hostname !== ctx.allowedHostname) {
+          return { ok: false, error: '메일 속 링크가 등록된 대상 호스트 밖이라 자동 이동을 생략했습니다.' };
+        }
+        await page.goto(link, { waitUntil: 'domcontentloaded', timeout: 15000 });
+        return { ok: true };
+      }
+      return { ok: false, error: '메일 본문에서 인증 코드나 링크를 찾지 못했습니다.' };
     } catch (err) {
       return { ok: false, error: err.message };
     }
@@ -118,7 +231,7 @@ async function executeAction(page, action, elements, context) {
       }
       await dragBetween(page, target, targetEl);
     } else if (action.type === 'paste') {
-      await pasteAt(page, context, x, y, action.text || '');
+      await pasteAt(page, ctx.context, x, y, action.text || '');
     } else if (action.type === 'upload_file') {
       await uploadFileAt(page, x, y, action.fixtureType);
     } else {
@@ -269,7 +382,23 @@ const MAX_ACTIVITY_ENTRIES = 80;
 // 사람이나 코딩 에이전트가 직접 훑어볼 수 있게 남겨둔다. 요청/응답 바디는 로그인 폼 등에서
 // 비밀번호 같은 민감정보가 그대로 들어갈 수 있어 일부러 캡처하지 않는다 — method/url/status만.
 function attachErrorCollectors(page, collectedErrors, activity = {}) {
-  const { networkCalls, consoleLogs, downloads } = activity;
+  const { networkCalls, consoleLogs, downloads, websocketFrames } = activity;
+
+  // 채팅/실시간 대시보드처럼 WebSocket을 쓰는 화면에서 "끊겼다 재연결됐을 때 누락 데이터가
+  // 다시 채워지는지"를 판단하려면 프레임 자체가 보여야 한다 — 연결 종료/재개 시점과 그
+  // 전후로 오간 프레임을 기록해둔다(내용은 요약만, 페이로드 전체는 민감정보 위험으로 생략).
+  page.on('websocket', (ws) => {
+    const push = (event) => {
+      if (websocketFrames && websocketFrames.length < MAX_ACTIVITY_ENTRIES) {
+        websocketFrames.push({ url: ws.url().slice(0, 200), event, timestamp: new Date().toISOString() });
+      }
+    };
+    push('open');
+    ws.on('framesent', () => push('frame_sent'));
+    ws.on('framereceived', () => push('frame_received'));
+    ws.on('close', () => push('closed'));
+    ws.on('socketerror', () => push('error'));
+  });
 
   page.on('console', (msg) => {
     if (msg.type() === 'error') collectedErrors.push(`[Console Error] ${msg.text()}`);

@@ -10,7 +10,11 @@ router.use(requireAuth, requireTenant);
 // 저장한다 — 고객이 정확히 뭘 등록했는지 투명하게 보이고, 비용도 안 든다.
 // 줄 맨 앞에 "[결제]"를 붙이면 그 단계는 결제 전용 처리(테스트 카드 자동입력 +
 // 최종 제출 버튼 자동 클릭 금지)를 타는 체크포인트로 표시된다.
+// "[장시간]"을 붙이면 wait 액션의 상한이 5초에서 30분으로 늘어난다 — 세션 만료처럼
+// 실제 시간이 흘러야만 검증되는 시나리오 전용. 일반 체크포인트에는 절대 적용 안 됨
+// (매 실행마다 30분씩 걸리면 안 되니까) — 명시적으로 태그를 붙인 단계만 해당.
 const PAYMENT_TAG = /^\[결제\]\s*/;
+const LONG_RUNNING_TAG = /^\[장시간\]\s*/;
 
 const createSchema = z.object({
   name: z.string().min(1),
@@ -20,7 +24,10 @@ const createSchema = z.object({
 
 function parseCheckpoint(raw, order) {
   const isPayment = PAYMENT_TAG.test(raw);
-  return { order, goal: raw.replace(PAYMENT_TAG, ''), type: isPayment ? 'payment' : 'generic' };
+  const isLongRunning = LONG_RUNNING_TAG.test(raw);
+  const goal = raw.replace(PAYMENT_TAG, '').replace(LONG_RUNNING_TAG, '');
+  const type = isPayment ? 'payment' : isLongRunning ? 'long_running' : 'generic';
+  return { order, goal, type };
 }
 
 router.post('/', async (req, res) => {

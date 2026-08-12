@@ -31,10 +31,27 @@ const paymentMethodSchema = z
     cardHolderName: z.string().min(1).optional(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: '결제 정보를 하나 이상 입력하세요.' });
+// Playwright storageState 그대로(쿠키+로컬스토리지 스냅샷) — capture-session.js가 만들어서
+// 보낸다. 정확한 내부 구조는 신경 쓰지 않고 통째로 암호화해서 저장했다가 그대로 복원한다.
+const testSessionSchema = z.object({ storageState: z.record(z.string(), z.any()) });
+// 이메일/문자 인증 코드를 읽어야 하는 여정용 — 지금은 Mailosaur 하나만 실제 지원
+// (engine/testInbox.js). serverId/address는 Mailosaur 콘솔에서 발급받은 값.
+const testInboxSchema = z.object({
+  provider: z.enum(['mailosaur']),
+  apiKey: z.string().min(1),
+  serverId: z.string().min(1),
+  address: z.string().email().optional(),
+});
 
 function stripSecrets(doc) {
-  const { testCredentials, testPaymentMethod, verificationToken, ...rest } = doc;
-  return { ...rest, hasTestCredentials: !!testCredentials, hasTestPaymentMethod: !!testPaymentMethod };
+  const { testCredentials, testPaymentMethod, testSession, testInbox, verificationToken, ...rest } = doc;
+  return {
+    ...rest,
+    hasTestCredentials: !!testCredentials,
+    hasTestPaymentMethod: !!testPaymentMethod,
+    hasTestSession: !!testSession,
+    hasTestInbox: !!testInbox,
+  };
 }
 
 // 테스트 대상으로 쓸 URL을 등록한다. 이 시점엔 아직 verified=false이고,
@@ -123,6 +140,45 @@ router.put('/:id/test-payment-method', async (req, res) => {
     testPaymentMethodUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
   res.json({ id: snap.id, hasTestPaymentMethod: true });
+});
+
+// OAuth 소셜 로그인처럼 매번 자동화로 뚫기 어려운 로그인을 위한 우회 — 사람이 한 번
+// 수동으로 로그인한 뒤 그 세션(쿠키+로컬스토리지)을 캡처해서 저장해두면, 이후 테스트는
+// 이 세션을 불러와 "이미 로그인된 상태"로 시작한다(runEngine.js). backend/scripts/
+// capture-session.js가 이 엔드포인트를 호출한다.
+router.put('/:id/test-session', async (req, res) => {
+  const parseResult = testSessionSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    return res.status(400).json({ error: 'storageState가 필요합니다 (capture-session.js로 캡처하세요).' });
+  }
+  const ref = collections.registeredUrls(req.tenantId).doc(req.params.id);
+  const snap = await ref.get();
+  if (!snap.exists) return res.status(404).json({ error: '등록된 URL을 찾을 수 없습니다.' });
+
+  const encrypted = encryptSecret(JSON.stringify(parseResult.data.storageState));
+  await ref.update({
+    testSession: encrypted,
+    testSessionUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  res.json({ id: snap.id, hasTestSession: true });
+});
+
+// 이메일/문자 인증 코드, 비밀번호 재설정 링크를 읽어야 하는 여정용 테스트 인박스 설정.
+router.put('/:id/test-inbox', async (req, res) => {
+  const parseResult = testInboxSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    return res.status(400).json({ error: 'provider, apiKey, serverId가 필요합니다.' });
+  }
+  const ref = collections.registeredUrls(req.tenantId).doc(req.params.id);
+  const snap = await ref.get();
+  if (!snap.exists) return res.status(404).json({ error: '등록된 URL을 찾을 수 없습니다.' });
+
+  const encrypted = encryptSecret(JSON.stringify(parseResult.data));
+  await ref.update({
+    testInbox: encrypted,
+    testInboxUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  res.json({ id: snap.id, hasTestInbox: true });
 });
 
 router.post('/:id/verify', async (req, res) => {

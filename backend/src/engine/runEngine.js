@@ -104,10 +104,15 @@ async function runCheckpoint({
   maxActionsPerCheckpoint,
   collectedErrors,
   activity,
+  tabs,
+  allowedHostname,
+  testInboxConfig,
+  runStartedAt,
   onStep,
   onUiuxFindings,
 }) {
   const isPayment = checkpoint.type === 'payment';
+  const isLongRunning = checkpoint.type === 'long_running';
 
   const entryState = await captureState(page);
   const objectiveFindings = await runObjectiveChecks(page).catch((err) => {
@@ -149,9 +154,12 @@ async function runCheckpoint({
   let activePage = page;
   const popupListener = (newPage) => {
     activePage = newPage;
+    tabs.push(newPage);
     attachErrorCollectors(newPage, collectedErrors, activity);
     newPage.on('close', () => {
       if (activePage === newPage) activePage = page;
+      const idx = tabs.indexOf(newPage);
+      if (idx >= 0) tabs.splice(idx, 1);
     });
   };
   context.on('page', popupListener);
@@ -213,7 +221,17 @@ async function runCheckpoint({
         break;
       }
 
-      const execResult = await executeAction(activePage, plan.action, state.elements, context);
+      const execResult = await executeAction(activePage, plan.action, state.elements, {
+        context,
+        allowedHostname,
+        testInboxConfig,
+        tabs,
+        allowLongWait: isLongRunning,
+        runStartedAt,
+      });
+      if (execResult.switchTo) {
+        activePage = execResult.switchTo;
+      }
       const screenshotPath =
         stepInCheckpoint === 1 && activePage === page
           ? entryScreenshotPath
@@ -277,10 +295,13 @@ async function runTest({
   maxActionsPerCheckpoint,
   credentials,
   paymentInfo,
+  savedSessionState,
+  testInboxConfig,
   onCheckpointStatus,
   onStep,
   onUiuxFindings,
 }) {
+  const runStartedAt = new Date();
   assertHttpUrl(targetUrl);
   const hostname = new URL(targetUrl).hostname;
   const pinnedIp = await resolveSafeIp(hostname);
@@ -296,18 +317,25 @@ async function runTest({
   // 런 전체(체크포인트/팝업 포함) 동안의 네트워크 호출·콘솔 로그를 모은다. 에러가 아닌
   // 것도 포함해서, "200은 떨어졌는데 데이터가 이상한" 것처럼 겉으론 정상인 버그도 사람이나
   // 코딩 에이전트가 리포트에서 직접 훑어볼 수 있게 한다.
-  const activity = { networkCalls: [], consoleLogs: [], downloads: [] };
+  const activity = { networkCalls: [], consoleLogs: [], downloads: [], websocketFrames: [] };
   let haltedAtCheckpoint = null;
   let haltedInfo = null;
 
   try {
-    const context = await browser.newContext(contextOptions);
+    // savedSessionState: 캡처해둔 로그인 세션(쿠키+로컬스토리지)이 있으면 그대로 불러와서
+    // "이미 로그인된 상태"로 시작한다 — 소셜 로그인(OAuth)처럼 매번 자동화로 뚫기 어려운
+    // 로그인은 capture-session.js로 한 번만 사람이 수동 로그인해서 캡처해두는 방식으로 우회.
+    const context = await browser.newContext({
+      ...contextOptions,
+      ...(savedSessionState ? { storageState: savedSessionState } : {}),
+    });
     const page = await context.newPage();
     attachErrorCollectors(page, collectedErrors, activity);
+    const tabs = [page];
 
     await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
 
-    if (credentials) {
+    if (credentials && !savedSessionState) {
       await attemptLogin(page, credentials).catch((err) => {
         collectedErrors.push(`[Login Error] ${err.message}`);
       });
@@ -327,6 +355,10 @@ async function runTest({
         maxActionsPerCheckpoint,
         collectedErrors,
         activity,
+        tabs,
+        allowedHostname: hostname,
+        testInboxConfig,
+        runStartedAt,
         onStep,
         onUiuxFindings,
       });
@@ -351,6 +383,7 @@ async function runTest({
       networkCalls: activity.networkCalls,
       consoleLogs: activity.consoleLogs,
       downloads: activity.downloads,
+      websocketFrames: activity.websocketFrames,
       haltedAtCheckpoint,
       summary: {
         totalErrors: collectedErrors.length,

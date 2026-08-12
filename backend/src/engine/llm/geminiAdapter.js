@@ -19,7 +19,7 @@ const ACTION_SCHEMA_HINT = `
 {
   "thought": "현재 화면 상황과 왜 이 행동을 선택했는지 (1~2문장)",
   "action": {
-    "type": "click|type|clear|select|hover|drag|paste|key|scroll|go_back|go_forward|reload|resize_viewport|upload_file|wait|finish 중 하나",
+    "type": "아래 action.type 설명 중 하나",
     "elementIndex": 0,
     "targetElementIndex": 0,
     "text": "type/paste일 때 입력할 문자열",
@@ -30,7 +30,13 @@ const ACTION_SCHEMA_HINT = `
     "direction": "scroll일 때만: up, down, top, bottom",
     "amount": 600,
     "preset": "resize_viewport일 때만: mobile, tablet, desktop",
+    "orientation": "resize_viewport일 때만: portrait(기본) 또는 landscape",
     "fixtureType": "upload_file일 때만: valid_image, valid_document, disallowed_extension, oversized",
+    "scope": "clear_storage일 때만: cookies, localStorage, sessionStorage, all",
+    "offline": false,
+    "scheme": "set_color_scheme일 때만: dark, light",
+    "url": "navigate일 때만: 이동할 URL(등록된 대상과 같은 호스트만 허용)",
+    "tabIndex": 0,
     "waitMs": 500
   },
   "done": false,
@@ -47,12 +53,20 @@ const ACTION_SCHEMA_HINT = `
 - drag: elementIndex 요소를 targetElementIndex 위치로 드래그 — 순서 변경/이동 UI용. draggable 속성이 있는 요소만 대상으로 시도해라
 - paste: elementIndex에 text를 클립보드 붙여넣기로 입력(타이핑이 아니라 실제 paste 이벤트) — "붙여넣기 방지" 필드 우회 테스트용
 - key: elementIndex(선택, 없으면 방금 입력한 필드 등 현재 포커스 유지)에서 key를 누름. times로 반복(예: Backspace 여러 번). 폼을 Enter로 제출할 때도 이걸 써라
+- rapid_click: elementIndex를 times(기본 2)만큼 아주 빠르게 연속 클릭 — 중복 제출/중복 클릭 방지 테스트용
 - scroll: 페이지 스크롤. direction이 top/bottom이면 맨 위/아래로, up/down이면 amount(px)만큼
 - go_back / go_forward: 브라우저 뒤로가기/앞으로가기
 - reload: 현재 페이지 새로고침
-- resize_viewport: 브라우저 화면 크기를 preset(mobile/tablet/desktop)으로 변경 — 반응형 레이아웃 확인용
+- resize_viewport: 브라우저 화면 크기를 preset(mobile/tablet/desktop)+orientation으로 변경 — 반응형 레이아웃/화면 회전 확인용
+- set_color_scheme: 다크모드/라이트모드 전환(scheme) — 테마 전환 시 깨지는 텍스트/색상 확인용
+- set_network: offline:true/false로 네트워크 연결을 끊거나 복구 — 오프라인 처리, 웹소켓 재연결 확인용
+- clear_storage: scope에 지정한 저장소(쿠키/로컬스토리지/세션스토리지)를 강제로 비움 — 강제 로그아웃 시 크래시 없이 안전하게 초기 상태로 돌아가는지 확인용
+- navigate: url로 직접 이동(등록된 대상과 같은 호스트만 허용) — 관리자 페이지 등 권한 없는 URL 강제 접근, IDOR(다른 사람 리소스 id로 파라미터 변조) 테스트용
+- open_duplicate_tab: 같은 로그인 세션을 공유하는 새 탭을 현재 페이지와 같은 주소로 염 — 동시성/경합 조건(두 탭에서 같은 데이터 동시 수정) 테스트용
+- switch_tab: tabIndex(0=원래 탭, 1=open_duplicate_tab으로 연 탭...)로 이후 액션의 대상 탭을 전환
 - upload_file: elementIndex(파일 입력 요소)에 fixtureType에 맞는 테스트 파일을 업로드 — 실제 파일 내용은 신경 쓸 필요 없음(테스트 픽스처가 자동으로 쓰임)
-- wait: waitMs만큼 대기
+- read_test_inbox: 이메일/문자 인증이 필요한 단계에서, 테스트 인박스에 온 최신 메일을 읽어 인증 코드를 elementIndex에 자동 입력하거나(코드인 경우) 재설정 링크로 자동 이동(링크인 경우). "인증 메일을 보냈습니다" 같은 화면을 만나면 이 액션을 써라 — 테스트 인박스가 설정 안 돼 있으면 실패로 보고된다
+- wait: waitMs만큼 대기(장시간 세션 만료 테스트로 태그된 체크포인트가 아니면 최대 5초로 제한됨)
 - finish: 더 이상 할 행동이 없을 때
 
 목표를 실제로 달성했다면 action.type을 "finish", done을 true, finishReason을 "goal_achieved"로 설정해라.

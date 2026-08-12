@@ -46,6 +46,14 @@ async function processRun(doc) {
     if (urlData?.testPaymentMethod) {
       paymentInfo = JSON.parse(decryptSecret(urlData.testPaymentMethod));
     }
+    let savedSessionState = null;
+    if (urlData?.testSession) {
+      savedSessionState = JSON.parse(decryptSecret(urlData.testSession));
+    }
+    let testInboxConfig = null;
+    if (urlData?.testInbox) {
+      testInboxConfig = JSON.parse(decryptSecret(urlData.testInbox));
+    }
 
     // checkpoints는 Firestore에 맵({"0": {...}, "1": {...}})으로 저장돼 있어서, 엔진에
     // 넘기기 전에 숫자 키 순서대로 정렬한 배열로 복원한다.
@@ -67,6 +75,8 @@ async function processRun(doc) {
       maxActionsPerCheckpoint: claimed.maxActionsPerCheckpoint || 5,
       credentials,
       paymentInfo,
+      savedSessionState,
+      testInboxConfig,
       onCheckpointStatus: async (checkpointIndex, status, extra = {}) => {
         const update = { [`checkpoints.${checkpointIndex}.status`]: status };
         // Firestore는 undefined 값을 거부하므로(성공 시 failureReason이 undefined임)
@@ -98,6 +108,7 @@ async function processRun(doc) {
       networkCalls: result.networkCalls,
       consoleLogs: result.consoleLogs,
       downloads: result.downloads,
+      websocketFrames: result.websocketFrames,
       haltedAtCheckpoint: result.haltedAtCheckpoint,
       finishedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
