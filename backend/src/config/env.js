@@ -18,7 +18,13 @@ const env = {
   authEmulatorHost: process.env.FIREBASE_AUTH_EMULATOR_HOST || 'localhost:9099',
   storageEmulatorHost: process.env.FIREBASE_STORAGE_EMULATOR_HOST || 'localhost:9199',
   storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'repliqa-dev.appspot.com',
-  frontendOrigin: process.env.FRONTEND_ORIGIN || 'http://localhost:5173',
+  // 운영(Vercel/Render) 배포용 — 서비스 계정 JSON 전체를 문자열로 넣어두는 방식.
+  // 로컬 개발/에뮬레이터에서는 불필요.
+  firebaseServiceAccountJson: process.env.FIREBASE_SERVICE_ACCOUNT_JSON || null,
+  // 여러 origin을 콤마로 구분해 허용할 수 있게(예: Vercel 프리뷰 배포 + 프로덕션 도메인 동시 허용).
+  frontendOrigin: process.env.FRONTEND_ORIGIN
+    ? process.env.FRONTEND_ORIGIN.split(',').map((o) => o.trim())
+    : 'http://localhost:5173',
   credentialEncryptionKey: process.env.CREDENTIAL_ENCRYPTION_KEY || null,
   workerConcurrency: parseInt(process.env.WORKER_CONCURRENCY || '2', 10),
   workerPollIntervalMs: parseInt(process.env.WORKER_POLL_INTERVAL_MS || '3000', 10),

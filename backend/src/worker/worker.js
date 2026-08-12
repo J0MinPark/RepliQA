@@ -1,3 +1,4 @@
+const http = require('http');
 const pLimit = require('p-limit');
 const env = require('../config/env');
 const { collections, admin } = require('../db/firestore');
@@ -114,6 +115,20 @@ async function tick() {
     processingIds.add(doc.id);
     limit(() => processRun(doc)).finally(() => processingIds.delete(doc.id));
   }
+}
+
+// Render 같은 PaaS의 무료 등급은 "Background Worker" 서비스 타입은 유료라, HTTP에 응답하는
+// "Web Service" 타입으로 띄워야 무료로 상시 실행할 수 있다. 실제 작업은 여전히 아래
+// setInterval 폴링 루프가 하고, 이 서버는 헬스체크·"깨어있는지" 확인용일 뿐이다.
+if (process.env.PORT) {
+  http
+    .createServer((req, res) => {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, processing: processingIds.size }));
+    })
+    .listen(process.env.PORT, () => {
+      console.log(`   헬스체크 서버가 :${process.env.PORT} 에서 응답합니다.`);
+    });
 }
 
 console.log(`🛠  RepliQA worker 시작 (concurrency=${env.workerConcurrency})`);

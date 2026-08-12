@@ -9,10 +9,13 @@ if (env.firebaseUseEmulator) {
 }
 
 if (!admin.apps.length) {
-  admin.initializeApp({
-    projectId: env.firebaseProjectId,
-    storageBucket: env.storageBucket,
-  });
+  // Vercel/Render 같은 서버리스·컨테이너 환경에는 로컬 파일 경로(GOOGLE_APPLICATION_CREDENTIALS)를
+  // 둘 곳이 마땅치 않다 — 서비스 계정 JSON을 통째로 환경변수에 넣어두면 그걸 우선 사용한다.
+  const initOptions = { projectId: env.firebaseProjectId, storageBucket: env.storageBucket };
+  if (env.firebaseServiceAccountJson) {
+    initOptions.credential = admin.credential.cert(JSON.parse(env.firebaseServiceAccountJson));
+  }
+  admin.initializeApp(initOptions);
 }
 
 const db = admin.firestore();

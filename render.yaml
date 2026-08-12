@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: repliqa-worker
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npx camoufox-js fetch
+    startCommand: npm run start:worker
+    healthCheckPath: /
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: FIREBASE_USE_EMULATOR
+        value: "false"
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_STORAGE_BUCKET
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: CREDENTIAL_ENCRYPTION_KEY
+        sync: false
+      - key: WORKER_CONCURRENCY
+        value: "1"
+      - key: WORKER_POLL_INTERVAL_MS
+        value: "5000"

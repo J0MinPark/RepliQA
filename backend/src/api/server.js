@@ -37,7 +37,13 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: '서버 내부 오류가 발생했습니다.' });
 });
 
-app.listen(env.port, () => {
-  console.log(`🚀 RepliQA API 서버가 http://localhost:${env.port} 에서 실행 중입니다.`);
-  console.log(`   Firebase emulator mode: ${env.firebaseUseEmulator}`);
-});
+// Vercel은 이 파일을 함수로 import해서 직접 요청을 넘겨주므로 listen()을 호출하면 안 되고,
+// 로컬(`node src/api/server.js`)로 직접 실행했을 때만 포트를 연다.
+if (require.main === module) {
+  app.listen(env.port, () => {
+    console.log(`🚀 RepliQA API 서버가 http://localhost:${env.port} 에서 실행 중입니다.`);
+    console.log(`   Firebase emulator mode: ${env.firebaseUseEmulator}`);
+  });
+}
+
+module.exports = app;
