@@ -24,14 +24,14 @@ async function launchBrowser({ stealth, hostname, pinnedIp }) {
     // Camoufox 공식 권장: newContext에 고정 viewport를 주면 window 크기 고정과 충돌해
     // 두 번째 newPage()가 행(hang)할 수 있다(daijro/camoufox#666) — viewport: null로
     // 두고 launch 시점의 window 크기에 맡긴다.
-    return { browser, contextOptions: { viewport: null } };
+    return { browser, contextOptions: { viewport: null, acceptDownloads: true } };
   }
 
   const browser = await chromium.launch({
     headless: true,
     args: [`--host-resolver-rules=MAP ${hostname} ${pinnedIp}`],
   });
-  return { browser, contextOptions: { viewport: VIEWPORT } };
+  return { browser, contextOptions: { viewport: VIEWPORT, acceptDownloads: true } };
 }
 
 module.exports = { launchBrowser, VIEWPORT };

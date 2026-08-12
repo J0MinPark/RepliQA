@@ -143,25 +143,23 @@ async function runCheckpoint({
     });
   }
 
-  // 결제 위젯은 팝업(새 탭)이나 iframe으로 뜨는 경우가 흔하다. 팝업이 열리면 이후
-  // capture/execute 대상을 그 팝업으로 전환한다(iframe은 capture.js가 알아서 훑는다).
+  // 새 탭/팝업으로 이동하는 경우가 결제 위젯 말고도 흔하다(target="_blank" 링크 등) —
+  // 모든 체크포인트에서 팝업이 열리면 이후 capture/execute 대상을 그 팝업으로 전환한다
+  // (iframe은 capture.js가 알아서 훑는다).
   let activePage = page;
-  let popupListener = null;
-  if (isPayment) {
-    popupListener = (newPage) => {
-      activePage = newPage;
-      attachErrorCollectors(newPage, collectedErrors, activity);
-      newPage.on('close', () => {
-        if (activePage === newPage) activePage = page;
-      });
-    };
-    context.on('page', popupListener);
+  const popupListener = (newPage) => {
+    activePage = newPage;
+    attachErrorCollectors(newPage, collectedErrors, activity);
+    newPage.on('close', () => {
+      if (activePage === newPage) activePage = page;
+    });
+  };
+  context.on('page', popupListener);
 
-    if (paymentInfo) {
-      await attemptPaymentFill(activePage, paymentInfo).catch((err) => {
-        collectedErrors.push(`[Payment Fill Error] ${err.message}`);
-      });
-    }
+  if (isPayment && paymentInfo) {
+    await attemptPaymentFill(activePage, paymentInfo).catch((err) => {
+      collectedErrors.push(`[Payment Fill Error] ${err.message}`);
+    });
   }
 
   let done = false;
@@ -215,7 +213,7 @@ async function runCheckpoint({
         break;
       }
 
-      const execResult = await executeAction(activePage, plan.action, state.elements);
+      const execResult = await executeAction(activePage, plan.action, state.elements, context);
       const screenshotPath =
         stepInCheckpoint === 1 && activePage === page
           ? entryScreenshotPath
@@ -253,7 +251,7 @@ async function runCheckpoint({
       await activePage.waitForTimeout(300);
     }
   } finally {
-    if (popupListener) context.off('page', popupListener);
+    context.off('page', popupListener);
   }
 
   if (!done) {
@@ -298,7 +296,7 @@ async function runTest({
   // 런 전체(체크포인트/팝업 포함) 동안의 네트워크 호출·콘솔 로그를 모은다. 에러가 아닌
   // 것도 포함해서, "200은 떨어졌는데 데이터가 이상한" 것처럼 겉으론 정상인 버그도 사람이나
   // 코딩 에이전트가 리포트에서 직접 훑어볼 수 있게 한다.
-  const activity = { networkCalls: [], consoleLogs: [] };
+  const activity = { networkCalls: [], consoleLogs: [], downloads: [] };
   let haltedAtCheckpoint = null;
   let haltedInfo = null;
 
@@ -352,12 +350,14 @@ async function runTest({
       collectedErrors,
       networkCalls: activity.networkCalls,
       consoleLogs: activity.consoleLogs,
+      downloads: activity.downloads,
       haltedAtCheckpoint,
       summary: {
         totalErrors: collectedErrors.length,
         totalActions: allSteps.length,
         networkCallsCount: activity.networkCalls.length,
         consoleLogsCount: activity.consoleLogs.length,
+        downloadsCount: activity.downloads.length,
       },
       vibeCoderPrompt: report.vibe_coder_prompt,
       errorAnalysis: report.error_analysis,

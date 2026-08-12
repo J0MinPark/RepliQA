@@ -60,7 +60,7 @@ function formatRun(run) {
     `대상: ${run.targetUrl}`,
     `페르소나: ${run.personaName}${run.routeName ? ` / 여정: ${run.routeName}` : ''}`,
     `요약: 총 ${run.summary?.totalActions ?? 0}개 행동 중 에러 ${run.summary?.totalErrors ?? 0}건`,
-    `네트워크 호출 ${run.summary?.networkCallsCount ?? 0}건, 콘솔 로그 ${run.summary?.consoleLogsCount ?? 0}건 기록됨 (전체 목록은 GET /api/test-runs/${run.id} 참고)`,
+    `네트워크 호출 ${run.summary?.networkCallsCount ?? 0}건, 콘솔 로그 ${run.summary?.consoleLogsCount ?? 0}건, 다운로드 ${run.summary?.downloadsCount ?? 0}건 기록됨 (전체 목록은 GET /api/test-runs/${run.id} 참고)`,
   ];
   if (run.haltedAtCheckpoint != null) {
     lines.push(`⚠ 체크포인트 ${run.haltedAtCheckpoint}에서 여정이 중단됨`);

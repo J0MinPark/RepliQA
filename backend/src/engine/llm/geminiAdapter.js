@@ -19,17 +19,41 @@ const ACTION_SCHEMA_HINT = `
 {
   "thought": "현재 화면 상황과 왜 이 행동을 선택했는지 (1~2문장)",
   "action": {
-    "type": "click 또는 type 또는 select 또는 wait 또는 go_back 또는 finish",
+    "type": "click|type|clear|select|hover|drag|paste|key|scroll|go_back|go_forward|reload|resize_viewport|upload_file|wait|finish 중 하나",
     "elementIndex": 0,
-    "text": "type일 때만 입력할 문자열",
+    "targetElementIndex": 0,
+    "text": "type/paste일 때 입력할 문자열",
+    "clear": false,
     "optionLabel": "select일 때만, 그 요소의 options 목록에 있는 라벨 중 정확히 하나",
+    "key": "key일 때만: Enter, Tab, Escape, Backspace, Delete 등",
+    "times": 1,
+    "direction": "scroll일 때만: up, down, top, bottom",
+    "amount": 600,
+    "preset": "resize_viewport일 때만: mobile, tablet, desktop",
+    "fixtureType": "upload_file일 때만: valid_image, valid_document, disallowed_extension, oversized",
     "waitMs": 500
   },
   "done": false,
   "finishReason": "action.type이 finish일 때만: goal_achieved 또는 blocked"
 }
 요소는 반드시 제공된 interactiveElements 배열의 "index" 값으로만 지정해라. 자유 텍스트로 요소를 설명하지 마라.
-드롭다운(select) 요소는 options 필드에 고를 수 있는 항목이 나열되어 있다 — 그 화면에는 안 보일 수 있으니(예: 국가/카드사 선택) 반드시 options 목록을 참고해서 optionLabel을 정확히 그 중 하나로 골라라.
+
+각 action.type 설명:
+- click: elementIndex 요소를 클릭
+- type: elementIndex 요소를 클릭 후 text를 타이핑. clear:true면 기존 값을 지우고 입력(수정 시나리오)
+- clear: elementIndex 요소의 내용을 지우기만 함(재입력 없음) — "입력값 전체 삭제" 테스트용
+- select: 드롭다운(elementIndex)에서 optionLabel(또는 optionValue) 선택. options 필드에 나열된 항목 중 정확히 하나를 골라라 — 화면에 안 보일 수 있다(예: 국가/카드사 선택)
+- hover: elementIndex 위에 마우스만 올림(클릭 안 함) — 툴팁/호버 메뉴 확인용
+- drag: elementIndex 요소를 targetElementIndex 위치로 드래그 — 순서 변경/이동 UI용. draggable 속성이 있는 요소만 대상으로 시도해라
+- paste: elementIndex에 text를 클립보드 붙여넣기로 입력(타이핑이 아니라 실제 paste 이벤트) — "붙여넣기 방지" 필드 우회 테스트용
+- key: elementIndex(선택, 없으면 방금 입력한 필드 등 현재 포커스 유지)에서 key를 누름. times로 반복(예: Backspace 여러 번). 폼을 Enter로 제출할 때도 이걸 써라
+- scroll: 페이지 스크롤. direction이 top/bottom이면 맨 위/아래로, up/down이면 amount(px)만큼
+- go_back / go_forward: 브라우저 뒤로가기/앞으로가기
+- reload: 현재 페이지 새로고침
+- resize_viewport: 브라우저 화면 크기를 preset(mobile/tablet/desktop)으로 변경 — 반응형 레이아웃 확인용
+- upload_file: elementIndex(파일 입력 요소)에 fixtureType에 맞는 테스트 파일을 업로드 — 실제 파일 내용은 신경 쓸 필요 없음(테스트 픽스처가 자동으로 쓰임)
+- wait: waitMs만큼 대기
+- finish: 더 이상 할 행동이 없을 때
 
 목표를 실제로 달성했다면 action.type을 "finish", done을 true, finishReason을 "goal_achieved"로 설정해라.
 반대로 더 이상 시도할 방법이 없어서(화면이 막혔거나, 필요한 요소가 안 보이거나, 봇 탐지 등으로 차단돼서)

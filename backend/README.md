@@ -58,6 +58,41 @@ npm run start:worker
 - 체크포인트 목표 없이(자유 탐색) 실행하던 기존 방식은 여전히 지원됨 — `routeId`를 안 넘기면 자동으로 목표 없는 체크포인트 1개로 흘러감.
 - 각 체크포인트 진입 시 1회, `backend/src/engine/uiuxChecks.js`(WCAG 명암비·터치 타겟 크기·가로 스크롤·alt 누락 등 결정론적 계산)와 `geminiAdapter.evaluateUiUx()`(Toss/Google Material/Kakao·Naver 공개 디자인 원칙 기반 체크리스트 — `backend/src/engine/uiuxChecklist.js`)를 함께 실행해 기능 에러와 별개로 UI/UX 이슈를 리포트에 남김.
 
+## 행동(action) 종류
+
+에이전트가 한 스텝에서 고를 수 있는 `action.type` 전체 목록(`geminiAdapter.js`의 `ACTION_SCHEMA_HINT`,
+실행은 `executor.js`):
+
+- `click`, `type`(`clear:true`로 지우고 재입력), `clear`(지우기만), `select`
+- `hover`(클릭 없이 마우스만 올림 — 툴팁 확인), `drag`(elementIndex→targetElementIndex)
+- `paste`(타이핑이 아니라 실제 clipboard 붙여넣기 — 붙여넣기 방지 필드 우회 테스트용)
+- `key`(Enter/Tab/Escape/Backspace 등, `times`로 반복), `scroll`, `go_back`/`go_forward`, `reload`
+- `resize_viewport`(mobile/tablet/desktop 프리셋 — 반응형 확인)
+- `upload_file`(`fixtureType`: valid_image/valid_document/disallowed_extension/oversized —
+  실제 파일은 `testFixtures.js`가 그때그때 만들어서 재사용. 사이트별 실제 파일은 못 씀)
+- `wait`, `finish`(`finishReason: goal_achieved | blocked`로 성공/실패를 반드시 구분 — 목표를
+  못 이루고 포기한 경우까지 "완료"로 잘못 찍히는 걸 막기 위한 장치)
+
+**알려진 한계**:
+- `drag`는 마우스 이벤트 시퀀스 + 진짜 `DragEvent` 디스패치를 둘 다 시도한다. 순수 마우스
+  시퀀스만으로는 일부 사이트의 네이티브 HTML5 드래그앤드롭(브라우저 내부 DnD 상태 머신)이
+  안 걸리는 경우를 실제로 확인했음(the-internet.herokuapp.com/drag_and_drop) — `DragEvent`
+  디스패치를 추가해서 해결.
+- `alert`/`confirm`/`prompt` 같은 네이티브 다이얼로그는 자동으로 승인(accept)된다 — "취소"
+  분기까지 테스트하려면 아직 지원하지 않는다. 어떤 다이얼로그가 떴었는지는 콘솔 로그에 남는다.
+- 이메일/문자 인증, OAuth 소셜 로그인, 장시간 세션 만료 대기는 외부 시스템 연동이 필요해서
+  아직 지원하지 않는다.
+- 다운로드는 파일명/크기/sha256 해시만 기록한다 — 내용이 "올바른지"는 비교 기준이 없어
+  판단할 수 없고, 사람이 리포트에서 직접 확인해야 한다.
+
+## 네트워크·콘솔 로그 캡처
+
+에러가 아닌 것도 포함해서 런 전체의 XHR/fetch 호출(method/url/status)과 콘솔 로그를 전부
+기록한다(`executor.js`의 `attachErrorCollectors`, 최대 80건씩). "200은 떨어졌는데 데이터가
+잘못된" 것처럼 겉보기엔 정상인 버그도 사람이나 코딩 에이전트가 원본을 직접 훑어볼 수 있게
+하기 위함이다. 요청/응답 바디는 로그인 폼 등에서 비밀번호 같은 민감정보가 그대로 들어갈 수
+있어 의도적으로 캡처하지 않는다.
+
 ## 결제 체크포인트
 
 - 여정 체크포인트 줄 앞에 `[결제]`를 붙이면 그 단계는 `type: 'payment'`로 저장되고, 진입 시 등록된 테스트 카드 정보를 자동으로 입력함(`runEngine.js`의 `attemptPaymentFill` — 로그인과 동일하게 LLM에는 실제 카드값을 넘기지 않고 필드 위치만 물어봄).

@@ -3,7 +3,7 @@
 // 경우가 흔해서, 메인 문서만 보면 결제 폼 안의 입력창을 아예 못 찾는다).
 function extractInteractiveElements(max) {
   const selector =
-    'button, a, input, textarea, select, [role="button"], [role="link"], [role="checkbox"], [role="tab"]';
+    'button, a, input, textarea, select, [role="button"], [role="link"], [role="checkbox"], [role="tab"], [draggable="true"]';
   const nodes = Array.from(document.querySelectorAll(selector));
   const items = [];
   for (const el of nodes) {

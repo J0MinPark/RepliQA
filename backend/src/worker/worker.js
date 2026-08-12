@@ -97,6 +97,7 @@ async function processRun(doc) {
       collectedErrors: result.collectedErrors,
       networkCalls: result.networkCalls,
       consoleLogs: result.consoleLogs,
+      downloads: result.downloads,
       haltedAtCheckpoint: result.haltedAtCheckpoint,
       finishedAt: admin.firestore.FieldValue.serverTimestamp(),
     });

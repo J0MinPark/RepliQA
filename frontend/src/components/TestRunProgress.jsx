@@ -114,9 +114,9 @@ function UiuxFindings({ findings }) {
 // 에러가 아닌 것도 포함한 전체 네트워크/콘솔 기록 — "200은 떨어졌는데 데이터가 이상한"
 // 것처럼 겉으론 정상인 버그를 사람이 직접 훑어볼 수 있게 원본을 그대로 보여준다. 기본은
 // 접어둔다(디버그용 원본이라 항상 볼 필요는 없음).
-function NetworkAndConsolePanel({ networkCalls, consoleLogs }) {
+function NetworkAndConsolePanel({ networkCalls, consoleLogs, downloads }) {
   const [open, setOpen] = useState(false);
-  const hasData = (networkCalls?.length || 0) > 0 || (consoleLogs?.length || 0) > 0;
+  const hasData = (networkCalls?.length || 0) > 0 || (consoleLogs?.length || 0) > 0 || (downloads?.length || 0) > 0;
   if (!hasData) return null;
 
   return (
@@ -128,45 +128,61 @@ function NetworkAndConsolePanel({ networkCalls, consoleLogs }) {
         <h3 className="font-bold text-slate-900 flex items-center gap-2 text-lg">
           <Network size={20} className="text-slate-400" /> 네트워크 호출 · 콘솔 로그
           <span className="text-xs font-normal text-slate-400">
-            ({networkCalls?.length || 0}건 / {consoleLogs?.length || 0}건)
+            ({networkCalls?.length || 0}건 / {consoleLogs?.length || 0}건{downloads?.length ? ` / 다운로드 ${downloads.length}건` : ''})
           </span>
         </h3>
         {open ? <ChevronUp size={18} className="text-slate-400" /> : <ChevronDown size={18} className="text-slate-400" />}
       </button>
       {open && (
-        <div className="px-6 sm:px-8 pb-6 sm:pb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div>
-            <p className="text-xs font-bold text-slate-500 mb-2">네트워크 호출(XHR/fetch)</p>
-            <div className="space-y-1.5 max-h-72 overflow-y-auto">
-              {(networkCalls || []).map((c, idx) => (
-                <div
-                  key={idx}
-                  className={`text-xs font-mono p-2 rounded-lg border ${
-                    c.status >= 400 ? 'bg-red-50 border-red-100 text-red-700' : 'bg-slate-50 border-slate-200 text-slate-600'
-                  }`}
-                >
-                  <span className="font-bold">{c.status}</span> {c.method} <span className="break-all">{c.url}</span>
-                </div>
-              ))}
-              {(!networkCalls || networkCalls.length === 0) && <p className="text-xs text-slate-400">기록 없음</p>}
+        <div className="px-6 sm:px-8 pb-6 sm:pb-8 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <p className="text-xs font-bold text-slate-500 mb-2">네트워크 호출(XHR/fetch)</p>
+              <div className="space-y-1.5 max-h-72 overflow-y-auto">
+                {(networkCalls || []).map((c, idx) => (
+                  <div
+                    key={idx}
+                    className={`text-xs font-mono p-2 rounded-lg border ${
+                      c.status >= 400 ? 'bg-red-50 border-red-100 text-red-700' : 'bg-slate-50 border-slate-200 text-slate-600'
+                    }`}
+                  >
+                    <span className="font-bold">{c.status}</span> {c.method} <span className="break-all">{c.url}</span>
+                  </div>
+                ))}
+                {(!networkCalls || networkCalls.length === 0) && <p className="text-xs text-slate-400">기록 없음</p>}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-500 mb-2">콘솔 로그</p>
+              <div className="space-y-1.5 max-h-72 overflow-y-auto">
+                {(consoleLogs || []).map((c, idx) => (
+                  <div
+                    key={idx}
+                    className={`text-xs font-mono p-2 rounded-lg border ${
+                      c.type === 'error' ? 'bg-red-50 border-red-100 text-red-700' : 'bg-slate-50 border-slate-200 text-slate-600'
+                    }`}
+                  >
+                    <span className="font-bold">[{c.type}]</span> <span className="break-all">{c.text}</span>
+                  </div>
+                ))}
+                {(!consoleLogs || consoleLogs.length === 0) && <p className="text-xs text-slate-400">기록 없음</p>}
+              </div>
             </div>
           </div>
-          <div>
-            <p className="text-xs font-bold text-slate-500 mb-2">콘솔 로그</p>
-            <div className="space-y-1.5 max-h-72 overflow-y-auto">
-              {(consoleLogs || []).map((c, idx) => (
-                <div
-                  key={idx}
-                  className={`text-xs font-mono p-2 rounded-lg border ${
-                    c.type === 'error' ? 'bg-red-50 border-red-100 text-red-700' : 'bg-slate-50 border-slate-200 text-slate-600'
-                  }`}
-                >
-                  <span className="font-bold">[{c.type}]</span> <span className="break-all">{c.text}</span>
-                </div>
-              ))}
-              {(!consoleLogs || consoleLogs.length === 0) && <p className="text-xs text-slate-400">기록 없음</p>}
+          {downloads?.length > 0 && (
+            <div>
+              <p className="text-xs font-bold text-slate-500 mb-2">
+                다운로드 (내용 일치는 확인 못함 — 파일이 정상적으로 만들어졌는지만 확인)
+              </p>
+              <div className="space-y-1.5">
+                {downloads.map((d, idx) => (
+                  <div key={idx} className="text-xs font-mono p-2 rounded-lg border bg-slate-50 border-slate-200 text-slate-600">
+                    {d.filename} — {(d.sizeBytes / 1024).toFixed(1)}KB — sha256:{d.sha256.slice(0, 12)}...
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>
@@ -382,7 +398,7 @@ export default function TestRunProgress({ tenantId, runId, onReset }) {
             </div>
           </div>
 
-          <NetworkAndConsolePanel networkCalls={run.networkCalls} consoleLogs={run.consoleLogs} />
+          <NetworkAndConsolePanel networkCalls={run.networkCalls} consoleLogs={run.consoleLogs} downloads={run.downloads} />
 
           <div>
             <h3 className="font-bold text-slate-900 mb-4 text-lg">여정 단계별 상세 리포트</h3>
