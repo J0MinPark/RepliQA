@@ -90,15 +90,40 @@ async function selectOptionAt(page, target, x, y, action) {
   }
 }
 
+const MAX_ACTIVITY_ENTRIES = 80;
+
 // 기존 프로토타입은 console/response만 감시했다. pageerror(자바스크립트 크래시)는
 // 기획서가 명시한 핵심 탐지 대상인데 누락돼 있었어서 여기서 추가한다.
-function attachErrorCollectors(page, collectedErrors) {
+//
+// activity(networkCalls/consoleLogs)는 에러가 아닌 것도 포함한 전체 기록이다 — 200을
+// 반환해도 응답 바디가 잘못된 경우처럼, "에러는 아니지만 수상한" 호출을 나중에 사람이나
+// 코딩 에이전트가 직접 훑어볼 수 있게 남겨둔다. 요청/응답 바디는 로그인 폼 등에서 비밀번호
+// 같은 민감정보가 그대로 들어갈 수 있어 일부러 캡처하지 않는다 — method/url/status만 남긴다.
+function attachErrorCollectors(page, collectedErrors, activity = {}) {
+  const { networkCalls, consoleLogs } = activity;
+
   page.on('console', (msg) => {
     if (msg.type() === 'error') collectedErrors.push(`[Console Error] ${msg.text()}`);
+    if (consoleLogs && consoleLogs.length < MAX_ACTIVITY_ENTRIES) {
+      consoleLogs.push({
+        type: msg.type(),
+        text: msg.text().slice(0, 300),
+        timestamp: new Date().toISOString(),
+      });
+    }
   });
   page.on('response', (response) => {
     if (response.status() >= 400) {
       collectedErrors.push(`[Network Error] ${response.status()} ${response.url()}`);
+    }
+    const resourceType = response.request().resourceType();
+    if (networkCalls && networkCalls.length < MAX_ACTIVITY_ENTRIES && (resourceType === 'xhr' || resourceType === 'fetch')) {
+      networkCalls.push({
+        method: response.request().method(),
+        url: response.url().slice(0, 300),
+        status: response.status(),
+        timestamp: new Date().toISOString(),
+      });
     }
   });
   page.on('pageerror', (err) => {

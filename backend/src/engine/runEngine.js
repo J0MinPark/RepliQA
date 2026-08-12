@@ -103,6 +103,7 @@ async function runCheckpoint({
   paymentInfo,
   maxActionsPerCheckpoint,
   collectedErrors,
+  activity,
   onStep,
   onUiuxFindings,
 }) {
@@ -149,7 +150,7 @@ async function runCheckpoint({
   if (isPayment) {
     popupListener = (newPage) => {
       activePage = newPage;
-      attachErrorCollectors(newPage, collectedErrors);
+      attachErrorCollectors(newPage, collectedErrors, activity);
       newPage.on('close', () => {
         if (activePage === newPage) activePage = page;
       });
@@ -164,6 +165,8 @@ async function runCheckpoint({
   }
 
   let done = false;
+  let success = false;
+  let failureReason = null;
   let offline = false;
   let stepInCheckpoint = 0;
   const history = [];
@@ -206,6 +209,9 @@ async function runCheckpoint({
         steps.push(step);
         if (onStep) await onStep(checkpoint.index, step);
         done = true;
+        // 결제 최종 제출 직전까지 정상적으로 도달한 것 자체가 이 체크포인트의 성공
+        // 조건이다(안전핀 때문에 그 이상은 의도적으로 진행하지 않음).
+        success = true;
         break;
       }
 
@@ -236,18 +242,29 @@ async function runCheckpoint({
       steps.push(step);
       if (onStep) await onStep(checkpoint.index, step);
 
-      done = Boolean(plan.done) || plan.action?.type === 'finish';
+      // "finish"라고 해서 무조건 성공이 아니다 — 모델이 막혀서 포기한 것일 수도 있다.
+      // finishReason으로 성공/실패를 구분해서, 리포트가 "완료(성공)"로 잘못 찍히지 않게 한다.
+      const isFinish = plan.action?.type === 'finish';
+      done = Boolean(plan.done) || isFinish;
+      if (isFinish) {
+        success = plan.finishReason !== 'blocked';
+        if (!success) failureReason = step.thought || '모델이 목표 달성이 불가능하다고 판단해 중단함';
+      }
       await activePage.waitForTimeout(300);
     }
   } finally {
     if (popupListener) context.off('page', popupListener);
   }
 
+  if (!done) {
+    failureReason = `허용된 행동 횟수(${maxActionsPerCheckpoint}회) 안에 목표를 달성하지 못함`;
+  }
+
   if (persona.networkChaos && offline) {
     await context.setOffline(false);
   }
 
-  return { done, steps };
+  return { done, success, failureReason, steps };
 }
 
 // checkpoints를 순서대로 처리한다. 하나가 예산 안에 끝나지 못하면(done=false) 그 지점에서
@@ -278,12 +295,17 @@ async function runTest({
 
   const collectedErrors = [];
   const allSteps = [];
+  // 런 전체(체크포인트/팝업 포함) 동안의 네트워크 호출·콘솔 로그를 모은다. 에러가 아닌
+  // 것도 포함해서, "200은 떨어졌는데 데이터가 이상한" 것처럼 겉으론 정상인 버그도 사람이나
+  // 코딩 에이전트가 리포트에서 직접 훑어볼 수 있게 한다.
+  const activity = { networkCalls: [], consoleLogs: [] };
   let haltedAtCheckpoint = null;
+  let haltedInfo = null;
 
   try {
     const context = await browser.newContext(contextOptions);
     const page = await context.newPage();
-    attachErrorCollectors(page, collectedErrors);
+    attachErrorCollectors(page, collectedErrors, activity);
 
     await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
 
@@ -306,26 +328,37 @@ async function runTest({
         paymentInfo,
         maxActionsPerCheckpoint,
         collectedErrors,
+        activity,
         onStep,
         onUiuxFindings,
       });
 
       allSteps.push(...result.steps.map((s) => ({ ...s, checkpointIndex: checkpoint.index })));
 
-      if (!result.done) {
-        if (onCheckpointStatus) await onCheckpointStatus(checkpoint.index, 'failed');
+      if (!result.done || !result.success) {
+        if (onCheckpointStatus) {
+          await onCheckpointStatus(checkpoint.index, 'failed', { failureReason: result.failureReason });
+        }
         haltedAtCheckpoint = checkpoint.index;
+        haltedInfo = { checkpointGoal: checkpoint.goal, reason: result.failureReason };
         break;
       }
       if (onCheckpointStatus) await onCheckpointStatus(checkpoint.index, 'completed');
     }
 
-    const report = await geminiAdapter.generateReport({ errors: collectedErrors, steps: allSteps });
+    const report = await geminiAdapter.generateReport({ errors: collectedErrors, steps: allSteps, haltedInfo });
 
     return {
       collectedErrors,
+      networkCalls: activity.networkCalls,
+      consoleLogs: activity.consoleLogs,
       haltedAtCheckpoint,
-      summary: { totalErrors: collectedErrors.length, totalActions: allSteps.length },
+      summary: {
+        totalErrors: collectedErrors.length,
+        totalActions: allSteps.length,
+        networkCallsCount: activity.networkCalls.length,
+        consoleLogsCount: activity.consoleLogs.length,
+      },
       vibeCoderPrompt: report.vibe_coder_prompt,
       errorAnalysis: report.error_analysis,
     };

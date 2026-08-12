@@ -39,7 +39,8 @@ function formatCheckpoints(checkpoints) {
       const findings = (c.uiuxFindings || [])
         .map((f) => `    - [${f.category}] ${f.detail || f.description}`)
         .join('\n');
-      return `${i}. [${c.status}] ${c.goal || '(자유 탐색)'} — 행동 ${c.steps?.length || 0}회${
+      const failureLine = c.status === 'failed' && c.failureReason ? `\n  실패 이유: ${c.failureReason}` : '';
+      return `${i}. [${c.status}] ${c.goal || '(자유 탐색)'} — 행동 ${c.steps?.length || 0}회${failureLine}${
         findings ? `\n  UI/UX findings:\n${findings}` : ''
       }`;
     })
@@ -59,6 +60,7 @@ function formatRun(run) {
     `대상: ${run.targetUrl}`,
     `페르소나: ${run.personaName}${run.routeName ? ` / 여정: ${run.routeName}` : ''}`,
     `요약: 총 ${run.summary?.totalActions ?? 0}개 행동 중 에러 ${run.summary?.totalErrors ?? 0}건`,
+    `네트워크 호출 ${run.summary?.networkCallsCount ?? 0}건, 콘솔 로그 ${run.summary?.consoleLogsCount ?? 0}건 기록됨 (전체 목록은 GET /api/test-runs/${run.id} 참고)`,
   ];
   if (run.haltedAtCheckpoint != null) {
     lines.push(`⚠ 체크포인트 ${run.haltedAtCheckpoint}에서 여정이 중단됨`);

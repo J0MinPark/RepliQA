@@ -7,6 +7,8 @@ import {
   Terminal,
   Activity,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Loader2,
   Bot,
   Eye,
@@ -14,6 +16,7 @@ import {
   CheckCircle2,
   XCircle,
   ShieldCheck,
+  Network,
 } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { api } from '../lib/api';
@@ -108,6 +111,68 @@ function UiuxFindings({ findings }) {
   );
 }
 
+// 에러가 아닌 것도 포함한 전체 네트워크/콘솔 기록 — "200은 떨어졌는데 데이터가 이상한"
+// 것처럼 겉으론 정상인 버그를 사람이 직접 훑어볼 수 있게 원본을 그대로 보여준다. 기본은
+// 접어둔다(디버그용 원본이라 항상 볼 필요는 없음).
+function NetworkAndConsolePanel({ networkCalls, consoleLogs }) {
+  const [open, setOpen] = useState(false);
+  const hasData = (networkCalls?.length || 0) > 0 || (consoleLogs?.length || 0) > 0;
+  if (!hasData) return null;
+
+  return (
+    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between p-6 sm:p-8 text-left focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-inset"
+      >
+        <h3 className="font-bold text-slate-900 flex items-center gap-2 text-lg">
+          <Network size={20} className="text-slate-400" /> 네트워크 호출 · 콘솔 로그
+          <span className="text-xs font-normal text-slate-400">
+            ({networkCalls?.length || 0}건 / {consoleLogs?.length || 0}건)
+          </span>
+        </h3>
+        {open ? <ChevronUp size={18} className="text-slate-400" /> : <ChevronDown size={18} className="text-slate-400" />}
+      </button>
+      {open && (
+        <div className="px-6 sm:px-8 pb-6 sm:pb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <p className="text-xs font-bold text-slate-500 mb-2">네트워크 호출(XHR/fetch)</p>
+            <div className="space-y-1.5 max-h-72 overflow-y-auto">
+              {(networkCalls || []).map((c, idx) => (
+                <div
+                  key={idx}
+                  className={`text-xs font-mono p-2 rounded-lg border ${
+                    c.status >= 400 ? 'bg-red-50 border-red-100 text-red-700' : 'bg-slate-50 border-slate-200 text-slate-600'
+                  }`}
+                >
+                  <span className="font-bold">{c.status}</span> {c.method} <span className="break-all">{c.url}</span>
+                </div>
+              ))}
+              {(!networkCalls || networkCalls.length === 0) && <p className="text-xs text-slate-400">기록 없음</p>}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-bold text-slate-500 mb-2">콘솔 로그</p>
+            <div className="space-y-1.5 max-h-72 overflow-y-auto">
+              {(consoleLogs || []).map((c, idx) => (
+                <div
+                  key={idx}
+                  className={`text-xs font-mono p-2 rounded-lg border ${
+                    c.type === 'error' ? 'bg-red-50 border-red-100 text-red-700' : 'bg-slate-50 border-slate-200 text-slate-600'
+                  }`}
+                >
+                  <span className="font-bold">[{c.type}]</span> <span className="break-all">{c.text}</span>
+                </div>
+              ))}
+              {(!consoleLogs || consoleLogs.length === 0) && <p className="text-xs text-slate-400">기록 없음</p>}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const CHECKPOINT_STATUS_ICON = {
   pending: <CircleDot size={16} className="text-slate-300" />,
   running: <Loader2 size={16} className="text-blue-500 animate-spin" />,
@@ -124,12 +189,17 @@ function orderedCheckpoints(checkpointsMap) {
 function CheckpointSection({ runId, checkpoint }) {
   return (
     <div className="border border-slate-100 rounded-2xl p-5 bg-white">
-      <div className="flex items-center gap-2 mb-4">
+      <div className={`flex items-center gap-2 ${checkpoint.status === 'failed' && checkpoint.failureReason ? 'mb-1' : 'mb-4'}`}>
         {CHECKPOINT_STATUS_ICON[checkpoint.status] || CHECKPOINT_STATUS_ICON.pending}
         <h4 className="font-bold text-slate-900 text-sm">
           {checkpoint.goal ? checkpoint.goal : '자유 탐색'}
         </h4>
       </div>
+      {checkpoint.status === 'failed' && checkpoint.failureReason && (
+        <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-4 ml-6">
+          {checkpoint.failureReason}
+        </p>
+      )}
       {checkpoint.uiuxFindings?.length > 0 && (
         <div className="mb-4">
           <UiuxFindings findings={checkpoint.uiuxFindings} />
@@ -311,6 +381,8 @@ export default function TestRunProgress({ tenantId, runId, onReset }) {
               )}
             </div>
           </div>
+
+          <NetworkAndConsolePanel networkCalls={run.networkCalls} consoleLogs={run.consoleLogs} />
 
           <div>
             <h3 className="font-bold text-slate-900 mb-4 text-lg">여정 단계별 상세 리포트</h3>

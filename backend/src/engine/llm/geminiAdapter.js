@@ -25,11 +25,17 @@ const ACTION_SCHEMA_HINT = `
     "optionLabel": "select일 때만, 그 요소의 options 목록에 있는 라벨 중 정확히 하나",
     "waitMs": 500
   },
-  "done": false
+  "done": false,
+  "finishReason": "action.type이 finish일 때만: goal_achieved 또는 blocked"
 }
 요소는 반드시 제공된 interactiveElements 배열의 "index" 값으로만 지정해라. 자유 텍스트로 요소를 설명하지 마라.
 드롭다운(select) 요소는 options 필드에 고를 수 있는 항목이 나열되어 있다 — 그 화면에는 안 보일 수 있으니(예: 국가/카드사 선택) 반드시 options 목록을 참고해서 optionLabel을 정확히 그 중 하나로 골라라.
-더 이상 테스트할 행동이 없다고 판단되면 action.type을 "finish"로, done을 true로 설정해라.
+
+목표를 실제로 달성했다면 action.type을 "finish", done을 true, finishReason을 "goal_achieved"로 설정해라.
+반대로 더 이상 시도할 방법이 없어서(화면이 막혔거나, 필요한 요소가 안 보이거나, 봇 탐지 등으로 차단돼서)
+목표를 달성하지 못한 채 멈춰야 한다면 action.type을 "finish", done을 true, finishReason을 "blocked"로 설정하고
+thought에 왜 막혔는지 구체적으로 남겨라. "일단 끝냈다"고 뭉뚱그리지 말고, 성공과 실패를 반드시 구분해라 —
+이 구분이 최종 리포트의 성공/실패 판정에 그대로 쓰인다.
 `;
 
 async function generateNextAction({
@@ -43,7 +49,7 @@ async function generateNextAction({
 }) {
   const model = getModel();
   const goalBlock = checkpointGoal
-    ? `\n너의 현재 목표(체크포인트): "${checkpointGoal}"\n이 목표를 달성했다고 판단되면 action.type을 "finish"로, done을 true로 설정해라. 목표와 무관한 행동은 하지 마라.\n`
+    ? `\n너의 현재 목표(체크포인트): "${checkpointGoal}"\n목표와 무관한 행동은 하지 마라. finish로 멈출 때는 반드시 finishReason으로 성공/실패를 구분해라.\n`
     : '';
   const prompt = `${personaPrompt}
 ${goalBlock}
@@ -67,19 +73,25 @@ ${ACTION_SCHEMA_HINT}`;
   return JSON.parse(result.response.text());
 }
 
-async function generateReport({ errors, steps }) {
-  if (!errors || errors.length === 0) {
+// haltedInfo: 체크포인트가 기술적 에러 없이도 "목표를 못 이루고 막혔을" 수 있다(예: 구글
+// 봇 탐지, 필요한 요소가 아예 안 보임). errors가 비어 있다고 무조건 "안정적"이라고 하면
+// 이런 케이스를 놓치므로, haltedInfo가 있으면 errors가 비어 있어도 실제 리포트를 만든다.
+async function generateReport({ errors, steps, haltedInfo }) {
+  if ((!errors || errors.length === 0) && !haltedInfo) {
     return { error_analysis: '', vibe_coder_prompt: '발생한 에러가 없습니다. 서비스가 안정적입니다.' };
   }
 
   const model = getModel();
+  const haltedBlock = haltedInfo
+    ? `\n<halted_checkpoint>\n목표: ${haltedInfo.checkpointGoal || '(자유 탐색)'}\n막힌 이유: ${haltedInfo.reason}\n이 체크포인트는 기술적 에러(콘솔/네트워크 에러)가 없어도 목표를 달성하지 못해 실패로 처리됐다. 이 이유도 원인 분석에 반드시 포함해라.\n</halted_checkpoint>\n`
+    : '';
   const prompt = `너는 바이브코더를 위한 프롬프트 생성용 봇이야.
 감정적인 표현은 빼고, 시니어 개발자처럼 건조하고 명확하게 해결 코드만 제안해줘.
 아래는 AI 페르소나가 실제로 수행한 행동 타임라인과, 그 과정에서 수집된 에러 로그다.
-
+${haltedBlock}
 {
-  "error_analysis": "수집된 에러들에 대한 기술적 원인 분석",
-  "vibe_coder_prompt": "바이브코더에게 전달할 구체적인 코드 수정 지시문"
+  "error_analysis": "수집된 에러들(및 막힌 체크포인트가 있다면 그 이유)에 대한 기술적 원인 분석",
+  "vibe_coder_prompt": "바이브코더에게 전달할 구체적인 코드 수정 지시문. 막힌 원인이 우리 앱의 버그가 아니라 외부 요인(예: 대상 사이트의 봇 탐지)이라면 그 사실을 명시해라."
 }
 
 <steps>
@@ -87,7 +99,7 @@ ${JSON.stringify(steps)}
 </steps>
 
 <error_logs>
-${JSON.stringify(errors)}
+${JSON.stringify(errors || [])}
 </error_logs>`;
 
   const result = await model.generateContent(prompt);

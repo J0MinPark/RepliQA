@@ -67,8 +67,14 @@ async function processRun(doc) {
       maxActionsPerCheckpoint: claimed.maxActionsPerCheckpoint || 5,
       credentials,
       paymentInfo,
-      onCheckpointStatus: async (checkpointIndex, status) => {
-        await ref.update({ [`checkpoints.${checkpointIndex}.status`]: status });
+      onCheckpointStatus: async (checkpointIndex, status, extra = {}) => {
+        const update = { [`checkpoints.${checkpointIndex}.status`]: status };
+        // Firestore는 undefined 값을 거부하므로(성공 시 failureReason이 undefined임)
+        // 실제로 값이 있는 필드만 골라서 병합한다.
+        for (const [key, value] of Object.entries(extra)) {
+          if (value !== undefined) update[`checkpoints.${checkpointIndex}.${key}`] = value;
+        }
+        await ref.update(update);
       },
       onStep: async (checkpointIndex, step) => {
         await ref.update({
@@ -89,6 +95,8 @@ async function processRun(doc) {
       vibeCoderPrompt: result.vibeCoderPrompt,
       errorAnalysis: result.errorAnalysis,
       collectedErrors: result.collectedErrors,
+      networkCalls: result.networkCalls,
+      consoleLogs: result.consoleLogs,
       haltedAtCheckpoint: result.haltedAtCheckpoint,
       finishedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
