@@ -17,6 +17,7 @@ frontend (Firebase Auth) → API 서버(src/api) → Firestore(testRuns status=q
 ```bash
 npm install
 npx playwright install chromium
+npx camoufox-js fetch          # 결제 체크포인트용 스텔스 브라우저 바이너리 (~500MB)
 npm install -g firebase-tools   # 아직 없다면
 
 cp .env.example .env   # GEMINI_API_KEY, CREDENTIAL_ENCRYPTION_KEY 채우기
@@ -63,10 +64,11 @@ npm run start:worker
 - **안전핀**: "결제하기/구매확정" 류 최종 제출 버튼(`backend/src/engine/paymentSafety.js`의 키워드 목록)은 결제 체크포인트에서 절대 자동 클릭하지 않는다. 그 지점에 도달한 것 자체를 체크포인트 성공으로 기록하고 멈춘다 — 실제 결제·부정거래 탐지 위험을 원천 차단하기 위함.
 - PG 위젯이 팝업이나 iframe으로 뜨는 경우를 지원함: `capture.js`가 iframe 내부 요소도 좌표를 페이지 좌표계로 변환해서 함께 수집하고, 결제 체크포인트 동안은 팝업이 열리면 이후 캡처/실행 대상이 자동으로 그 팝업으로 전환됨.
 - 카드사/은행 선택 같은 `<select>` 드롭다운은 헤드리스 브라우저에서 OS 네이티브 팝업이 스크린샷에 안 잡혀서 좌표 클릭으로 옵션을 고를 수 없다 — `action.type: 'select'`를 지원해서 `Locator.selectOption()`으로 직접 값을 지정한다(`executor.js`). `capture.js`가 select의 `<option>` 목록을 텍스트로 함께 넘겨주므로, 화면엔 안 보이는 옵션도 LLM이 선택할 수 있다.
+- **봇 탐지 우회(Camoufox)**: 결제 체크포인트가 하나라도 있는 여정은 Chromium 대신 [Camoufox](https://camoufox.com)(엔진 레벨 지문 패치가 들어간 스텔스 Firefox 포크, `browserEngines.js`)로 런 전체를 실행한다. 공개 봇 탐지 데모(bot.sannysoft.com)로 직접 비교한 결과, Chromium은 WebDriver/HEADCHR_* 계열 7개 항목에서 탐지됐지만 Camoufox는 전부 통과했다. 알려진 한계: Chromium의 `--host-resolver-rules` IP 고정과 동등한 기능이 Firefox 쪽엔 없어서, 스텔스 경로에서는 DNS 리바인딩 방지 하드닝이 아직 빠져 있다(사설 IP·메타데이터 차단 자체는 그대로 적용됨).
 
 ## 보안 메모
 
-- 테스트 대상 URL은 소유권 검증(`.well-known`) 없이는 실행 불가.
+- 테스트 대상 URL은 소유권 검증(`.well-known`) 없이는 실행 불가. (`SKIP_OWNERSHIP_VERIFICATION=true`로 파일럿/고객 조사 단계에서만 우회 가능 — **프로덕션에서는 절대 켜면 안 됨**. 이 플래그를 켜도 SSRF 가드는 그대로 적용된다.)
 - SSRF 가드가 사설/예약 IP 대역·클라우드 메타데이터 엔드포인트로의 요청을 차단하고, 실행 직전 resolve한 IP를 Playwright `--host-resolver-rules`로 고정해 DNS 리바인딩을 막는다.
 - 테스트 계정 자격증명은 AES-256-GCM으로 암호화 저장되며, 로그인 시 LLM에는 비밀번호 값 자체를 절대 넘기지 않는다(필드 위치만 식별).
 - Firestore/Storage 보안 규칙상 클라이언트는 자기 테넌트 데이터를 읽기만 할 수 있고 모든 쓰기는 backend(firebase-admin)를 통해서만 이뤄진다.

@@ -9,6 +9,7 @@ const {
   verifyUrlOwnership,
 } = require('../../security/urlVerification');
 const { encryptSecret } = require('../../security/crypto');
+const env = require('../../config/env');
 
 const router = express.Router();
 router.use(requireAuth, requireTenant);
@@ -66,9 +67,12 @@ router.post('/', async (req, res) => {
     id: docRef.id,
     url,
     verified: false,
+    verificationSkipped: env.skipOwnershipVerification,
     verificationFileUrl: verificationFileUrl(url, token),
     verificationFileContent: token,
-    instructions: `${verificationFileUrl(url, token)} 경로에 "${token}" 내용을 담은 텍스트 파일을 올린 뒤 POST /api/urls/${docRef.id}/verify를 호출하세요.`,
+    instructions: env.skipOwnershipVerification
+      ? '파일럿 모드: 소유권 검증이 꺼져 있습니다. 바로 "검증하기"를 눌러 진행하세요.'
+      : `${verificationFileUrl(url, token)} 경로에 "${token}" 내용을 담은 텍스트 파일을 올린 뒤 POST /api/urls/${docRef.id}/verify를 호출하세요.`,
   });
 });
 
@@ -122,6 +126,18 @@ router.post('/:id/verify', async (req, res) => {
 
   const data = snap.data();
   if (data.verified) return res.json({ id: snap.id, verified: true });
+
+  // 파일럿/로컬 고객 조사 전용 우회. 지인 소유 사이트 대상 검증처럼, 소유권 확인을
+  // 굳이 자동화할 필요가 없는 상황에서만 .env로 명시적으로 켠다 — 프로덕션 배포에서는
+  // 반드시 false여야 한다(안 그러면 아무 사이트나 등록해서 봇 트래픽을 보낼 수 있음).
+  if (env.skipOwnershipVerification) {
+    await ref.update({
+      verified: true,
+      verifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+      verificationSkipped: true,
+    });
+    return res.json({ id: snap.id, verified: true, verificationSkipped: true });
+  }
 
   let result;
   try {

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Activity, Bot, Zap, ShieldCheck, LogOut } from 'lucide-react';
+import { Activity, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import UrlRegistrationPanel from '../components/UrlRegistrationPanel';
@@ -7,6 +7,7 @@ import RouteBuilder from '../components/RouteBuilder';
 import TestRunForm from '../components/TestRunForm';
 import TestRunProgress from '../components/TestRunProgress';
 import UsagePanel from '../components/UsagePanel';
+import ApiKeyPanel from '../components/ApiKeyPanel';
 
 export default function DashboardPage() {
   const { user, tenantId, logout } = useAuth();
@@ -57,7 +58,7 @@ export default function DashboardPage() {
             </div>
             <span className="text-xl font-extrabold tracking-tight text-slate-900">
               RepliQA{' '}
-              <span className="text-[10px] uppercase font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full ml-1 align-middle">
+              <span className="text-xs uppercase font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full ml-1 align-middle">
                 Beta
               </span>
             </span>
@@ -69,7 +70,7 @@ export default function DashboardPage() {
             </div>
             <button
               onClick={logout}
-              className="text-slate-500 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition"
+              className="text-slate-500 hover:text-red-600 rounded-full hover:bg-red-50 transition min-w-[44px] min-h-[44px] flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-red-400"
               title="로그아웃"
             >
               <LogOut size={18} />
@@ -83,56 +84,11 @@ export default function DashboardPage() {
           <TestRunProgress tenantId={tenantId} runId={activeRunId} onReset={handleReset} />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 animate-in fade-in duration-500">
-            <div className="lg:col-span-5 flex flex-col justify-center space-y-6">
-              <div>
-                <h1 className="text-3xl sm:text-[40px] font-extrabold text-slate-900 leading-tight tracking-tight mb-4">
-                  코드 수정까지 <br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-                    단 한 번의 클릭
-                  </span>
-                  으로.
-                </h1>
-                <p className="text-sm text-slate-600 leading-relaxed">
-                  RepliQA는 비전 AI 페르소나를 활용해 실제 유저의 돌발 행동을 시뮬레이션하고, 발견된 버그를 즉시 해결할
-                  수 있는 Vibe-Coding 프롬프트를 생성합니다.
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-start gap-4 p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
-                  <div className="bg-blue-50 p-2 rounded-lg">
-                    <Bot className="text-blue-600" size={24} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900">Vision 기반 다중 페르소나</h3>
-                    <p className="text-sm text-slate-500 mt-1">
-                      스크린샷+좌표 기반으로 화면을 인지해, 프레임워크에 상관없이 엣지 케이스를 재현합니다.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4 p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
-                  <div className="bg-amber-50 p-2 rounded-lg">
-                    <Zap className="text-amber-500" size={24} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900">Zero-to-Fix 파이프라인</h3>
-                    <p className="text-sm text-slate-500 mt-1">에러 발견 즉시 Cursor 등에서 사용 가능한 수정 프롬프트를 제공합니다.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4 p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
-                  <div className="bg-emerald-50 p-2 rounded-lg">
-                    <ShieldCheck className="text-emerald-500" size={24} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900">검증된 URL만 실행</h3>
-                    <p className="text-sm text-slate-500 mt-1">소유권 검증을 통과한 URL만 테스트 대상으로 등록·실행됩니다.</p>
-                  </div>
-                </div>
-              </div>
-
+            <div className="lg:col-span-5 space-y-6">
               {usageInfo && <UsagePanel usage={usageInfo.usage} quota={usageInfo.quota} />}
               <UrlRegistrationPanel urls={urls} onRefresh={refreshUrls} />
               <RouteBuilder verifiedUrls={verifiedUrls} routes={routes} onRefresh={refreshRoutes} />
+              <ApiKeyPanel />
             </div>
 
             <div className="lg:col-span-7">

@@ -26,6 +26,7 @@ async function apiFetch(path, { method = 'GET', body, forceRefreshToken = false 
 export const api = {
   bootstrapTenant: () => apiFetch('/api/tenants/bootstrap', { method: 'POST' }),
   me: () => apiFetch('/api/tenants/me'),
+  createApiKey: () => apiFetch('/api/tenants/api-key', { method: 'POST' }),
   listUrls: () => apiFetch('/api/urls'),
   registerUrl: (url) => apiFetch('/api/urls', { method: 'POST', body: { url } }),
   verifyUrl: (id) => apiFetch(`/api/urls/${id}/verify`, { method: 'POST' }),

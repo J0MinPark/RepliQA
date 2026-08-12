@@ -40,14 +40,15 @@ export default function RouteBuilder({ verifiedUrls, routes, onRefresh }) {
         <Route size={20} className="text-slate-400" /> 테스트 여정 (선택)
       </h3>
       <p className="text-xs text-slate-500 mb-4">
-        로그인→결제처럼 반드시 확인하고 싶은 흐름을 단계별로 정의하면, 페르소나가 그 순서대로
-        진행을 시도합니다. 정의하지 않으면 자유 탐색으로 실행됩니다. 결제 단계는 줄 맨 앞에{' '}
-        <code className="bg-slate-100 px-1 rounded">[결제]</code>를 붙이세요 — 테스트 결제수단이
-        자동 입력되고, 최종 제출 버튼은 항상 자동 클릭이 생략됩니다.
+        확인하고 싶은 단계를 순서대로 한 줄씩 입력하세요. 비워두면 자유 탐색으로 실행됩니다.
+      </p>
+      <p className="text-xs text-slate-500 mb-4">
+        결제 단계는 줄 앞에 <code className="bg-slate-100 px-1 rounded">[결제]</code>를
+        붙여주세요. 테스트 결제수단이 자동 입력되고, 최종 제출은 항상 자동 클릭을 생략합니다.
       </p>
 
       {verifiedUrls.length === 0 ? (
-        <p className="text-sm text-slate-400">먼저 URL을 등록·검증하면 여정을 만들 수 있습니다.</p>
+        <p className="text-sm text-slate-500">먼저 URL을 등록·검증하면 여정을 만들 수 있습니다.</p>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-3 mb-6">
           <input
@@ -85,7 +86,7 @@ export default function RouteBuilder({ verifiedUrls, routes, onRefresh }) {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-slate-900 text-white text-sm font-bold py-2.5 rounded-xl hover:bg-slate-800 disabled:opacity-60"
+            className="w-full bg-slate-900 text-white text-sm font-bold py-3 rounded-xl hover:bg-slate-800 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
           >
             {submitting ? '저장 중...' : '여정 저장'}
           </button>

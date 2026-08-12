@@ -53,7 +53,7 @@ function CredentialsForm({ urlId, onSaved }) {
       >
         {saving ? '저장 중...' : '저장'}
       </button>
-      <p className="text-[11px] text-slate-400 w-full">
+      <p className="text-xs text-slate-500 w-full">
         실 사용자 계정이 아닌, 별도 발급한 테스트 전용 계정만 입력하세요.
       </p>
     </form>
@@ -122,7 +122,7 @@ function PaymentMethodForm({ urlId, onSaved }) {
       >
         {saving ? '저장 중...' : '저장'}
       </button>
-      <p className="text-[11px] text-amber-600 w-full">
+      <p className="text-xs text-amber-700 w-full">
         반드시 PG사 테스트/샌드박스 모드용 카드 정보만 입력하세요. 최종 결제 제출 버튼은 항상 자동 클릭을
         생략합니다.
       </p>
@@ -178,18 +178,24 @@ export default function UrlRegistrationPanel({ urls, onRefresh }) {
           placeholder="https://your-startup.com"
           value={newUrl}
           onChange={(e) => setNewUrl(e.target.value)}
-          className="flex-1 border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          className="flex-1 border border-slate-200 rounded-xl px-3 py-3 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
         />
         <button
           type="submit"
           disabled={registering}
-          className="bg-blue-600 text-white text-sm font-bold px-4 py-2 rounded-xl hover:bg-blue-700 disabled:opacity-60"
+          className="bg-blue-600 text-white text-sm font-bold px-5 py-3 rounded-xl hover:bg-blue-700 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
         >
           등록
         </button>
       </form>
 
-      {pendingInstructions && (
+      {pendingInstructions && pendingInstructions.verificationSkipped && (
+        <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-800">
+          <p className="font-bold">파일럿 모드: 소유권 검증이 꺼져 있습니다.</p>
+          <p className="mt-1">아래 목록에서 바로 "검증하기"를 누르면 진행됩니다.</p>
+        </div>
+      )}
+      {pendingInstructions && !pendingInstructions.verificationSkipped && (
         <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-800 space-y-1">
           <p className="font-bold">소유권 검증이 필요합니다.</p>
           <p>
@@ -205,7 +211,7 @@ export default function UrlRegistrationPanel({ urls, onRefresh }) {
       {verifyError && <p className="text-xs text-red-600 mb-3">{verifyError}</p>}
 
       <ul className="space-y-3">
-        {urls.length === 0 && <li className="text-sm text-slate-400">등록된 URL이 없습니다.</li>}
+        {urls.length === 0 && <li className="text-sm text-slate-500">등록된 URL이 없습니다.</li>}
         {urls.map((u) => (
           <li key={u.id} className="border border-slate-100 rounded-xl p-3">
             <div className="flex items-center justify-between gap-2">
@@ -223,7 +229,7 @@ export default function UrlRegistrationPanel({ urls, onRefresh }) {
                 <button
                   onClick={() => handleVerify(u.id)}
                   disabled={verifyingId === u.id}
-                  className="text-xs bg-slate-900 text-white rounded-lg px-3 py-1.5 font-semibold flex items-center gap-1 disabled:opacity-60 flex-shrink-0"
+                  className="text-xs bg-slate-900 text-white rounded-lg px-3 py-2.5 font-semibold flex items-center gap-1 disabled:opacity-60 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
                 >
                   {verifyingId === u.id && <Loader2 size={12} className="animate-spin" />}
                   검증하기

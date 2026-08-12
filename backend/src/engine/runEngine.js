@@ -1,8 +1,8 @@
-const { chromium } = require('playwright');
 const { captureState } = require('./capture');
 const { executeAction, attachErrorCollectors, centerOf } = require('./executor');
 const { runObjectiveChecks } = require('./uiuxChecks');
 const { isPaymentSubmitElement } = require('./paymentSafety');
+const { launchBrowser } = require('./browserEngines');
 const geminiAdapter = require('./llm/geminiAdapter');
 const { bucket } = require('../db/firestore');
 const { assertHttpUrl, resolveSafeIp } = require('../security/ssrfGuard');
@@ -271,18 +271,18 @@ async function runTest({
   const hostname = new URL(targetUrl).hostname;
   const pinnedIp = await resolveSafeIp(hostname);
 
-  // 검증 시점 이후 DNS가 바뀌어도(리바인딩) 실행 시점에 확인한 IP로만 붙게 고정한다.
-  const browser = await chromium.launch({
-    headless: true,
-    args: [`--host-resolver-rules=MAP ${hostname} ${pinnedIp}`],
-  });
+  // 결제 체크포인트가 하나라도 있는 여정은 런 전체를 스텔스 엔진(Camoufox)으로 띄운다 —
+  // PG 위젯의 봇 탐지는 결제 단계 진입 전부터 세션/행동을 지켜볼 수 있어서, 결제
+  // 체크포인트에서만 엔진을 바꾸는 것보다 런 시작부터 스텔스로 가는 게 안전하다.
+  const needsStealth = checkpoints.some((c) => c.type === 'payment');
+  const { browser, contextOptions } = await launchBrowser({ stealth: needsStealth, hostname, pinnedIp });
 
   const collectedErrors = [];
   const allSteps = [];
   let haltedAtCheckpoint = null;
 
   try {
-    const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const context = await browser.newContext(contextOptions);
     const page = await context.newPage();
     attachErrorCollectors(page, collectedErrors);
 

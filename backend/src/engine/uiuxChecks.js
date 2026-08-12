@@ -5,11 +5,33 @@ async function runObjectiveChecks(page) {
   return page.evaluate(() => {
     const findings = [];
 
+    // 정규식으로 "rgb(...)"만 파싱하던 예전 버전은 Tailwind v4가 내보내는 oklch(...) 색상을
+    // 못 읽고 조용히 null을 반환했고, 그 결과 effectiveBackground()가 요소 자신의 배경을
+    // 건너뛰고 바깥 카드 배경(흰색)을 잘못 집어서 "흰 글자 vs 흰 배경 = 명암비 1:1" 같은
+    // 오탐을 냈다. 문자열을 직접 파싱하는 대신 캔버스에 실제로 그려서 픽셀을 읽으면
+    // rgb/oklch/hsl/색상명 등 브라우저가 이해하는 모든 형식을 안전하게 처리할 수 있다.
     function parseRgb(colorStr) {
-      const m = colorStr.match(/rgba?\(([^)]+)\)/);
-      if (!m) return null;
-      const parts = m[1].split(',').map((s) => parseFloat(s.trim()));
-      return { r: parts[0], g: parts[1], b: parts[2], a: parts.length > 3 ? parts[3] : 1 };
+      if (!colorStr) return null;
+      if (/transparent/i.test(colorStr) || /rgba?\([^)]*,\s*0\s*\)/.test(colorStr)) {
+        return { r: 0, g: 0, b: 0, a: 0 };
+      }
+      if (!parseRgb._ctx) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1;
+        canvas.height = 1;
+        parseRgb._ctx = canvas.getContext('2d', { willReadFrequently: true });
+      }
+      const ctx = parseRgb._ctx;
+      const sentinel = '#010203';
+      ctx.fillStyle = sentinel;
+      const before = ctx.fillStyle;
+      ctx.fillStyle = colorStr;
+      if (ctx.fillStyle === before) return null; // 브라우저가 못 알아듣는 색상 문자열
+
+      ctx.clearRect(0, 0, 1, 1);
+      ctx.fillRect(0, 0, 1, 1);
+      const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+      return { r, g, b, a: a / 255 };
     }
 
     function relativeLuminance({ r, g, b }) {

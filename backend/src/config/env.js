@@ -22,6 +22,9 @@ const env = {
   credentialEncryptionKey: process.env.CREDENTIAL_ENCRYPTION_KEY || null,
   workerConcurrency: parseInt(process.env.WORKER_CONCURRENCY || '2', 10),
   workerPollIntervalMs: parseInt(process.env.WORKER_POLL_INTERVAL_MS || '3000', 10),
+  // 파일럿/로컬 고객 조사 전용 우회 스위치. 기본값 false — 프로덕션에서는 절대 켜면 안 됨
+  // (URL 소유권 검증이 곧 "이 도구로 남의 사이트를 못 때리게" 막는 유일한 장치임).
+  skipOwnershipVerification: process.env.SKIP_OWNERSHIP_VERIFICATION === 'true',
 };
 
 module.exports = env;

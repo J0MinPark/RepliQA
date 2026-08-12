@@ -62,8 +62,8 @@ export default function TestRunForm({ verifiedUrls, personas, routes, onCreated 
             ))}
           </select>
           {verifiedUrls.length === 0 && (
-            <p className="text-xs text-amber-600 mt-2">
-              검증된 URL이 없습니다. 위에서 URL을 등록하고 소유권 검증을 먼저 완료하세요.
+            <p className="text-xs text-amber-700 mt-2">
+              왼쪽에서 URL을 먼저 등록하고 검증해주세요.
             </p>
           )}
         </div>
@@ -105,7 +105,7 @@ export default function TestRunForm({ verifiedUrls, personas, routes, onCreated 
         <button
           type="submit"
           disabled={!canSubmit}
-          className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/30 transition-all flex justify-center items-center gap-2 group disabled:opacity-50 disabled:pointer-events-none"
+          className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/30 transition-all flex justify-center items-center gap-2 group disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
         >
           {submitting ? '배포 중...' : 'AI 에이전트 배포하기'}
           <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
