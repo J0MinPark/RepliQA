@@ -190,9 +190,9 @@ export default function UrlRegistrationPanel({ urls, onRefresh }) {
       </form>
 
       {pendingInstructions && pendingInstructions.verificationSkipped && (
-        <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-800">
-          <p className="font-bold">파일럿 모드: 소유권 검증이 꺼져 있습니다.</p>
-          <p className="mt-1">아래 목록에서 바로 "검증하기"를 누르면 진행됩니다.</p>
+        <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-xs text-emerald-800">
+          <p className="font-bold">등록 완료 — 바로 테스트를 실행할 수 있습니다.</p>
+          <p className="mt-1">파일럿 단계라 소유권 검증을 생략했습니다.</p>
         </div>
       )}
       {pendingInstructions && !pendingInstructions.verificationSkipped && (

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowRight, AlertCircle } from 'lucide-react';
 import { api } from '../lib/api';
 
@@ -8,6 +8,13 @@ export default function TestRunForm({ verifiedUrls, personas, routes, onCreated 
   const [routeId, setRouteId] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  // 지금은 카오스 페르소나를 숨기고 표준 실행 하나만 노출 중이라, 목록이 1개면 굳이 고르게
+  // 하지 않고 바로 선택해둔다 — 여러 개로 늘어나면(personas.length !== 1) 자동으로 다시 빈
+  // 선택 상태로 돌아간다.
+  useEffect(() => {
+    if (personas.length === 1) setPersonaId(personas[0].id);
+  }, [personas]);
 
   const canSubmit = registeredUrlId && personaId && !submitting;
   const routesForUrl = routes.filter((r) => r.registeredUrlId === registeredUrlId);
@@ -62,9 +69,7 @@ export default function TestRunForm({ verifiedUrls, personas, routes, onCreated 
             ))}
           </select>
           {verifiedUrls.length === 0 && (
-            <p className="text-xs text-amber-700 mt-2">
-              왼쪽에서 URL을 먼저 등록하고 검증해주세요.
-            </p>
+            <p className="text-xs text-amber-700 mt-2">왼쪽에서 URL을 먼저 등록해주세요.</p>
           )}
         </div>
 

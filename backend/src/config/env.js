@@ -34,9 +34,11 @@ const env = {
   supabaseScreenshotBucket: process.env.SUPABASE_SCREENSHOT_BUCKET || 'screenshots',
   workerConcurrency: parseInt(process.env.WORKER_CONCURRENCY || '2', 10),
   workerPollIntervalMs: parseInt(process.env.WORKER_POLL_INTERVAL_MS || '3000', 10),
-  // 파일럿/로컬 고객 조사 전용 우회 스위치. 기본값 false — 프로덕션에서는 절대 켜면 안 됨
+  // 파일럿/고객 조사 단계 전용 우회 스위치. 지금 단계는 기본값을 true(검증 생략)로 둔다 —
+  // 아는 사람 대상으로만 테스트하는 동안은 소유권 검증이 오히려 진입 장벽이라 잠시 꺼두고,
+  // 외부 사용자에게 여는 시점엔 SKIP_OWNERSHIP_VERIFICATION=false로 반드시 되돌릴 것
   // (URL 소유권 검증이 곧 "이 도구로 남의 사이트를 못 때리게" 막는 유일한 장치임).
-  skipOwnershipVerification: process.env.SKIP_OWNERSHIP_VERIFICATION === 'true',
+  skipOwnershipVerification: process.env.SKIP_OWNERSHIP_VERIFICATION !== 'false',
 };
 
 module.exports = env;

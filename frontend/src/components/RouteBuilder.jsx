@@ -42,13 +42,9 @@ export default function RouteBuilder({ verifiedUrls, routes, onRefresh }) {
       <p className="text-xs text-slate-500 mb-4">
         확인하고 싶은 단계를 순서대로 한 줄씩 입력하세요. 비워두면 자유 탐색으로 실행됩니다.
       </p>
-      <p className="text-xs text-slate-500 mb-4">
-        결제 단계는 줄 앞에 <code className="bg-slate-100 px-1 rounded">[결제]</code>를
-        붙여주세요. 테스트 결제수단이 자동 입력되고, 최종 제출은 항상 자동 클릭을 생략합니다.
-      </p>
 
       {verifiedUrls.length === 0 ? (
-        <p className="text-sm text-slate-500">먼저 URL을 등록·검증하면 여정을 만들 수 있습니다.</p>
+        <p className="text-sm text-slate-500">먼저 URL을 등록하면 여정을 만들 수 있습니다.</p>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-3 mb-6">
           <input
@@ -76,7 +72,7 @@ export default function RouteBuilder({ verifiedUrls, routes, onRefresh }) {
             required
             rows={4}
             placeholder={
-              '한 줄에 체크포인트 하나씩 입력하세요. 예:\n로그인 페이지에서 로그인 완료\n상품 목록에서 아무 상품이나 상세 페이지로 이동\n[결제] 결제 정보 입력 후 최종 제출 화면까지 진입'
+              '한 줄에 체크포인트 하나씩 입력하세요. 예:\n로그인 페이지에서 로그인 완료\n상품 목록에서 아무 상품이나 상세 페이지로 이동\n장바구니에 담고 수량을 변경'
             }
             value={checkpointsText}
             onChange={(e) => setCheckpointsText(e.target.value)}

@@ -56,22 +56,28 @@ router.post('/', async (req, res) => {
   }
 
   const token = generateVerificationToken();
+  // skipOwnershipVerification이 켜져 있으면(지금 단계 기본값) 등록과 동시에 바로
+  // verified=true로 만든다 — "검증하기"를 한 번 더 누르게 하는 것도 이 단계에선 불필요한
+  // 마찰이라, 검증 자체를 아예 건너뛴다. verificationToken은 나중에 검증을 다시 켤 때를
+  // 대비해 그대로 남겨둔다(재발급 없이 바로 정상 흐름으로 복귀 가능).
+  const skip = env.skipOwnershipVerification;
   const docRef = await collections.registeredUrls(req.tenantId).add({
     url,
-    verified: false,
+    verified: skip,
     verificationToken: token,
+    ...(skip ? { verifiedAt: admin.firestore.FieldValue.serverTimestamp(), verificationSkipped: true } : {}),
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
   res.status(201).json({
     id: docRef.id,
     url,
-    verified: false,
-    verificationSkipped: env.skipOwnershipVerification,
+    verified: skip,
+    verificationSkipped: skip,
     verificationFileUrl: verificationFileUrl(url, token),
     verificationFileContent: token,
-    instructions: env.skipOwnershipVerification
-      ? '파일럿 모드: 소유권 검증이 꺼져 있습니다. 바로 "검증하기"를 눌러 진행하세요.'
+    instructions: skip
+      ? '파일럿 모드: 소유권 검증을 건너뛰고 바로 등록됐습니다. 지금 바로 테스트를 실행할 수 있습니다.'
       : `${verificationFileUrl(url, token)} 경로에 "${token}" 내용을 담은 텍스트 파일을 올린 뒤 POST /api/urls/${docRef.id}/verify를 호출하세요.`,
   });
 });
