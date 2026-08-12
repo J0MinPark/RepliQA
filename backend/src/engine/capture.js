@@ -73,8 +73,22 @@ async function extractFromFrames(page, maxElements) {
 // 요소를 찾던 기존 방식(getByText)은 동일 텍스트 중복/숨김 요소에서 잘 깨졌는데,
 // 좌표를 같이 넘기면 실행 단계에서 텍스트 매칭 없이 바로 클릭할 수 있다.
 // 프레임워크(React/Vue/vanilla)에 상관없이 "화면에 보이는 대로" 판단하므로 일반성도 좋다.
+function isContextDestroyedError(err) {
+  return /Execution context was destroyed|Target closed|Target page.*closed/i.test(err?.message || '');
+}
+
 async function captureState(page, { maxElements = 40 } = {}) {
-  const pageElements = await page.evaluate(extractInteractiveElements, maxElements);
+  let pageElements;
+  try {
+    pageElements = await page.evaluate(extractInteractiveElements, maxElements);
+  } catch (err) {
+    // 클릭이 곧바로 네비게이션을 일으킨 직후라 문서가 막 교체되는 순간과 겹친 경우 —
+    // 새 문서가 자리잡을 시간을 한 번 주고 다시 시도한다(구글 검색 결과 페이지 이동에서
+    // 실제로 재현됨). 그래도 안 되면 원래 에러를 그대로 올려서 숨기지 않는다.
+    if (!isContextDestroyedError(err)) throw err;
+    await page.waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
+    pageElements = await page.evaluate(extractInteractiveElements, maxElements);
+  }
   const frameElements = await extractFromFrames(page, maxElements);
 
   const merged = [...pageElements, ...frameElements].sort(

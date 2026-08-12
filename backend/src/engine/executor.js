@@ -31,11 +31,14 @@ async function executeAction(page, action, elements) {
   try {
     if (action.type === 'click') {
       await page.mouse.click(x, y);
+      await settleAfterAction(page);
     } else if (action.type === 'type') {
       await page.mouse.click(x, y);
       await page.keyboard.type(action.text || '', { delay: 20 });
+      await settleAfterAction(page);
     } else if (action.type === 'select') {
       await selectOptionAt(page, target, x, y, action);
+      await settleAfterAction(page);
     } else {
       return { ok: false, error: `알 수 없는 action.type: ${action.type}` };
     }
@@ -43,6 +46,14 @@ async function executeAction(page, action, elements) {
   } catch (err) {
     return { ok: false, error: err.message };
   }
+}
+
+// 검색창 엔터, 로그인 버튼처럼 클릭이 곧바로 페이지 전체 이동을 일으키는 경우, 다음
+// 스텝의 captureState()가 새 문서로 교체되는 그 순간과 겹치면 "Execution context was
+// destroyed" 에러로 죽는다(구글 검색으로 실제 확인함). 네비게이션이 없는 보통의 클릭이면
+// 이미 만족된 상태라 거의 즉시 반환되므로, 매 액션마다 걸어도 체감 지연은 없다.
+async function settleAfterAction(page) {
+  await page.waitForLoadState('domcontentloaded', { timeout: 3000 }).catch(() => {});
 }
 
 // 헤드리스 브라우저에서 네이티브 <select>가 열리는 OS 드롭다운은 스크린샷에 안 잡히고
