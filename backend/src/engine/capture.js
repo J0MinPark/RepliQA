@@ -10,7 +10,20 @@
 function extractInteractiveElements(max) {
   const selector =
     'button, a, input, textarea, select, [role="button"], [role="link"], [role="checkbox"], [role="tab"], [draggable="true"]';
-  const nodes = Array.from(document.querySelectorAll(selector));
+
+  // 섀도우 DOM(Web Components) 안에 있는 요소는 document.querySelectorAll이 보지 못한다 —
+  // MDN 리뉴얼 프론트엔드(<mdn-search-button>, <mdn-homepage-search> 등)에서 실제 확인함:
+  // 검색 관련 인터랙티브 요소가 전부 shadowRoot 안에 있어서 캡처에 아예 안 잡혔다. 라이트
+  // DOM을 훑다가 shadowRoot를 가진 요소를 만나면 그 안까지 재귀적으로 훑어 합친다.
+  function collectDeep(root, out) {
+    out.push(...root.querySelectorAll(selector));
+    const all = root.querySelectorAll('*');
+    for (const el of all) {
+      if (el.shadowRoot) collectDeep(el.shadowRoot, out);
+    }
+  }
+  const nodes = [];
+  collectDeep(document, nodes);
   const items = [];
   for (const el of nodes) {
     const rect = el.getBoundingClientRect();
@@ -87,17 +100,37 @@ function isContextDestroyedError(err) {
 // 잡아야, 내비게이션/필터 UI가 많은 페이지에서도 핵심 콘텐츠가 초반에 잘려나가지 않는다.
 const RAW_ELEMENT_CAP = 200;
 
-async function captureState(page, { maxElements = 40 } = {}) {
-  let pageElements;
+async function evaluateElements(page) {
   try {
-    pageElements = await page.evaluate(extractInteractiveElements, RAW_ELEMENT_CAP);
+    return await page.evaluate(extractInteractiveElements, RAW_ELEMENT_CAP);
   } catch (err) {
     // 클릭이 곧바로 네비게이션을 일으킨 직후라 문서가 막 교체되는 순간과 겹친 경우 —
     // 새 문서가 자리잡을 시간을 한 번 주고 다시 시도한다(구글 검색 결과 페이지 이동에서
     // 실제로 재현됨). 그래도 안 되면 원래 에러를 그대로 올려서 숨기지 않는다.
     if (!isContextDestroyedError(err)) throw err;
     await page.waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
-    pageElements = await page.evaluate(extractInteractiveElements, RAW_ELEMENT_CAP);
+    return page.evaluate(extractInteractiveElements, RAW_ELEMENT_CAP);
+  }
+}
+
+// 40은 원래 "비전 모델 토큰 비용을 아끼자"는 취지로 고른 값이었는데, 실제 포털형 사이트에서
+// 상단 메뉴/로그인/쇼핑 바로가기/광고 배너 같은 chrome 요소만으로 40개가 꽉 차서 정작 목표
+// 콘텐츠(뉴스 헤드라인·검색 결과 도서 링크)가 통째로 잘려나가는 걸 실제로 확인했다(다음
+// 메인페이지: 목표 헤드라인이 정렬 후 48번째, 예스24 검색결과: 도서 링크가 81번째). Gemini
+// Flash 기준 요소 60~80개 추가는 토큰 비용이 미미해서, 누락 비용(체크포인트 전체 실패) 대비
+// 이 상한을 넉넉히 올리는 쪽이 명백히 이득이다.
+async function captureState(page, { maxElements = 100 } = {}) {
+  let pageElements = await evaluateElements(page);
+  if (pageElements.length === 0) {
+    // evaluate 자체는 에러 없이 성공했는데 요소가 0개인 경우 — 옛 문서가 헐리고 새 문서가
+    // 아직 파싱 중인 그 찰나의 순간에 evaluate가 실행된 것일 가능성이 높다(예스24 검색결과
+    // 전체 페이지 네비게이션에서 실제 재현: URI malformed 같은 무관한 광고 스크립트 에러와
+    // 겹쳐서 "클릭 후 화면에 아무 요소도 없음"으로 체크포인트 전체가 실패했다). 실제로 진짜
+    // 인터랙티브 요소가 0개인 페이지는 사실상 없으므로, 0개일 때만 안정화를 한 번 더 기다리고
+    // 재시도한다 — 정상적인 페이지에서는 이 분기를 아예 안 타서 비용이 없다.
+    await page.waitForLoadState('domcontentloaded', { timeout: 3000 }).catch(() => {});
+    await page.waitForTimeout(500);
+    pageElements = await evaluateElements(page);
   }
   const frameElements = await extractFromFrames(page, RAW_ELEMENT_CAP);
 

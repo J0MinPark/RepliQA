@@ -22,6 +22,7 @@ const MODEL = 'bytedance/ui-tars-1.5-7b';
 function buildPrompt(instruction) {
   return `You are a GUI grounding model. Given a screenshot and an instruction describing an element, respond with the click point for that element.
 Instruction: ${instruction}
+Ignore advertisement banners, rotating promotional ribbons, or unrelated announcement text (e.g. near the top header) unless the instruction explicitly refers to one of those — pick the element that most specifically and literally matches the instruction's content.
 Respond with the action in this exact format and nothing else:
 click(point='<point>x,y</point>')`;
 }

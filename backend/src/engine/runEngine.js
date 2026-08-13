@@ -15,10 +15,28 @@ const env = require('../config/env');
 // 필요해서 대상 밖(executor.js의 needsElementTarget과 대응).
 const GROUNDABLE_ACTION_TYPES = new Set(['click', 'type', 'clear', 'hover', 'paste', 'rapid_click', 'key']);
 
+// UI-TARS가 완전히 엉뚱한 영역(상단 광고/이벤트 배너 등)을 짚는 사고를 실제로 확인했다 —
+// 예스24에서 "해리 포터 도서 제목"을 찾으라고 했는데 상단의 회전 이벤트 배너("2026 어린이
+// 독후감 대회")를 짚어서 검색 결과와 무관한 곳을 클릭한 사례(document.elementFromPoint로
+// 직접 재현·확인함). Gemini가 고른 elementIndex의 박스에서 너무 멀리 떨어진 좌표는 신뢰하지
+// 않고 폐기한다 — 폐기해도 executor.js가 elementIndex 기반 클릭으로 안전하게 폴백하므로
+// 최악의 경우 그라운딩 도입 이전 수준일 뿐이다. 반대로 폐기하지 않고 엉뚱한 좌표를 그대로
+// 믿으면 체크포인트 전체가 실패하는 걸 이번에 확인했으므로, 과감하게 버리는 쪽이 비용이 싸다.
+const MAX_GROUNDING_DRIFT_PX = 320;
+
+function isPlausibleGroundingPoint(point, box) {
+  if (!box) return true;
+  const nearestX = Math.max(box.x, Math.min(point.x, box.x + box.width));
+  const nearestY = Math.max(box.y, Math.min(point.y, box.y + box.height));
+  const dx = point.x - nearestX;
+  const dy = point.y - nearestY;
+  return Math.sqrt(dx * dx + dy * dy) <= MAX_GROUNDING_DRIFT_PX;
+}
+
 // UI-TARS 그라운딩이 켜져 있고 이 액션이 대상이면 좌표를 다시 확인해서 action.resolvedPoint에
-// 채워 넣는다. 실패(미설정/API 에러/파싱 실패)하면 아무것도 안 하고 조용히 넘어간다 —
-// executor.js가 elementIndex 기반 기존 방식으로 자연스럽게 폴백한다.
-async function groundActionIfNeeded(page, action, screenshotBase64) {
+// 채워 넣는다. 실패(미설정/API 에러/파싱 실패/터무니없는 위치)하면 아무것도 안 하고 조용히
+// 넘어간다 — executor.js가 elementIndex 기반 기존 방식으로 자연스럽게 폴백한다.
+async function groundActionIfNeeded(page, action, screenshotBase64, elements) {
   if (!env.openRouterApiKey) return;
   if (!action || !GROUNDABLE_ACTION_TYPES.has(action.type)) return;
   if (!action.targetDescription || action.elementIndex == null) return;
@@ -32,7 +50,12 @@ async function groundActionIfNeeded(page, action, screenshotBase64) {
       viewportHeight: viewport?.height || 800,
     })
     .catch(() => null);
-  if (point) action.resolvedPoint = point;
+  if (!point) return;
+
+  const referenceBox = elements?.[action.elementIndex]?.box;
+  if (!isPlausibleGroundingPoint(point, referenceBox)) return;
+
+  action.resolvedPoint = point;
 }
 
 async function uploadScreenshot(tenantId, runId, label, buffer) {
@@ -226,7 +249,7 @@ async function runCheckpoint({
         maxActions: maxActionsPerCheckpoint,
       });
 
-      await groundActionIfNeeded(activePage, plan.action, state.screenshotBase64);
+      await groundActionIfNeeded(activePage, plan.action, state.screenshotBase64, state.elements);
 
       // 안전핀: 결제 체크포인트에서 "결제하기/구매확정" 류 최종 제출 버튼은 절대 자동
       // 클릭하지 않는다. 그 지점까지 정상적으로 도달했다는 것 자체를 체크포인트 성공으로
