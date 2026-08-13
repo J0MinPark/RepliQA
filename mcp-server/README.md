@@ -72,7 +72,7 @@ Cursor 설정의 MCP 섹션(`~/.cursor/mcp.json` 또는 프로젝트 `.cursor/mc
 ## 사용 예시 (에이전트에게 이렇게 시키면 됨)
 
 > "방금 수정한 로그인 페이지, RepliQA로 QA 돌리고 결과 알려줘. registeredUrlId는
-> `xxxx`, personaId는 `rage-click`이야."
+> `xxxx`, personaId는 `standard`야."
 
 에이전트가 `run_qa_test_and_wait`를 호출하면 완료될 때까지 기다렸다가, 발견된 에러와 바로
 적용 가능한 수정 지시문을 받아서 그 자리에서 코드를 고칠 수 있다.

@@ -41,7 +41,7 @@ async function main() {
   const personasResult = await client.callTool({ name: 'list_personas', arguments: {} });
   const personasText = personasResult.content[0].text;
   console.log('   ', personasText.replace(/\n/g, ' / '));
-  check('rage-click 페르소나가 목록에 있음', personasText.includes('rage-click'));
+  check('standard 페르소나가 목록에 있음', personasText.includes('standard'));
 
   console.log('\n3) list_registered_urls 호출...');
   const urlsResult = await client.callTool({ name: 'list_registered_urls', arguments: {} });

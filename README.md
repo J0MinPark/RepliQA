@@ -24,7 +24,7 @@ Firebase Storage(스크린샷) + Firestore(타임라인/리포트) → 프론트
 
 - **API 서버 / Worker 분리**: 요청 즉시 큐에 등록하고 별도 프로세스가 실제 브라우저 자동화를 수행 (동시 다중 테넌트 처리 가능)
 - **Vision 기반 엔진**: DOM 텍스트 매칭이 아니라 스크린샷 + bounding box 좌표로 요소를 인지 → 프레임워크(React/Vue/vanilla) 무관하게 동작
-- **페르소나 3종**: 조급한 사용자(rage-click) / 네트워크 불안정 유저(flaky-network, 실제로 `context.setOffline` 토글) / 무지성 타이퍼(form-spammer) — Firestore `personas` 컬렉션에 데이터로 정의되어 있어 손쉽게 추가 가능
+- **페르소나**: 표준 실행(standard) / 네트워크 불안정 유저(flaky-network, 실제로 `context.setOffline` 토글) / 무지성 타이퍼(form-spammer) — Firestore `personas` 컬렉션에 데이터로 정의되어 있어 손쉽게 추가 가능. (조급한 사용자(rage-click)는 제외됨 — 클릭 좌표/DOM 반영은 항상 정확했지만 비전 모델이 거의 동일한 버튼 개수를 스크린샷에서 세지 못해 오탐이 반복돼 신뢰할 수 없다고 판단)
 - **보안**: SSRF 가드(사설 IP·클라우드 메타데이터·localhost 차단 + DNS 리바인딩 방지 IP pinning), URL 소유권 검증(`.well-known` 파일), 테스트 계정 자격증명 AES-256-GCM 암호화, 테넌트별 Firestore/Storage 보안 규칙
 - **쿼터/사용량**: 테넌트별 동시실행·일일횟수 한도 + 사용량 카운터 (과금 로직의 기반)
 
