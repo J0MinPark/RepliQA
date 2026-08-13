@@ -3,6 +3,8 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  sendEmailVerification,
   signOut,
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
@@ -43,14 +45,31 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = useCallback((email, password) => signInWithEmailAndPassword(auth, email, password), []);
-  const signup = useCallback(
-    (email, password) => createUserWithEmailAndPassword(auth, email, password),
-    []
-  );
+  const signup = useCallback(async (email, password) => {
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    // 가입 직후 인증 메일 발송 — 오타 이메일로 가입한 사용자가 나중에 비밀번호를
+    // 잊었을 때 복구 불가능해지는 걸 막기 위한 최소 안전망.
+    await sendEmailVerification(cred.user);
+    return cred;
+  }, []);
   const logout = useCallback(() => signOut(auth), []);
+  const resetPassword = useCallback((email) => sendPasswordResetEmail(auth, email), []);
+  const resendVerification = useCallback(() => {
+    if (!auth.currentUser) throw new Error('로그인이 필요합니다.');
+    return sendEmailVerification(auth.currentUser);
+  }, []);
+  // reload()는 auth.currentUser를 제자리에서 갱신할 뿐 참조가 안 바뀌어서, 새 객체로
+  // 복사해 넣어야 emailVerified 변경이 리렌더로 이어진다.
+  const refreshUser = useCallback(async () => {
+    if (!auth.currentUser) return;
+    await auth.currentUser.reload();
+    setUser({ ...auth.currentUser });
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ user, tenantId, loading, login, signup, logout }}>
+    <AuthContext.Provider
+      value={{ user, tenantId, loading, login, signup, logout, resetPassword, resendVerification, refreshUser }}
+    >
       {children}
     </AuthContext.Provider>
   );
