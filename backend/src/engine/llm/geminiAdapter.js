@@ -110,6 +110,9 @@ ${JSON.stringify(elements)}
 </interactive_elements>
 
 <action_history>
+각 항목의 result는 그 행동이 실제로 정상 실행됐는지를 엔진이 직접 확인한 결과다(스크린샷으로
+네가 추측하는 게 아니라 확정된 사실이다). "실패: ..."로 나온 행동은 실제로 실행되지 않았거나
+엉뚱한 곳을 건드린 것이니, 같은 행동을 그대로 반복하지 말고 다른 접근을 시도해라.
 ${JSON.stringify(history)}
 </action_history>
 

@@ -304,10 +304,26 @@ async function runCheckpoint({
         action: plan.action || null,
         execOk: execResult.ok,
         execError: execResult.error || null,
+        execWarning: execResult.warning || null,
         screenshotPath,
         timestamp: new Date().toISOString(),
       };
-      history.push({ thought: step.thought, action: step.action });
+      // execOk/execError는 지금까지 리포트용으로만 쓰였고, 모델에게 다시 보여주는 history엔
+      // thought/action만 들어가 있었다 — 즉 모델은 "지난 클릭이 진짜 성공했는지"를 순전히
+      // 스크린샷 비교만으로 추측해야 했다. automationexercise.com에서 실제로 재현: 호버로만
+      // 나타나는 "Add to cart" 버튼의 캡처 좌표가 실제 렌더링 위치와 어긋나 엉뚱한 제목
+      // 텍스트를 클릭했는데도(장바구니가 계속 비어있었음) 모델은 매번 "성공했다"고 판단하고
+      // 똑같은 행동을 예산이 다 떨어질 때까지 반복했다. 결과(성공/실패 사유)를 명시적으로
+      // 같이 넘기면 모델이 스스로 판단할 필요 없이 바로 알 수 있다.
+      let historyResult;
+      if (!execResult.ok) {
+        historyResult = `실패: ${execResult.error || '알 수 없는 오류'}`;
+      } else if (execResult.warning) {
+        historyResult = `성공(주의: ${execResult.warning})`;
+      } else {
+        historyResult = 'success';
+      }
+      history.push({ thought: step.thought, action: step.action, result: historyResult });
       steps.push(step);
       if (onStep) await onStep(checkpoint.index, step);
 

@@ -224,8 +224,22 @@ async function executeAction(page, action, elements, ctx = {}) {
     ({ x, y } = centerOf(target.box));
   }
 
+  // 클릭 좌표가 실제로는 캡처 시점과 다른 요소를 가리키는 경우를 감지한다 — 호버로만
+  // 나타나는 오버레이 버튼에서 실제로 확인함(automationexercise.com "Add to cart": 캡처된
+  // 박스 좌표가 실제로는 상관없는 제목 헤딩을 가리키고 있었는데도 예외 없이 클릭이 "성공"
+  // 처리돼, 모델이 매번 성공했다고 착각하고 같은 행동을 예산이 다 떨어질 때까지 반복했다).
+  // 좌표는 그대로 클릭한다(오탐으로 정상 클릭까지 막을 위험을 피하려고 임의로 바꾸지 않음) —
+  // 실제로 짚힌 요소가 기대와 전혀 다르면 경고만 같이 반환해서 runEngine.js가 history에
+  // 남기고, 다음 스텝에서 모델이 스스로 판단하게 한다.
+  let clickMismatchWarning = null;
+
   try {
     if (action.type === 'click') {
+      const expectedText = target?.text;
+      const before = expectedText ? await describePointTarget(page, x, y) : null;
+      if (before !== null && textLooksUnrelated(expectedText, before)) {
+        clickMismatchWarning = `클릭 좌표(${Math.round(x)},${Math.round(y)})가 실제로는 "${expectedText}"가 아니라 다른 요소("${before.slice(0, 60)}")를 가리키고 있었습니다 — 캡처된 위치와 실제 화면이 어긋났을 수 있습니다(호버로만 나타나는 요소 등).`;
+      }
       await page.mouse.click(x, y);
     } else if (action.type === 'type') {
       await page.mouse.click(x, y);
@@ -252,10 +266,41 @@ async function executeAction(page, action, elements, ctx = {}) {
       return { ok: false, error: `알 수 없는 action.type: ${action.type}` };
     }
     await settleAfterAction(page);
-    return { ok: true };
+    return clickMismatchWarning ? { ok: true, warning: clickMismatchWarning } : { ok: true };
   } catch (err) {
     return { ok: false, error: err.message };
   }
+}
+
+async function describePointTarget(page, x, y) {
+  return page
+    .evaluate(
+      ({ px, py }) => {
+        let el = document.elementFromPoint(px, py);
+        if (!el) return null;
+        let text = '';
+        for (let i = 0; el && i < 3; i += 1) {
+          text += ` ${el.textContent || ''}`;
+          el = el.parentElement;
+        }
+        return text.trim().slice(0, 200);
+      },
+      { px: x, py: y }
+    )
+    .catch(() => null);
+}
+
+// 3단계 상위 조상까지의 textContent에 기대 텍스트가(혹은 그 반대로) 전혀 안 겹치면 "다른
+// 요소"로 판단한다 — textContent는 하위 노드 텍스트까지 재귀적으로 포함하므로, 아이콘/이미지
+// 등 텍스트 없는 자식을 클릭해도 진짜 버튼/카드 안에만 있으면 오탐되지 않는다.
+function textLooksUnrelated(expected, actual) {
+  if (!expected || actual == null) return false;
+  const normalize = (s) => s.replace(/\s+/g, '').toLowerCase();
+  const e = normalize(expected);
+  const a = normalize(actual);
+  if (!e) return false;
+  const probe = e.slice(0, Math.min(e.length, 15));
+  return !a.includes(probe) && !e.includes(a.slice(0, Math.min(a.length, 15)));
 }
 
 // 검색창 엔터, 로그인 버튼처럼 클릭이 곧바로 페이지 전체 이동을 일으키는 경우, 다음
