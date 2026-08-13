@@ -85,10 +85,10 @@ export default function ApiKeyPanel() {
 
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 sm:p-8">
-      <h3 className="font-bold text-slate-900 mb-1 flex items-center gap-2 text-sm">
-        <Terminal size={16} className="text-slate-400" /> Claude Code / Cursor 연동
+      <h3 className="font-bold text-slate-900 mb-1 flex items-center gap-2 text-lg">
+        <Terminal size={20} className="text-slate-400" /> Claude Code / Cursor 연동
       </h3>
-      <p className="text-xs text-slate-500 mb-3 leading-relaxed">
+      <p className="text-xs text-slate-500 mb-4 leading-relaxed">
         코드를 고친 뒤 코딩 에이전트에게 "RepliQA로 테스트해줘"라고 말하면, 에이전트가 직접 QA를
         실행하고 에러·수정 방법을 받아볼 수 있습니다. 아래에서 키를 발급받고 연결 방법 3단계만
         따라 하면 됩니다.
@@ -137,7 +137,7 @@ export default function ApiKeyPanel() {
             <p className="text-xs font-bold text-slate-700">연결 방법 (3단계)</p>
             <button
               onClick={copyGuide}
-              className="text-xs text-slate-500 hover:text-blue-600 flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-blue-400 rounded px-1.5 py-1"
+              className="text-xs text-slate-500 hover:text-brand-600 flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-brand-400 rounded px-1.5 py-1"
             >
               {copiedGuide ? <Check size={12} /> : <Copy size={12} />}
               {copiedGuide ? '복사됨' : '마크다운으로 복사'}

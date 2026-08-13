@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowRight, AlertCircle } from 'lucide-react';
 import { api } from '../lib/api';
+import Select from './Select';
 
 export default function TestRunForm({ verifiedUrls, personas, routes, onCreated }) {
   const [registeredUrlId, setRegisteredUrlId] = useState('');
@@ -55,62 +56,47 @@ export default function TestRunForm({ verifiedUrls, personas, routes, onCreated 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label className="block text-sm font-bold text-slate-700 mb-2">타겟 URL (검증됨)</label>
-          <select
-            value={registeredUrlId}
-            onChange={handleUrlChange}
-            className="w-full border border-slate-200 rounded-xl p-4 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500 text-sm text-slate-900"
-            required
-          >
+          <Select value={registeredUrlId} onChange={handleUrlChange} required>
             <option value="">선택하세요</option>
             {verifiedUrls.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.url}
               </option>
             ))}
-          </select>
+          </Select>
           {verifiedUrls.length === 0 && (
-            <p className="text-xs text-amber-700 mt-2">왼쪽에서 URL을 먼저 등록해주세요.</p>
+            <p className="text-xs text-amber-700 mt-2">위에서 URL을 먼저 등록해주세요.</p>
           )}
         </div>
 
         <div>
           <label className="block text-sm font-bold text-slate-700 mb-2">시나리오 페르소나</label>
-          <select
-            value={personaId}
-            onChange={(e) => setPersonaId(e.target.value)}
-            className="w-full border border-slate-200 rounded-xl p-4 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500 text-sm text-slate-900"
-            required
-          >
+          <Select value={personaId} onChange={(e) => setPersonaId(e.target.value)} required>
             <option value="">선택하세요</option>
             {personas.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name} — {p.description}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div>
           <label className="block text-sm font-bold text-slate-700 mb-2">테스트 여정 (선택)</label>
-          <select
-            value={routeId}
-            onChange={(e) => setRouteId(e.target.value)}
-            disabled={!registeredUrlId}
-            className="w-full border border-slate-200 rounded-xl p-4 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500 text-sm text-slate-900 disabled:opacity-50"
-          >
+          <Select value={routeId} onChange={(e) => setRouteId(e.target.value)} disabled={!registeredUrlId}>
             <option value="">자유 탐색 (여정 없이)</option>
             {routesForUrl.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.name} ({r.checkpoints.length}단계)
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <button
           type="submit"
           disabled={!canSubmit}
-          className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/30 transition-all flex justify-center items-center gap-2 group disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+          className="w-full bg-brand-600 text-white font-bold py-4 rounded-xl hover:bg-brand-700 hover:shadow-lg hover:shadow-brand-500/30 transition-all flex justify-center items-center gap-2 group disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2"
         >
           {submitting ? '배포 중...' : 'AI 에이전트 배포하기'}
           <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />

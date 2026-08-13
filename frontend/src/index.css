@@ -1,1 +1,16 @@
 @import "tailwindcss";
+
+/* 스톡 Tailwind blue-600/indigo-600 조합 대신 쓰는 자체 브랜드 색상 — RepliQA 고유의
+   짙은 잉크빛 인디고블루. 그라디언트 없이 단색으로만 쓴다. */
+@theme {
+  --color-brand-50: #eef0fa;
+  --color-brand-100: #dde1f5;
+  --color-brand-200: #b9c0e9;
+  --color-brand-300: #8f99d8;
+  --color-brand-400: #6672c4;
+  --color-brand-500: #4b53ac;
+  --color-brand-600: #383f93;
+  --color-brand-700: #2d3277;
+  --color-brand-800: #262a5f;
+  --color-brand-900: #20234d;
+}

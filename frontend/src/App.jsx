@@ -10,7 +10,7 @@ function Gate() {
   if (loading || (user && !tenantId)) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
-        <Loader2 className="animate-spin text-blue-600" size={28} />
+        <Loader2 className="animate-spin text-brand-600" size={28} />
       </div>
     );
   }

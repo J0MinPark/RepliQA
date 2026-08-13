@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Route, ListChecks } from 'lucide-react';
 import { api } from '../lib/api';
+import Select from './Select';
 
 export default function RouteBuilder({ verifiedUrls, routes, onRefresh }) {
   const [name, setName] = useState('');
@@ -53,21 +54,16 @@ export default function RouteBuilder({ verifiedUrls, routes, onRefresh }) {
             placeholder="여정 이름 (예: 회원가입 → 결제)"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 outline-none focus:ring-2 focus:ring-brand-500 text-sm"
           />
-          <select
-            required
-            value={registeredUrlId}
-            onChange={(e) => setRegisteredUrlId(e.target.value)}
-            className="w-full border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500 text-sm text-slate-900"
-          >
+          <Select required value={registeredUrlId} onChange={(e) => setRegisteredUrlId(e.target.value)}>
             <option value="">대상 URL 선택</option>
             {verifiedUrls.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.url}
               </option>
             ))}
-          </select>
+          </Select>
           <textarea
             required
             rows={4}
@@ -76,7 +72,7 @@ export default function RouteBuilder({ verifiedUrls, routes, onRefresh }) {
             }
             value={checkpointsText}
             onChange={(e) => setCheckpointsText(e.target.value)}
-            className="w-full border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono"
+            className="w-full border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 outline-none focus:ring-2 focus:ring-brand-500 text-sm font-mono"
           />
           {error && <p className="text-xs text-red-600">{error}</p>}
           <button

@@ -123,7 +123,7 @@ function NetworkAndConsolePanel({ networkCalls, consoleLogs, downloads }) {
     <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between p-6 sm:p-8 text-left focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-inset"
+        className="w-full flex items-center justify-between p-6 sm:p-8 text-left focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-inset"
       >
         <h3 className="font-bold text-slate-900 flex items-center gap-2 text-lg">
           <Network size={20} className="text-slate-400" /> 네트워크 호출 · 콘솔 로그
@@ -135,7 +135,7 @@ function NetworkAndConsolePanel({ networkCalls, consoleLogs, downloads }) {
       </button>
       {open && (
         <div className="px-6 sm:px-8 pb-6 sm:pb-8 space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-6">
             <div>
               <p className="text-xs font-bold text-slate-500 mb-2">네트워크 호출(XHR/fetch)</p>
               <div className="space-y-1.5 max-h-72 overflow-y-auto">
@@ -191,7 +191,7 @@ function NetworkAndConsolePanel({ networkCalls, consoleLogs, downloads }) {
 
 const CHECKPOINT_STATUS_ICON = {
   pending: <CircleDot size={16} className="text-slate-300" />,
-  running: <Loader2 size={16} className="text-blue-500 animate-spin" />,
+  running: <Loader2 size={16} className="text-brand-500 animate-spin" />,
   completed: <CheckCircle2 size={16} className="text-emerald-500" />,
   failed: <XCircle size={16} className="text-red-500" />,
 };
@@ -248,7 +248,7 @@ export default function TestRunProgress({ tenantId, runId, onReset }) {
   if (!run) {
     return (
       <div className="flex justify-center py-24">
-        <Loader2 className="animate-spin text-blue-600" size={28} />
+        <Loader2 className="animate-spin text-brand-600" size={28} />
       </div>
     );
   }
@@ -268,7 +268,7 @@ export default function TestRunProgress({ tenantId, runId, onReset }) {
             </span>
             <span className="text-slate-400 text-sm">{run.personaName}</span>
             {run.routeName && (
-              <span className="bg-blue-50 text-blue-700 text-xs font-bold px-2 py-1 rounded">{run.routeName}</span>
+              <span className="bg-brand-50 text-brand-700 text-xs font-bold px-2 py-1 rounded">{run.routeName}</span>
             )}
           </div>
           <h2 className="text-2xl font-extrabold text-slate-900">시뮬레이션 결과 리포트</h2>
@@ -287,9 +287,9 @@ export default function TestRunProgress({ tenantId, runId, onReset }) {
       {inProgress && (
         <div className="flex flex-col items-center py-12 space-y-6 bg-white rounded-3xl border border-slate-100">
           <div className="relative flex justify-center items-center">
-            <div className="absolute w-20 h-20 rounded-full border-4 border-blue-100 animate-ping opacity-75"></div>
-            <div className="absolute w-14 h-14 rounded-full border-4 border-blue-200 animate-spin border-t-blue-600"></div>
-            <Bot className="text-blue-600 relative z-10" size={28} />
+            <div className="absolute w-20 h-20 rounded-full border-4 border-brand-100 animate-ping opacity-75"></div>
+            <div className="absolute w-14 h-14 rounded-full border-4 border-brand-200 animate-spin border-t-brand-600"></div>
+            <Bot className="text-brand-600 relative z-10" size={28} />
           </div>
           <p className="text-slate-600 font-semibold">
             {run.status === 'queued' ? '대기열에서 순서를 기다리는 중입니다...' : '여정을 따라 테스트를 진행하고 있습니다...'}
@@ -357,11 +357,11 @@ export default function TestRunProgress({ tenantId, runId, onReset }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="space-y-8">
             <div className="bg-white rounded-3xl shadow-sm border border-slate-100 flex flex-col overflow-hidden">
               <div className="bg-slate-900 p-4 border-b border-slate-800 flex justify-between items-center">
                 <div className="flex items-center gap-2">
-                  <Terminal size={18} className="text-blue-400" />
+                  <Terminal size={18} className="text-brand-400" />
                   <h3 className="font-bold text-white tracking-wide">Vibe-Coding 프롬프트</h3>
                 </div>
                 <button
@@ -371,7 +371,7 @@ export default function TestRunProgress({ tenantId, runId, onReset }) {
                   <Copy size={14} /> 바로 복사하기
                 </button>
               </div>
-              <div className="bg-[#0D1117] text-green-400 p-6 font-mono text-sm flex-grow overflow-auto leading-relaxed whitespace-pre-wrap">
+              <div className="bg-[#0D1117] text-green-400 p-6 font-mono text-sm max-h-96 overflow-auto leading-relaxed whitespace-pre-wrap">
                 {run.vibeCoderPrompt || '수집된 에러가 없어 생성된 프롬프트가 없습니다.'}
               </div>
             </div>

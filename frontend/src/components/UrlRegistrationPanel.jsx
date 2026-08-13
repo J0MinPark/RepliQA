@@ -12,7 +12,7 @@ function CredentialsForm({ urlId, onSaved }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="text-xs text-slate-500 hover:text-blue-600 flex items-center gap-1 mt-2"
+        className="text-xs text-slate-500 hover:text-brand-600 flex items-center gap-1 mt-2"
       >
         <KeyRound size={12} /> 테스트 계정 등록 (선택)
       </button>
@@ -69,7 +69,7 @@ function PaymentMethodForm({ urlId, onSaved }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="text-xs text-slate-500 hover:text-blue-600 flex items-center gap-1 mt-2"
+        className="text-xs text-slate-500 hover:text-brand-600 flex items-center gap-1 mt-2"
       >
         <CreditCard size={12} /> 테스트 결제 수단 등록 (선택)
       </button>
@@ -140,7 +140,7 @@ function InboxConfigForm({ urlId, onSaved }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="text-xs text-slate-500 hover:text-blue-600 flex items-center gap-1 mt-2"
+        className="text-xs text-slate-500 hover:text-brand-600 flex items-center gap-1 mt-2"
       >
         <Mail size={12} /> 테스트 인박스 등록 (선택 — 이메일 인증코드 자동 입력용)
       </button>
@@ -246,12 +246,12 @@ export default function UrlRegistrationPanel({ urls, onRefresh }) {
           placeholder="https://your-startup.com"
           value={newUrl}
           onChange={(e) => setNewUrl(e.target.value)}
-          className="flex-1 border border-slate-200 rounded-xl px-3 py-3 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          className="flex-1 border border-slate-200 rounded-xl px-3 py-3 bg-slate-50 outline-none focus:ring-2 focus:ring-brand-500 text-sm"
         />
         <button
           type="submit"
           disabled={registering}
-          className="bg-blue-600 text-white text-sm font-bold px-5 py-3 rounded-xl hover:bg-blue-700 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+          className="bg-brand-600 text-white text-sm font-bold px-5 py-3 rounded-xl hover:bg-brand-700 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2"
         >
           등록
         </button>
