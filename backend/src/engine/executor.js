@@ -251,7 +251,13 @@ async function executeAction(page, action, elements, ctx = {}) {
   // 무의미하다 — Habitica 회원가입에서 실제 확인함: "Get Started" 버튼 좌표가 y=-1826으로
   // 완전히 화면 밖이었는데도 예외 없이 클릭이 "성공" 처리돼 엉뚱한 페이지로 넘어가고
   // 모델은 원인을 알 수 없는 채로 막혔다. 시도 자체를 막고 명확한 이유를 돌려준다.
-  const viewport = page.viewportSize();
+  //
+  // page.viewportSize()는 Camoufox(스텔스 엔진, 결제 체크포인트에서만 씀)에서 항상 null을
+  // 반환한다 — browserEngines.js가 Camoufox 컨텍스트를 viewport: null로 띄우기 때문(공식
+  // 권장 설정). 그러면 이 가드 자체가 통째로 스킵돼서, 하필 안전이 가장 중요한 결제
+  // 체크포인트에서 방어가 무력화되는 걸 실제로 확인했다(automationexercise.com 회귀
+  // 스윕에서 y=-560 좌표 클릭이 그대로 통과함). null이면 실제 window 크기를 직접 조회한다.
+  const viewport = page.viewportSize() || (await page.evaluate(() => ({ width: window.innerWidth, height: window.innerHeight })).catch(() => null));
   if (viewport && (x < 0 || y < 0 || x > viewport.width || y > viewport.height)) {
     return {
       ok: false,
