@@ -31,6 +31,13 @@ async function executeAction(page, action, elements, ctx = {}) {
   if (!action || action.type === 'finish') {
     return { ok: true };
   }
+  // 클릭 등으로 모달/위젯이 iframe으로 삽입되는 경우, 그 iframe이 실제로 로드되기까지
+  // settleAfterAction의 domcontentloaded 대기(메인 문서 기준이라 안 걸림)로는 안 잡힌다 —
+  // Notion 회원가입 모달에서 실제 확인: 클릭 직후엔 배경 페이지 요소만 잡히고(68개, 15개
+  // 미만이 아니라서 capture.js의 재시도도 안 걸림), 이메일 입력창이 있는 iframe은 약
+  // 1~1.3초 뒤에야 나타난다. 액션 실행 전후로 프레임 개수가 늘었으면 그 iframe이 자리잡을
+  // 시간을 settleAfterAction에서 추가로 준다.
+  const framesBefore = page.frames().length;
   if (action.type === 'wait') {
     const cap = ctx.allowLongWait ? 30 * 60 * 1000 : 5000;
     await page.waitForTimeout(Math.min(action.waitMs || 500, cap));
@@ -63,7 +70,7 @@ async function executeAction(page, action, elements, ctx = {}) {
   if (action.type === 'scroll') {
     try {
       await scrollPage(page, action);
-      await settleAfterAction(page);
+      await settleAfterAction(page, framesBefore);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: err.message };
@@ -74,7 +81,7 @@ async function executeAction(page, action, elements, ctx = {}) {
       const base = VIEWPORT_PRESETS[action.preset] || VIEWPORT_PRESETS.desktop;
       const size = action.orientation === 'landscape' ? { width: base.height, height: base.width } : base;
       await page.setViewportSize(size);
-      await settleAfterAction(page);
+      await settleAfterAction(page, framesBefore);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: err.message };
@@ -102,7 +109,7 @@ async function executeAction(page, action, elements, ctx = {}) {
   if (action.type === 'set_color_scheme') {
     try {
       await page.emulateMedia({ colorScheme: action.scheme === 'light' ? 'light' : 'dark' });
-      await settleAfterAction(page);
+      await settleAfterAction(page, framesBefore);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: err.message };
@@ -148,7 +155,7 @@ async function executeAction(page, action, elements, ctx = {}) {
         // eslint-disable-next-line no-await-in-loop
         await page.mouse.click(x, y);
       }
-      await settleAfterAction(page);
+      await settleAfterAction(page, framesBefore);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: err.message };
@@ -157,16 +164,32 @@ async function executeAction(page, action, elements, ctx = {}) {
   if (action.type === 'read_test_inbox') {
     if (!ctx.testInboxConfig) return { ok: false, error: '테스트 인박스가 설정되어 있지 않습니다.' };
     try {
-      const msg = await fetchLatestMessage(ctx.testInboxConfig, { sentAfter: ctx.runStartedAt });
-      if (!msg) return { ok: false, error: '받은 메일이 아직 도착하지 않았습니다.' };
-      const { code, link } = extractCodeOrLink(msg.body);
+      // 이메일 전달은 즉시가 아니라 수 초~수십 초 걸릴 수 있다(Discourse Meta로 실측: 인증
+      // 코드 메일이 조회 시점 이후 도착해 있는 걸 확인함) — 한 번만 조회하고 없으면 바로
+      // 포기하면 거의 항상 "너무 일찍 확인해서" 실패한다. 5초 간격으로 최대 6번(30초)까지
+      // 폴링한다 — 메일이 곧장 와 있는 보통의 경우엔 비용이 없고, 실제로 필요한 경우에만
+      // 기다린다.
+      let msg = null;
+      let code = null;
+      let link = null;
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        // eslint-disable-next-line no-await-in-loop
+        msg = await fetchLatestMessage(ctx.testInboxConfig, { sentAfter: ctx.runStartedAt });
+        if (msg) {
+          ({ code, link } = extractCodeOrLink(msg.body));
+          if (code || link) break;
+        }
+        // eslint-disable-next-line no-await-in-loop
+        await page.waitForTimeout(5000);
+      }
+      if (!msg) return { ok: false, error: '30초 넘게 기다렸지만 받은 메일이 아직 도착하지 않았습니다.' };
       if (action.elementIndex != null && code) {
         const target = elements[action.elementIndex];
         if (!target) return { ok: false, error: `elementIndex ${action.elementIndex}가 유효하지 않습니다.` };
         const { x, y } = centerOf(target.box);
         await page.mouse.click(x, y);
         await page.keyboard.type(code, { delay: 20 });
-        await settleAfterAction(page);
+        await settleAfterAction(page, framesBefore);
         return { ok: true };
       }
       if (link) {
@@ -199,7 +222,7 @@ async function executeAction(page, action, elements, ctx = {}) {
         // eslint-disable-next-line no-await-in-loop
         await page.keyboard.press(action.key || 'Enter');
       }
-      await settleAfterAction(page);
+      await settleAfterAction(page, framesBefore);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: err.message };
@@ -224,6 +247,18 @@ async function executeAction(page, action, elements, ctx = {}) {
     ({ x, y } = centerOf(target.box));
   }
 
+  // 캡처된 좌표가 현재 뷰포트 밖(스크롤 상태가 캡처 시점과 어긋난 경우)이면 클릭 자체가
+  // 무의미하다 — Habitica 회원가입에서 실제 확인함: "Get Started" 버튼 좌표가 y=-1826으로
+  // 완전히 화면 밖이었는데도 예외 없이 클릭이 "성공" 처리돼 엉뚱한 페이지로 넘어가고
+  // 모델은 원인을 알 수 없는 채로 막혔다. 시도 자체를 막고 명확한 이유를 돌려준다.
+  const viewport = page.viewportSize();
+  if (viewport && (x < 0 || y < 0 || x > viewport.width || y > viewport.height)) {
+    return {
+      ok: false,
+      error: `대상 요소가 현재 화면 밖에 있습니다(좌표 ${Math.round(x)},${Math.round(y)}, 화면 크기 ${viewport.width}x${viewport.height}) — 페이지가 스크롤됐을 수 있습니다.`,
+    };
+  }
+
   // 클릭 좌표가 실제로는 캡처 시점과 다른 요소를 가리키는 경우를 감지한다 — 호버로만
   // 나타나는 오버레이 버튼에서 실제로 확인함(automationexercise.com "Add to cart": 캡처된
   // 박스 좌표가 실제로는 상관없는 제목 헤딩을 가리키고 있었는데도 예외 없이 클릭이 "성공"
@@ -237,8 +272,11 @@ async function executeAction(page, action, elements, ctx = {}) {
     if (action.type === 'click') {
       const expectedText = target?.text;
       const before = expectedText ? await describePointTarget(page, x, y) : null;
-      if (before !== null && textLooksUnrelated(expectedText, before)) {
-        clickMismatchWarning = `클릭 좌표(${Math.round(x)},${Math.round(y)})가 실제로는 "${expectedText}"가 아니라 다른 요소("${before.slice(0, 60)}")를 가리키고 있었습니다 — 캡처된 위치와 실제 화면이 어긋났을 수 있습니다(호버로만 나타나는 요소 등).`;
+      if (textLooksUnrelated(expectedText, before)) {
+        clickMismatchWarning =
+          before === null
+            ? `클릭 좌표(${Math.round(x)},${Math.round(y)})에 아무 요소도 없습니다 — 캡처된 위치와 실제 화면이 어긋났을 수 있습니다.`
+            : `클릭 좌표(${Math.round(x)},${Math.round(y)})가 실제로는 "${expectedText}"가 아니라 다른 요소("${before.slice(0, 60)}")를 가리키고 있었습니다 — 캡처된 위치와 실제 화면이 어긋났을 수 있습니다(호버로만 나타나는 요소 등).`;
       }
       await page.mouse.click(x, y);
     } else if (action.type === 'type') {
@@ -265,7 +303,7 @@ async function executeAction(page, action, elements, ctx = {}) {
     } else {
       return { ok: false, error: `알 수 없는 action.type: ${action.type}` };
     }
-    await settleAfterAction(page);
+    await settleAfterAction(page, framesBefore);
     return clickMismatchWarning ? { ok: true, warning: clickMismatchWarning } : { ok: true };
   } catch (err) {
     return { ok: false, error: err.message };
@@ -294,7 +332,12 @@ async function describePointTarget(page, x, y) {
 // 요소"로 판단한다 — textContent는 하위 노드 텍스트까지 재귀적으로 포함하므로, 아이콘/이미지
 // 등 텍스트 없는 자식을 클릭해도 진짜 버튼/카드 안에만 있으면 오탐되지 않는다.
 function textLooksUnrelated(expected, actual) {
-  if (!expected || actual == null) return false;
+  if (!expected) return false;
+  // actual이 null이면 그 좌표에 아무 요소도 없다는 뜻(elementFromPoint가 못 찾음) — "확인이
+  // 안 됐으니 넘어간다"가 아니라 그 자체로 명백한 불일치다. Habitica에서 실제 확인: 뷰포트
+  // 밖 좌표는 별도 체크로 먼저 걸러지지만, 뷰포트 안인데 진짜 빈 공간(여백 등)을 가리키는
+  // 경우도 같은 이유로 놓치면 안 된다.
+  if (actual == null) return true;
   const normalize = (s) => s.replace(/\s+/g, '').toLowerCase();
   const e = normalize(expected);
   const a = normalize(actual);
@@ -307,8 +350,11 @@ function textLooksUnrelated(expected, actual) {
 // 스텝의 captureState()가 새 문서로 교체되는 그 순간과 겹치면 "Execution context was
 // destroyed" 에러로 죽는다(구글 검색으로 실제 확인함). 네비게이션이 없는 보통의 클릭이면
 // 이미 만족된 상태라 거의 즉시 반환되므로, 매 액션마다 걸어도 체감 지연은 없다.
-async function settleAfterAction(page) {
+async function settleAfterAction(page, framesBefore = 0) {
   await page.waitForLoadState('domcontentloaded', { timeout: 3000 }).catch(() => {});
+  if (page.frames().length > framesBefore) {
+    await page.waitForTimeout(1300);
+  }
 }
 
 async function clearFocusedField(page) {

@@ -124,14 +124,28 @@ async function captureState(page, { maxElements = 100 } = {}) {
   if (pageElements.length === 0) {
     // evaluate 자체는 에러 없이 성공했는데 요소가 0개인 경우 — 옛 문서가 헐리고 새 문서가
     // 아직 파싱 중인 그 찰나의 순간에 evaluate가 실행된 것일 가능성이 높다(예스24 검색결과
-    // 전체 페이지 네비게이션에서 실제 재현: URI malformed 같은 무관한 광고 스크립트 에러와
-    // 겹쳐서 "클릭 후 화면에 아무 요소도 없음"으로 체크포인트 전체가 실패했다). 실제로 진짜
-    // 인터랙티브 요소가 0개인 페이지는 사실상 없으므로, 0개일 때만 안정화를 한 번 더 기다리고
-    // 재시도한다 — 정상적인 페이지에서는 이 분기를 아예 안 타서 비용이 없다.
+    // 전체 페이지 네비게이션에서 실제 재현). 일단 짧게 한 번 더 확인한다.
     await page.waitForLoadState('domcontentloaded', { timeout: 3000 }).catch(() => {});
     await page.waitForTimeout(500);
     pageElements = await evaluateElements(page);
   }
+
+  // 요소가 여전히 적은(<15) 상태면 — 0개든 6개든 — 아직 로딩/리다이렉트 중일 가능성이
+  // 높다. Notion처럼 login→홈 셸→실제 워크스페이스로 이어지는 다단계 리다이렉트를 거치며
+  // 콘텐츠가 초 단위로 서서히 채워지는 무거운 SPA에서 실제로 확인함: 요소 수가
+  // 0→6→36→61개로 6초 넘게 걸쳐 늘어났고, "0개일 때만 1회 재시도"로는 0개가 아닌 6개
+  // 같은 애매한 중간 단계도, 0개 상태가 재시도 후에도 계속되는 긴 리다이렉트 체인도 못
+  // 잡아서 모델이 "화면이 비었다"고 오판해 체크포인트를 통째로 실패시켰다. "늘지 않으면
+  // 즉시 중단" 조건은 넣지 않는다 — 리다이렉트 중간 홉에서 잠깐 정체됐다가 다시 채워지는
+  // 경우(0→0→6→36→61 같은)를 성급하게 포기하지 않기 위해서다. 이미 충분한(>=15) 정상
+  // 페이지는 이 루프를 아예 안 타서 비용이 없다.
+  for (let retries = 0; pageElements.length < 15 && retries < 8; retries += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    await page.waitForTimeout(800);
+    // eslint-disable-next-line no-await-in-loop
+    pageElements = await evaluateElements(page);
+  }
+
   const frameElements = await extractFromFrames(page, RAW_ELEMENT_CAP);
 
   // 뷰포트 안에 있는 요소를 우선하고, 그 안에서는 위→아래, 왼→오른쪽 순서로 정렬한다.
@@ -152,7 +166,12 @@ async function captureState(page, { maxElements = 100 } = {}) {
     screenshotBuffer,
     elements: indexed,
     url: page.url(),
-    title: await page.title(),
+    // page.title()은 document.title을 evaluate해서 가져오므로 네비게이션과 겹치면
+    // "Execution context was destroyed"로 예외를 던진다 — Habitica 회원가입 제출 직후
+    // 실제 재현: 이 한 줄에서 던진 예외가 어디서도 안 잡혀서 체크포인트가 아니라 테스트
+    // 런 전체가 죽었다(체크포인트는 영원히 running 상태로 멈춤). title은 리포트 표시용
+    // 부가정보일 뿐이라 실패해도 빈 문자열로 넘어가는 게 훨씬 안전하다.
+    title: await page.title().catch(() => ''),
   };
 }
 
