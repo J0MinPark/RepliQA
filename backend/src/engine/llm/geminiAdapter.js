@@ -47,6 +47,14 @@ const ACTION_SCHEMA_HINT = `
 index를 대체하는 게 아니라, 화면이 복잡해서(요소가 많거나 비슷한 텍스트가 여러 개일 때) elementIndex를
 잘못 골랐을 가능성에 대비한 보정용 설명이다 — 항상 성실하게 채워라.
 
+중요: elementIndex를 100% 확신할 수 없어도 괜찮다. 스크린샷에서 목표에 맞는 게 보이면,
+목록에서 그나마 가장 가까운 elementIndex를 골라 일단 click/type 등을 시도해라 — 정확한 클릭
+좌표는 targetDescription을 바탕으로 별도 검증 단계가 다시 확인해준다. "목록의 이 인덱스가
+정확히 그 요소인지 확신이 안 선다"는 이유로 포기하거나(finish/blocked) 스크롤로 도망치지
+마라 — 스크린샷에 눈으로 보이는데 목록과 매칭이 안 된다고 느껴질 때일수록, 그 실패를
+피하려고 회피하는 게 아니라 가장 그럴듯한 index로 과감히 시도하는 쪽이 정답이다. 정말로
+스크린샷 어디에도 안 보일 때만 스크롤하거나 포기해라.
+
 각 action.type 설명:
 - click: elementIndex 요소를 클릭
 - type: elementIndex 요소를 클릭 후 text를 타이핑. clear:true면 기존 값을 지우고 입력(수정 시나리오)

@@ -1,6 +1,12 @@
 // 브라우저 컨텍스트 안에서 실행되는 함수 — page.evaluate와 frame.evaluate 양쪽에
 // 그대로 재사용한다(이니시스/토스페이먼츠 위젯처럼 결제 UI가 iframe으로 삽입되는
 // 경우가 흔해서, 메인 문서만 보면 결제 폼 안의 입력창을 아예 못 찾는다).
+//
+// max는 여기서 "최종적으로 LLM에 보낼 개수"가 아니라 순수 안전장치용 상한이다 — DOM
+// 순서대로 여기서 잘라버리면, 내비게이션/필터 UI가 먼저 나오는 페이지(github.com 검색
+// 결과 등, 실제로 재현함)에서는 정작 핵심 콘텐츠(검색 결과 링크)가 아예 수집조차 안 되고
+// 잘려나간다. 진짜 우선순위 판단(뷰포트 안에 있는지 등)은 captureState()가 훨씬 넉넉한
+// 원본 집합을 받은 뒤에 한다.
 function extractInteractiveElements(max) {
   const selector =
     'button, a, input, textarea, select, [role="button"], [role="link"], [role="checkbox"], [role="tab"], [draggable="true"]';
@@ -77,23 +83,32 @@ function isContextDestroyedError(err) {
   return /Execution context was destroyed|Target closed|Target page.*closed/i.test(err?.message || '');
 }
 
+// DOM에서 원본으로 긁어올 상한(안전장치) — 실제 전송 개수(maxElements)보다 훨씬 넉넉하게
+// 잡아야, 내비게이션/필터 UI가 많은 페이지에서도 핵심 콘텐츠가 초반에 잘려나가지 않는다.
+const RAW_ELEMENT_CAP = 200;
+
 async function captureState(page, { maxElements = 40 } = {}) {
   let pageElements;
   try {
-    pageElements = await page.evaluate(extractInteractiveElements, maxElements);
+    pageElements = await page.evaluate(extractInteractiveElements, RAW_ELEMENT_CAP);
   } catch (err) {
     // 클릭이 곧바로 네비게이션을 일으킨 직후라 문서가 막 교체되는 순간과 겹친 경우 —
     // 새 문서가 자리잡을 시간을 한 번 주고 다시 시도한다(구글 검색 결과 페이지 이동에서
     // 실제로 재현됨). 그래도 안 되면 원래 에러를 그대로 올려서 숨기지 않는다.
     if (!isContextDestroyedError(err)) throw err;
     await page.waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
-    pageElements = await page.evaluate(extractInteractiveElements, maxElements);
+    pageElements = await page.evaluate(extractInteractiveElements, RAW_ELEMENT_CAP);
   }
-  const frameElements = await extractFromFrames(page, maxElements);
+  const frameElements = await extractFromFrames(page, RAW_ELEMENT_CAP);
 
-  const merged = [...pageElements, ...frameElements].sort(
-    (a, b) => Number(b.inViewport) - Number(a.inViewport)
-  );
+  // 뷰포트 안에 있는 요소를 우선하고, 그 안에서는 위→아래, 왼→오른쪽 순서로 정렬한다.
+  // 순수 DOM 순서에만 의존하면(이전 버전) 내비게이션/필터가 본문보다 먼저 나오는
+  // 페이지에서 핵심 콘텐츠가 뒤로 밀려 잘려나갔다(github.com 검색 결과에서 실제 확인함).
+  const merged = [...pageElements, ...frameElements].sort((a, b) => {
+    const viewportDiff = Number(b.inViewport) - Number(a.inViewport);
+    if (viewportDiff !== 0) return viewportDiff;
+    return a.box.y - b.box.y || a.box.x - b.box.x;
+  });
   const indexed = merged.slice(0, maxElements).map((el, index) => ({ index, ...el }));
 
   // jpeg 저품질 압축 — 비전 모델 토큰 비용을 낮추는 가장 값싼 지렛대.
