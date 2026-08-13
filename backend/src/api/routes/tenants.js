@@ -1,7 +1,8 @@
 const express = require('express');
 const crypto = require('crypto');
-const { collections, auth, admin } = require('../../db/firestore');
+const { collections, auth, admin, db } = require('../../db/firestore');
 const { requireAuth, requireTenant, hashApiKey } = require('../middleware/auth');
+const { deleteTenantStorage } = require('../../engine/screenshotStore');
 
 const router = express.Router();
 
@@ -55,6 +56,43 @@ router.post('/api-key', requireAuth, requireTenant, async (req, res) => {
     apiKey: plainKey,
     warning: '이 키는 다시 조회할 수 없습니다. 지금 안전한 곳에 저장하세요. 재발급 시 이전 키는 즉시 무효화됩니다.',
   });
+});
+
+const DELETABLE_SUBCOLLECTIONS = ['registeredUrls', 'routes', 'testRuns', 'usage'];
+
+// 탈퇴. Firestore 서브컬렉션은 상위 문서를 지운다고 자동으로 같이 지워지지 않으므로
+// 직접 순회해서 지운 뒤에 테넌트 문서를 지운다. Storage(스크린샷·캡처된 로그인 세션)
+// 삭제가 실패해도 계정 삭제 자체는 막지 않는다 — 이용자 입장에서 "탈퇴가 절반만 됐다"는
+// 상태보다는, 드물게 스토리지 잔여물이 남더라도 계정/개인정보가 확실히 지워지는 쪽이 낫다.
+router.delete('/me', requireAuth, requireTenant, async (req, res) => {
+  const tenantId = req.tenantId;
+  const tenantRef = collections.tenants().doc(tenantId);
+  const tenantSnap = await tenantRef.get();
+  const ownerUid = tenantSnap.exists ? tenantSnap.data().ownerUid : null;
+
+  for (const name of DELETABLE_SUBCOLLECTIONS) {
+    const snap = await tenantRef.collection(name).get();
+    const batchSize = 400; // Firestore 배치 쓰기 한도(500) 아래로 여유 있게
+    for (let i = 0; i < snap.docs.length; i += batchSize) {
+      const batch = db.batch();
+      snap.docs.slice(i, i + batchSize).forEach((doc) => batch.delete(doc.ref));
+      // eslint-disable-next-line no-await-in-loop -- 배치 크기만큼 순차 커밋(동시 배치 경합 방지)
+      await batch.commit();
+    }
+  }
+  await tenantRef.delete();
+
+  await deleteTenantStorage(tenantId).catch((err) => {
+    console.error(`[tenants] 스토리지 삭제 실패 (tenantId=${tenantId}):`, err);
+  });
+
+  if (ownerUid) {
+    await auth.deleteUser(ownerUid).catch((err) => {
+      console.error(`[tenants] Auth 계정 삭제 실패 (uid=${ownerUid}):`, err);
+    });
+  }
+
+  res.json({ deleted: true });
 });
 
 module.exports = router;

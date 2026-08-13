@@ -574,4 +574,4 @@ function attachErrorCollectors(page, collectedErrors, activity = {}) {
   });
 }
 
-module.exports = { executeAction, attachErrorCollectors, centerOf };
+module.exports = { executeAction, attachErrorCollectors, centerOf, textLooksUnrelated };

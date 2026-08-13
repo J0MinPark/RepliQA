@@ -43,4 +43,36 @@ async function getScreenshotUrl(path) {
   return `data:image/jpeg;base64,${buf.toString('base64')}`;
 }
 
-module.exports = { uploadScreenshot, getScreenshotUrl };
+// Supabase Storage는 GCS와 달리 prefix 한 번에 재귀 삭제하는 API가 없어서, list()가
+// 반환하는 항목 중 id가 있으면 파일·없으면 폴더(placeholder)라는 규약을 이용해 직접
+// 재귀적으로 순회한다. 계정 탈퇴 시 스크린샷+캡처된 로그인 세션(sessionStore.js도 같은
+// 버킷·같은 tenants/{tenantId}/ 프리픽스를 쓴다) 전부를 한 번에 정리하기 위한 용도.
+async function deleteSupabaseFolder(folder) {
+  const client = getSupabase();
+  const { data, error } = await client.storage.from(env.supabaseScreenshotBucket).list(folder, { limit: 1000 });
+  if (error || !data || data.length === 0) return;
+
+  const filePaths = [];
+  for (const entry of data) {
+    const entryPath = `${folder}/${entry.name}`;
+    if (entry.id) {
+      filePaths.push(entryPath);
+    } else {
+      await deleteSupabaseFolder(entryPath);
+    }
+  }
+  if (filePaths.length > 0) {
+    await client.storage.from(env.supabaseScreenshotBucket).remove(filePaths);
+  }
+}
+
+async function deleteTenantStorage(tenantId) {
+  const prefix = `tenants/${tenantId}`;
+  if (useSupabase()) {
+    await deleteSupabaseFolder(prefix);
+  } else {
+    await bucket.deleteFiles({ prefix: `${prefix}/` });
+  }
+}
+
+module.exports = { uploadScreenshot, getScreenshotUrl, deleteTenantStorage };

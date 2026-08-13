@@ -474,4 +474,4 @@ async function runTest({
   }
 }
 
-module.exports = { runTest };
+module.exports = { runTest, isPlausibleGroundingPoint };

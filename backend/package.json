@@ -8,7 +8,7 @@
     "start:api": "node src/api/server.js",
     "start:worker": "node src/worker/worker.js",
     "seed:personas": "node src/personas/seed.js",
-    "test": "node --test test/"
+    "test": "node --test"
   },
   "keywords": [],
   "author": "",
