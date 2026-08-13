@@ -13,10 +13,10 @@ const VIEWPORT = { width: 1280, height: 800 };
 // 쪽엔 깔끔하게 없다. resolveSafeIp()로 사설 IP·클라우드 메타데이터 여부는 그대로
 // 검증하지만, DNS 리바인딩(검증 시점 이후 IP가 바뀌는) 방지 하드닝은 스텔스 경로에서는
 // 아직 없다 — 후속 과제로 남겨둔다.
-async function launchBrowser({ stealth, hostname, pinnedIp }) {
+async function launchBrowser({ stealth, hostname, pinnedIp, headless = true }) {
   if (stealth) {
     const browser = await Camoufox({
-      headless: true,
+      headless,
       window: [VIEWPORT.width, VIEWPORT.height],
       block_webrtc: true, // 실제 IP가 WebRTC로 새는 것도 같이 막음
       humanize: true, // 마우스 이동에 사람처럼 지연/궤적을 줌

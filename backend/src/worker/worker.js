@@ -5,6 +5,7 @@ const { collections, admin } = require('../db/firestore');
 const { claimRun } = require('./claim');
 const { runTest } = require('../engine/runEngine');
 const { decryptSecret } = require('../security/crypto');
+const { downloadEncryptedSession } = require('../engine/sessionStore');
 const { recordActionUsage } = require('../db/quota');
 const { SsrfViolationError } = require('../security/ssrfGuard');
 
@@ -47,8 +48,9 @@ async function processRun(doc) {
       paymentInfo = JSON.parse(decryptSecret(urlData.testPaymentMethod));
     }
     let savedSessionState = null;
-    if (urlData?.testSession) {
-      savedSessionState = JSON.parse(decryptSecret(urlData.testSession));
+    if (urlData?.testSessionPath) {
+      const encrypted = JSON.parse(await downloadEncryptedSession(urlData.testSessionPath));
+      savedSessionState = JSON.parse(decryptSecret(encrypted));
     }
     let testInboxConfig = null;
     if (urlData?.testInbox) {

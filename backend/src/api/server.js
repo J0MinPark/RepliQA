@@ -19,7 +19,11 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json({ limit: '256kb' }));
+// 대부분의 요청은 훨씬 작지만, test-session(로그인 세션 캡처)은 쿠키+로컬스토리지
+// 전체를 통째로 보낸다 — Notion처럼 무거운 SPA는 로그인 후 로컬스토리지에 수백KB~수MB를
+// 쌓아두는 게 흔해서(실제로 1.3MB짜리 요청이 거부되는 걸 확인함), 256kb는 이 용도엔
+// 너무 작았다.
+app.use(express.json({ limit: '5mb' }));
 app.use(generalLimiter);
 
 app.get('/health', (req, res) => res.json({ ok: true }));

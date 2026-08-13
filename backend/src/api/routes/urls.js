@@ -9,6 +9,7 @@ const {
   verifyUrlOwnership,
 } = require('../../security/urlVerification');
 const { encryptSecret } = require('../../security/crypto');
+const { uploadEncryptedSession } = require('../../engine/sessionStore');
 const env = require('../../config/env');
 
 const router = express.Router();
@@ -44,12 +45,12 @@ const testInboxSchema = z.object({
 });
 
 function stripSecrets(doc) {
-  const { testCredentials, testPaymentMethod, testSession, testInbox, verificationToken, ...rest } = doc;
+  const { testCredentials, testPaymentMethod, testSessionPath, testInbox, verificationToken, ...rest } = doc;
   return {
     ...rest,
     hasTestCredentials: !!testCredentials,
     hasTestPaymentMethod: !!testPaymentMethod,
-    hasTestSession: !!testSession,
+    hasTestSession: !!testSessionPath,
     hasTestInbox: !!testInbox,
   };
 }
@@ -156,8 +157,10 @@ router.put('/:id/test-session', async (req, res) => {
   if (!snap.exists) return res.status(404).json({ error: '등록된 URL을 찾을 수 없습니다.' });
 
   const encrypted = encryptSecret(JSON.stringify(parseResult.data.storageState));
+  const path = `tenants/${req.tenantId}/testSessions/${req.params.id}.json`;
+  await uploadEncryptedSession(path, JSON.stringify(encrypted));
   await ref.update({
-    testSession: encrypted,
+    testSessionPath: path,
     testSessionUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
   res.json({ id: snap.id, hasTestSession: true });
