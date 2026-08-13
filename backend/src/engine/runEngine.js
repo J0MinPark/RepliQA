@@ -4,8 +4,36 @@ const { runObjectiveChecks } = require('./uiuxChecks');
 const { isPaymentSubmitElement } = require('./paymentSafety');
 const { launchBrowser } = require('./browserEngines');
 const geminiAdapter = require('./llm/geminiAdapter');
+const uiTarsAdapter = require('./llm/uiTarsAdapter');
 const screenshotStore = require('./screenshotStore');
 const { assertHttpUrl, resolveSafeIp } = require('../security/ssrfGuard');
+const env = require('../config/env');
+
+// Gemini가 고른 elementIndex가 화면이 복잡할 때(요소가 많거나 비슷한 텍스트) 틀릴 수 있다
+// (네이버 '스포츠' 탭 사례로 실제 확인함) — 이 액션들만 OpenRouter의 UI-TARS(GUI 그라운딩
+// 전용 모델)로 좌표를 다시 확인한다. select/drag/upload_file은 Locator나 두 번째 좌표가
+// 필요해서 대상 밖(executor.js의 needsElementTarget과 대응).
+const GROUNDABLE_ACTION_TYPES = new Set(['click', 'type', 'clear', 'hover', 'paste', 'rapid_click', 'key']);
+
+// UI-TARS 그라운딩이 켜져 있고 이 액션이 대상이면 좌표를 다시 확인해서 action.resolvedPoint에
+// 채워 넣는다. 실패(미설정/API 에러/파싱 실패)하면 아무것도 안 하고 조용히 넘어간다 —
+// executor.js가 elementIndex 기반 기존 방식으로 자연스럽게 폴백한다.
+async function groundActionIfNeeded(page, action, screenshotBase64) {
+  if (!env.openRouterApiKey) return;
+  if (!action || !GROUNDABLE_ACTION_TYPES.has(action.type)) return;
+  if (!action.targetDescription || action.elementIndex == null) return;
+
+  const viewport = page.viewportSize();
+  const point = await uiTarsAdapter
+    .groundElement({
+      screenshotBase64,
+      instruction: action.targetDescription,
+      viewportWidth: viewport?.width || 1280,
+      viewportHeight: viewport?.height || 800,
+    })
+    .catch(() => null);
+  if (point) action.resolvedPoint = point;
+}
 
 async function uploadScreenshot(tenantId, runId, label, buffer) {
   const path = `tenants/${tenantId}/testRuns/${runId}/${label}.jpg`;
@@ -197,6 +225,8 @@ async function runCheckpoint({
         stepNumber: stepInCheckpoint,
         maxActions: maxActionsPerCheckpoint,
       });
+
+      await groundActionIfNeeded(activePage, plan.action, state.screenshotBase64);
 
       // 안전핀: 결제 체크포인트에서 "결제하기/구매확정" 류 최종 제출 버튼은 절대 자동
       // 클릭하지 않는다. 그 지점까지 정상적으로 도달했다는 것 자체를 체크포인트 성공으로

@@ -58,6 +58,28 @@ npm run start:worker
 - 체크포인트 목표 없이(자유 탐색) 실행하던 기존 방식은 여전히 지원됨 — `routeId`를 안 넘기면 자동으로 목표 없는 체크포인트 1개로 흘러감.
 - 각 체크포인트 진입 시 1회, `backend/src/engine/uiuxChecks.js`(WCAG 명암비·터치 타겟 크기·가로 스크롤·alt 누락 등 결정론적 계산)와 `geminiAdapter.evaluateUiUx()`(Toss/Google Material/Kakao·Naver 공개 디자인 원칙 기반 체크리스트 — `backend/src/engine/uiuxChecklist.js`)를 함께 실행해 기능 에러와 별개로 UI/UX 이슈를 리포트에 남김.
 
+## 하이브리드 그라운딩 (UI-TARS)
+
+Gemini는 범용 추론엔 강하지만, "스크린샷 속 이 텍스트가 요소 목록 중 정확히 몇 번인지"
+매칭하는 건 다른 능력이다 — 네이버 메인에서 화면엔 "스포츠" 탭이 보이는데 목록엔 없다고
+착각해서 못 찾은 사례로 실제 확인했다(요소는 실제로 목록에 정확히 있었음. 순수 시각-매칭
+실수).
+
+`OPENROUTER_API_KEY`를 설정하면(`env.js`), `click`/`type`/`clear`/`hover`/`paste`/
+`rapid_click`/`key`(elementIndex 지정 시) 액션에서 Gemini가 고른 elementIndex를 GUI
+그라운딩 전용 오픈소스 모델([UI-TARS-1.5-7B](https://openrouter.ai/bytedance/ui-tars-1.5-7b),
+OpenRouter pay-per-token API, GPU 직접 운영 불필요)로 다시 확인한다
+(`runEngine.js`의 `groundActionIfNeeded` → `engine/llm/uiTarsAdapter.js`). 그라운딩이
+성공하면 그 좌표(`action.resolvedPoint`)가 elementIndex보다 우선한다. `select`/`drag`/
+`upload_file`은 Locator나 두 번째 좌표가 필요해서 대상 밖 — 기존처럼 elementIndex만 쓴다.
+
+미설정 시(기본값) 기존처럼 Gemini의 elementIndex만으로 동작하므로 순수 추가 기능이고,
+그라운딩이 실패(API 에러/파싱 실패)해도 조용히 elementIndex 방식으로 폴백한다.
+
+⚠️ **실제 API 키로 라이브 검증은 못 했다** — OpenRouter/UI-TARS 공개 문서 기준으로
+구현했고, 특히 좌표 스케일(정규화 0-1000 vs 실제 픽셀) 파싱은 실사용 중 조정이 필요할 수
+있다(`uiTarsAdapter.js`의 `parseCoordinates`만 고치면 됨, 나머지 구조는 안 바뀜).
+
 ## 행동(action) 종류
 
 에이전트가 한 스텝에서 고를 수 있는 `action.type` 전체 목록(`geminiAdapter.js`의 `ACTION_SCHEMA_HINT`,

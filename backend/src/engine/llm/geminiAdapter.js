@@ -22,6 +22,7 @@ const ACTION_SCHEMA_HINT = `
     "type": "아래 action.type 설명 중 하나",
     "elementIndex": 0,
     "targetElementIndex": 0,
+    "targetDescription": "click/type/hover/paste/clear/rapid_click/key(elementIndex 지정 시)에는 항상 채워라 — 그 요소를 화면에서 사람이 찾을 수 있게 설명하는 짧은 문구(예: '스포츠 탭 링크', '검색창'). elementIndex가 실제로는 틀렸을 경우의 보정용으로 별도 모델이 이 설명으로 좌표를 다시 확인한다",
     "text": "type/paste일 때 입력할 문자열",
     "clear": false,
     "optionLabel": "select일 때만, 그 요소의 options 목록에 있는 라벨 중 정확히 하나",
@@ -42,7 +43,9 @@ const ACTION_SCHEMA_HINT = `
   "done": false,
   "finishReason": "action.type이 finish일 때만: goal_achieved 또는 blocked"
 }
-요소는 반드시 제공된 interactiveElements 배열의 "index" 값으로만 지정해라. 자유 텍스트로 요소를 설명하지 마라.
+요소는 반드시 제공된 interactiveElements 배열의 "index" 값으로만 지정해라. targetDescription은 그
+index를 대체하는 게 아니라, 화면이 복잡해서(요소가 많거나 비슷한 텍스트가 여러 개일 때) elementIndex를
+잘못 골랐을 가능성에 대비한 보정용 설명이다 — 항상 성실하게 채워라.
 
 각 action.type 설명:
 - click: elementIndex 요소를 클릭

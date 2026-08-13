@@ -32,6 +32,11 @@ const env = {
   supabaseUrl: process.env.SUPABASE_URL || null,
   supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY || null,
   supabaseScreenshotBucket: process.env.SUPABASE_SCREENSHOT_BUCKET || 'screenshots',
+  // 하이브리드 그라운딩: 설정돼 있으면 클릭 대상 좌표를 OpenRouter의 UI-TARS(GUI 그라운딩
+  // 전용 오픈소스 모델)로 다시 짚어서 Gemini의 시각-매칭 오류를 보정한다(uiTarsAdapter.js).
+  // 미설정 시 기존처럼 Gemini가 고른 elementIndex를 그대로 쓴다 — 순수 추가 기능이라
+  // 키가 없어도 동작은 그대로 유지됨.
+  openRouterApiKey: process.env.OPENROUTER_API_KEY || null,
   workerConcurrency: parseInt(process.env.WORKER_CONCURRENCY || '2', 10),
   workerPollIntervalMs: parseInt(process.env.WORKER_POLL_INTERVAL_MS || '3000', 10),
   // 파일럿/고객 조사 단계 전용 우회 스위치. 지금 단계는 기본값을 true(검증 생략)로 둔다 —

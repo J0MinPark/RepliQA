@@ -186,7 +186,9 @@ async function executeAction(page, action, elements, ctx = {}) {
     // elementIndex가 없으면 직전 액션이 남긴 포커스 상태에서 그대로 키만 누른다
     // (예: 방금 입력한 검색창에서 이어서 Enter).
     try {
-      if (action.elementIndex != null) {
+      if (action.resolvedPoint) {
+        await page.mouse.click(action.resolvedPoint.x, action.resolvedPoint.y);
+      } else if (action.elementIndex != null) {
         const target = elements[action.elementIndex];
         if (!target) return { ok: false, error: `elementIndex ${action.elementIndex}가 유효하지 않습니다.` };
         const { x, y } = centerOf(target.box);
@@ -204,11 +206,23 @@ async function executeAction(page, action, elements, ctx = {}) {
     }
   }
 
-  const target = elements[action.elementIndex];
-  if (!target) {
-    return { ok: false, error: `elementIndex ${action.elementIndex}가 유효하지 않습니다.` };
+  // select/drag/upload_file은 Playwright Locator나 두 번째 좌표가 필요해서 elements 목록의
+  // target을 그대로 써야 한다. 그 외(click/type/clear/hover/paste)는 resolvedPoint가 있으면
+  // — UI-TARS가 다시 짚어준 좌표(runEngine.js) — elementIndex 대신 그걸 우선한다.
+  const needsElementTarget = action.type === 'select' || action.type === 'drag' || action.type === 'upload_file';
+  let target = null;
+  let x;
+  let y;
+  if (action.resolvedPoint && !needsElementTarget) {
+    ({ x, y } = action.resolvedPoint);
+    target = elements[action.elementIndex] || null;
+  } else {
+    target = elements[action.elementIndex];
+    if (!target) {
+      return { ok: false, error: `elementIndex ${action.elementIndex}가 유효하지 않습니다.` };
+    }
+    ({ x, y } = centerOf(target.box));
   }
-  const { x, y } = centerOf(target.box);
 
   try {
     if (action.type === 'click') {
