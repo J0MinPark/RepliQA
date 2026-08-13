@@ -290,10 +290,15 @@ async function runCheckpoint({
 
       // "finish"라고 해서 무조건 성공이 아니다 — 모델이 막혀서 포기한 것일 수도 있다.
       // finishReason으로 성공/실패를 구분해서, 리포트가 "완료(성공)"로 잘못 찍히지 않게 한다.
+      // 스키마상 top-level(plan.finishReason)로 지정했지만, 실제 라이브 응답에서 모델이
+      // action 안에(plan.action.finishReason) 넣는 경우를 실제로 확인했다 — "finish 액션의
+      // 속성"이라는 관점에서는 오히려 더 자연스러운 위치라 모델이 그쪽을 선호하는 듯하다.
+      // 둘 중 어디에 와도 놓치지 않게 양쪽 다 본다.
       const isFinish = plan.action?.type === 'finish';
       done = Boolean(plan.done) || isFinish;
       if (isFinish) {
-        success = plan.finishReason !== 'blocked';
+        const finishReason = plan.action?.finishReason || plan.finishReason;
+        success = finishReason !== 'blocked';
         if (!success) failureReason = step.thought || '모델이 목표 달성이 불가능하다고 판단해 중단함';
       }
       await activePage.waitForTimeout(300);
