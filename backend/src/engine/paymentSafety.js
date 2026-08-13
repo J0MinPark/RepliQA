@@ -24,6 +24,7 @@ const PAYMENT_SUBMIT_KEYWORDS = [
   'complete payment',
   'confirm payment',
   'confirm purchase',
+  'purchase',
   'place order',
   'submit payment',
   'buy now',
