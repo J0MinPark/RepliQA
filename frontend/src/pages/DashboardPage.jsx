@@ -6,6 +6,7 @@ import UrlRegistrationPanel from '../components/UrlRegistrationPanel';
 import RouteBuilder from '../components/RouteBuilder';
 import TestRunForm from '../components/TestRunForm';
 import TestRunProgress from '../components/TestRunProgress';
+import RunHistoryPanel from '../components/RunHistoryPanel';
 import UsagePanel from '../components/UsagePanel';
 import ApiKeyPanel from '../components/ApiKeyPanel';
 import SettingsModal from '../components/SettingsModal';
@@ -139,6 +140,7 @@ export default function DashboardPage() {
         ) : (
           <div className="space-y-6 animate-in fade-in duration-500">
             {usageInfo && <UsagePanel usage={usageInfo.usage} quota={usageInfo.quota} />}
+            <RunHistoryPanel tenantId={tenantId} onSelect={setActiveRunId} />
             <UrlRegistrationPanel urls={urls} onRefresh={refreshUrls} />
             <RouteBuilder verifiedUrls={verifiedUrls} routes={routes} onRefresh={refreshRoutes} />
             <ApiKeyPanel />

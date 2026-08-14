@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
-import { Route, ListChecks } from 'lucide-react';
+import { Route, ListChecks, ChevronDown, CreditCard, Clock } from 'lucide-react';
 import { api } from '../lib/api';
 import Select from './Select';
+
+const CHECKPOINT_TYPE_BADGE = {
+  payment: { label: '결제', icon: CreditCard, className: 'bg-amber-50 text-amber-700' },
+  long_running: { label: '장시간', icon: Clock, className: 'bg-sky-50 text-sky-700' },
+};
 
 export default function RouteBuilder({ verifiedUrls, routes, onRefresh }) {
   const [name, setName] = useState('');
@@ -9,6 +14,7 @@ export default function RouteBuilder({ verifiedUrls, routes, onRefresh }) {
   const [checkpointsText, setCheckpointsText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [expandedId, setExpandedId] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -86,14 +92,48 @@ export default function RouteBuilder({ verifiedUrls, routes, onRefresh }) {
       )}
 
       {routes.length > 0 && (
-        <div className="border-t border-slate-100 pt-4 space-y-2">
-          {routes.map((r) => (
-            <div key={r.id} className="flex items-center gap-2 text-sm text-slate-700">
-              <ListChecks size={14} className="text-slate-400 flex-shrink-0" />
-              <span className="font-semibold">{r.name}</span>
-              <span className="text-slate-400 text-xs">({r.checkpoints.length}단계)</span>
-            </div>
-          ))}
+        <div className="border-t border-slate-100 pt-4 space-y-1">
+          {routes.map((r) => {
+            const isOpen = expandedId === r.id;
+            return (
+              <div key={r.id}>
+                <button
+                  type="button"
+                  onClick={() => setExpandedId(isOpen ? null : r.id)}
+                  className="w-full flex items-center gap-2 text-sm text-slate-700 py-1.5 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-400"
+                >
+                  <ListChecks size={14} className="text-slate-400 flex-shrink-0" />
+                  <span className="font-semibold">{r.name}</span>
+                  <span className="text-slate-400 text-xs">({r.checkpoints.length}단계)</span>
+                  <ChevronDown
+                    size={14}
+                    className={`ml-auto text-slate-400 flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+                {isOpen && (
+                  <ol className="ml-6 mb-2 space-y-1.5 border-l border-slate-100 pl-4">
+                    {r.checkpoints.map((c, idx) => {
+                      const badge = CHECKPOINT_TYPE_BADGE[c.type];
+                      return (
+                        <li key={idx} className="text-sm text-slate-600 flex items-start gap-2">
+                          <span className="text-slate-400 text-xs mt-0.5">{idx + 1}.</span>
+                          <span className="flex-1">{c.goal}</span>
+                          {badge && (
+                            <span
+                              className={`flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md flex-shrink-0 ${badge.className}`}
+                            >
+                              <badge.icon size={11} />
+                              {badge.label}
+                            </span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ol>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
