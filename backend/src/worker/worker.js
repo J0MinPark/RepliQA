@@ -112,6 +112,8 @@ async function processRun(doc) {
       downloads: result.downloads,
       websocketFrames: result.websocketFrames,
       haltedAtCheckpoint: result.haltedAtCheckpoint,
+      sessionExpired: Boolean(result.sessionExpired),
+      severity: result.severity || null,
       finishedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 

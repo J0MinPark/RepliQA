@@ -1,7 +1,8 @@
 const { captureState } = require('./capture');
-const { executeAction, attachErrorCollectors, centerOf } = require('./executor');
+const { executeAction, attachErrorCollectors, centerOf, EXPECTED_OFFLINE_TAG } = require('./executor');
 const { runObjectiveChecks } = require('./uiuxChecks');
 const { isPaymentSubmitElement } = require('./paymentSafety');
+const { looksLoggedOut } = require('./sessionValidity');
 const { launchBrowser } = require('./browserEngines');
 const geminiAdapter = require('./llm/geminiAdapter');
 const uiTarsAdapter = require('./llm/uiTarsAdapter');
@@ -281,6 +282,7 @@ async function runCheckpoint({
         tabs,
         allowLongWait: isLongRunning,
         runStartedAt,
+        activity,
       });
       if (execResult.switchTo) {
         activePage = execResult.switchTo;
@@ -391,7 +393,10 @@ async function runTest({
   // 런 전체(체크포인트/팝업 포함) 동안의 네트워크 호출·콘솔 로그를 모은다. 에러가 아닌
   // 것도 포함해서, "200은 떨어졌는데 데이터가 이상한" 것처럼 겉으론 정상인 버그도 사람이나
   // 코딩 에이전트가 리포트에서 직접 훑어볼 수 있게 한다.
-  const activity = { networkCalls: [], consoleLogs: [], downloads: [], websocketFrames: [] };
+  // isOffline: set_network 액션이 갱신하는 플래그. 오프라인 시뮬레이션 중 발생하는 네트워크/
+  // 콘솔 에러는 "우리가 일부러 만든 상황의 예상된 결과"라 실제 버그와 같은 무게로 다루면
+  // 안 된다 — attachErrorCollectors가 이 플래그를 보고 에러 메시지에 태그를 붙인다.
+  const activity = { networkCalls: [], consoleLogs: [], downloads: [], websocketFrames: [], isOffline: false };
   let haltedAtCheckpoint = null;
   let haltedInfo = null;
 
@@ -408,6 +413,42 @@ async function runTest({
     const tabs = [page];
 
     await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
+
+    // 캡처된 세션으로 시작했는데도 로그인 화면이면, 세션이 만료/무효화된 것이다. 이후
+    // 체크포인트를 그대로 진행해도 전부 로그인 화면에 막혀 실패할 뿐이고, 그 실패들을 모아
+    // Gemini에게 리포트를 만들게 하면 "사이트에 버그가 있다"는 식으로 잘못 분석될 위험이
+    // 크다 — 여기서 바로 감지해서 원인을 명확히 하고 조기 종료한다.
+    if (savedSessionState) {
+      const probe = await captureState(page).catch(() => null);
+      if (probe && looksLoggedOut(probe.url, probe.elements)) {
+        const reason =
+          '캡처된 로그인 세션이 만료되었거나 무효화된 것으로 보입니다. scripts/capture-session.js로 세션을 다시 캡처한 뒤 재실행해주세요.';
+        if (onCheckpointStatus && checkpoints.length > 0) {
+          await onCheckpointStatus(checkpoints[0].index, 'failed', { failureReason: reason });
+        }
+        return {
+          collectedErrors,
+          networkCalls: activity.networkCalls,
+          consoleLogs: activity.consoleLogs,
+          downloads: activity.downloads,
+          websocketFrames: activity.websocketFrames,
+          haltedAtCheckpoint: checkpoints[0]?.index ?? 0,
+          summary: {
+            totalErrors: 0,
+            expectedErrors: 0,
+            totalActions: 0,
+            networkCallsCount: activity.networkCalls.length,
+            consoleLogsCount: activity.consoleLogs.length,
+            downloadsCount: activity.downloads.length,
+          },
+          vibeCoderPrompt:
+            '이 실행은 코드 버그가 아니라 캡처된 로그인 세션 만료로 중단되었습니다. 사이트 코드를 수정할 필요는 없습니다 — scripts/capture-session.js로 세션을 다시 캡처한 뒤 재실행해주세요.',
+          errorAnalysis: reason,
+          sessionExpired: true,
+          severity: 'warning',
+        };
+      }
+    }
 
     if (credentials && !savedSessionState) {
       await attemptLogin(page, credentials).catch((err) => {
@@ -452,6 +493,10 @@ async function runTest({
 
     const report = await geminiAdapter.generateReport({ errors: collectedErrors, steps: allSteps, haltedInfo });
 
+    // 오프라인 시뮬레이션 중 발생한(태그가 붙은) 에러는 "예상된 결과"라 실제 버그 집계에서
+    // 뺀다 — totalErrors는 항상 "설명이 필요한" 에러 개수를 뜻하게 유지한다.
+    const unexpectedErrors = collectedErrors.filter((e) => !e.startsWith(EXPECTED_OFFLINE_TAG));
+
     return {
       collectedErrors,
       networkCalls: activity.networkCalls,
@@ -460,7 +505,8 @@ async function runTest({
       websocketFrames: activity.websocketFrames,
       haltedAtCheckpoint,
       summary: {
-        totalErrors: collectedErrors.length,
+        totalErrors: unexpectedErrors.length,
+        expectedErrors: collectedErrors.length - unexpectedErrors.length,
         totalActions: allSteps.length,
         networkCallsCount: activity.networkCalls.length,
         consoleLogsCount: activity.consoleLogs.length,
@@ -468,6 +514,10 @@ async function runTest({
       },
       vibeCoderPrompt: report.vibe_coder_prompt,
       errorAnalysis: report.error_analysis,
+      // generateReport가 문맥(예상된 에러인지, 외부 요인인지)까지 판단해서 내리는 심각도다 —
+      // "에러 개수가 1개 이상이면 무조건 크리티컬"보다 훨씬 객관적인 신호라 프론트 배너가
+      // 이걸 우선 쓰고, 필드가 없을 때만 개수 기반으로 폴백한다.
+      severity: report.severity || (unexpectedErrors.length > 0 ? 'critical' : 'pass'),
     };
   } finally {
     await browser.close();

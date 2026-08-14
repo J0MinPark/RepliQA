@@ -89,7 +89,11 @@ async function executeAction(page, action, elements, ctx = {}) {
   }
   if (action.type === 'set_network') {
     try {
-      await ctx.context.setOffline(Boolean(action.offline));
+      const offline = Boolean(action.offline);
+      await ctx.context.setOffline(offline);
+      // 이후 발생하는 네트워크/콘솔 에러가 "우리가 일부러 오프라인으로 만든 결과"임을
+      // attachErrorCollectors가 알 수 있게 표시해둔다 — 리포트에서 실제 버그와 구분하기 위함.
+      if (ctx.activity) ctx.activity.isOffline = offline;
       return { ok: true };
     } catch (err) {
       return { ok: false, error: err.message };
@@ -492,8 +496,15 @@ const MAX_ACTIVITY_ENTRIES = 80;
 // 200을 반환해도 응답 바디가 잘못된 경우처럼, "에러는 아니지만 수상한" 호출을 나중에
 // 사람이나 코딩 에이전트가 직접 훑어볼 수 있게 남겨둔다. 요청/응답 바디는 로그인 폼 등에서
 // 비밀번호 같은 민감정보가 그대로 들어갈 수 있어 일부러 캡처하지 않는다 — method/url/status만.
+// set_network(offline:true)로 우리가 일부러 만든 상황에서 발생하는 에러는 실제 버그와 같은
+// 무게로 다루면 안 된다 — 태그를 붙여서 리포트/집계에서 구분할 수 있게 한다. 문자열 접두사로만
+// 구현하는 이유: collectedErrors가 여러 곳(리포트 프롬프트, 프론트 렌더링, summary 집계)에서
+// 순수 문자열로 소비되고 있어서, 배열 자체를 객체 배열로 바꾸면 그 모든 지점을 건드려야 한다.
+const EXPECTED_OFFLINE_TAG = '[예상됨: 오프라인 시뮬레이션] ';
+
 function attachErrorCollectors(page, collectedErrors, activity = {}) {
   const { networkCalls, consoleLogs, downloads, websocketFrames } = activity;
+  const tag = () => (activity.isOffline ? EXPECTED_OFFLINE_TAG : '');
 
   // 채팅/실시간 대시보드처럼 WebSocket을 쓰는 화면에서 "끊겼다 재연결됐을 때 누락 데이터가
   // 다시 채워지는지"를 판단하려면 프레임 자체가 보여야 한다 — 연결 종료/재개 시점과 그
@@ -512,7 +523,7 @@ function attachErrorCollectors(page, collectedErrors, activity = {}) {
   });
 
   page.on('console', (msg) => {
-    if (msg.type() === 'error') collectedErrors.push(`[Console Error] ${msg.text()}`);
+    if (msg.type() === 'error') collectedErrors.push(`${tag()}[Console Error] ${msg.text()}`);
     if (consoleLogs && consoleLogs.length < MAX_ACTIVITY_ENTRIES) {
       consoleLogs.push({
         type: msg.type(),
@@ -523,7 +534,7 @@ function attachErrorCollectors(page, collectedErrors, activity = {}) {
   });
   page.on('response', (response) => {
     if (response.status() >= 400) {
-      collectedErrors.push(`[Network Error] ${response.status()} ${response.url()}`);
+      collectedErrors.push(`${tag()}[Network Error] ${response.status()} ${response.url()}`);
     }
     const resourceType = response.request().resourceType();
     if (networkCalls && networkCalls.length < MAX_ACTIVITY_ENTRIES && (resourceType === 'xhr' || resourceType === 'fetch')) {
@@ -536,7 +547,7 @@ function attachErrorCollectors(page, collectedErrors, activity = {}) {
     }
   });
   page.on('pageerror', (err) => {
-    collectedErrors.push(`[JS Crash] ${err.message}`);
+    collectedErrors.push(`${tag()}[JS Crash] ${err.message}`);
   });
   // 핸들러 없이 alert/confirm/prompt가 뜨면 페이지 실행이 멈춘 채로 멈춰버릴 수 있다 —
   // 자동으로 승인해서 진행시키되, 어떤 다이얼로그가 떴었는지는 로그로 남긴다("취소"
@@ -574,4 +585,4 @@ function attachErrorCollectors(page, collectedErrors, activity = {}) {
   });
 }
 
-module.exports = { executeAction, attachErrorCollectors, centerOf, textLooksUnrelated };
+module.exports = { executeAction, attachErrorCollectors, centerOf, textLooksUnrelated, EXPECTED_OFFLINE_TAG };

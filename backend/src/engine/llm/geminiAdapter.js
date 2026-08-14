@@ -130,7 +130,7 @@ ${ACTION_SCHEMA_HINT}`;
 // 이런 케이스를 놓치므로, haltedInfo가 있으면 errors가 비어 있어도 실제 리포트를 만든다.
 async function generateReport({ errors, steps, haltedInfo }) {
   if ((!errors || errors.length === 0) && !haltedInfo) {
-    return { error_analysis: '', vibe_coder_prompt: '발생한 에러가 없습니다. 서비스가 안정적입니다.' };
+    return { error_analysis: '', vibe_coder_prompt: '발생한 에러가 없습니다. 서비스가 안정적입니다.', severity: 'pass' };
   }
 
   const model = getModel();
@@ -155,10 +155,23 @@ async function generateReport({ errors, steps, haltedInfo }) {
   있다"고 조심스럽게 제시하고, "실제 개발자가 브라우저로 직접 재현해서 확인이 필요하다"는
   말을 반드시 포함해라. 근거 없이 존재하지 않는 버그를 고치라고 확정 지시하는 건 개발자의
   시간을 낭비시키는 심각한 실수다.
+- 에러 로그 앞에 "[예상됨: 오프라인 시뮬레이션]" 태그가 붙어 있으면, 그건 테스트가 일부러
+  네트워크를 끊어서 나온 결과다(set_network 액션). 실제 버그의 증거로 취급하지 말고,
+  severity를 critical로 올리는 근거로도 쓰지 마라.
+
+severity는 아래 세 값 중 하나로 판단해라(개수가 아니라 "사용자에게 실질적 영향이 있는가"로
+판단):
+- "pass": 에러가 없거나, 전부 예상된 시뮬레이션 결과이거나, 사용자 흐름에 영향 없는 외부
+  리소스/분석 스크립트 실패뿐인 경우.
+- "warning": 원인이 불확실해서 재현 확인이 필요하거나, 실제 버그인지 외부 요인인지 판단하기
+  애매한 경우.
+- "critical": execError/execWarning 등 근거가 명확하고, 실제 사용자 흐름(가입/로그인/결제 등
+  핵심 기능)이 막히는 걸로 확인되는 경우.
 ${haltedBlock}
 {
   "error_analysis": "수집된 에러들(및 막힌 체크포인트가 있다면 그 이유)에 대한 기술적 원인 분석. 어디까지가 확인된 사실이고 어디부터가 추정인지 구분해서 써라.",
-  "vibe_coder_prompt": "바이브코더에게 전달할 구체적인 코드 수정 지시문. 근거가 확실할 때만 구체적인 코드 수정을 지시하고, 불확실하면 재현 확인부터 요청해라. 막힌 원인이 우리 앱의 버그가 아니라 외부 요인(예: 대상 사이트의 봇 탐지, 광고 오버레이)이라면 그 사실을 명시해라."
+  "vibe_coder_prompt": "바이브코더에게 전달할 구체적인 코드 수정 지시문. 근거가 확실할 때만 구체적인 코드 수정을 지시하고, 불확실하면 재현 확인부터 요청해라. 막힌 원인이 우리 앱의 버그가 아니라 외부 요인(예: 대상 사이트의 봇 탐지, 광고 오버레이)이라면 그 사실을 명시해라.",
+  "severity": "pass 또는 warning 또는 critical 중 하나"
 }
 
 <steps>

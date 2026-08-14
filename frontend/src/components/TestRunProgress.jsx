@@ -17,6 +17,7 @@ import {
   XCircle,
   ShieldCheck,
   Network,
+  KeyRound,
 } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { api } from '../lib/api';
@@ -228,6 +229,41 @@ function CheckpointSection({ runId, checkpoint }) {
 
 const STATUS_LABEL = { queued: '대기 중', running: '실행 중', done: '완료', failed: '실패' };
 
+// executor.js가 오프라인 시뮬레이션 중 발생한 에러 앞에 붙이는 태그와 동일한 문자열이다 —
+// 백엔드 상수를 그대로 import할 수 없는 별도 프로젝트라 값만 맞춰서 복제해뒀다.
+const EXPECTED_OFFLINE_TAG = '[예상됨: 오프라인 시뮬레이션] ';
+
+// "에러가 1건이라도 있으면 무조건 빨간 배너"는 실제로 과장 표시로 이어졌다(외부 분석
+// 스크립트 401, 오프라인 시뮬레이션 중 발생한 예상된 네트워크 에러 등도 전부 "크리티컬"로
+// 뜸). generateReport가 문맥까지 판단해서 내리는 severity를 우선 쓰고, 값이 없는 과거
+// 실행에 한해서만 개수 기반으로 폴백한다.
+const RUN_SEVERITY_STYLE = {
+  critical: {
+    box: 'bg-red-50 border-red-100',
+    iconBox: 'bg-red-100 text-red-600',
+    title: 'text-red-900',
+    body: 'text-red-700',
+    Icon: AlertCircle,
+    label: '크리티컬 이슈가 감지되었습니다',
+  },
+  warning: {
+    box: 'bg-amber-50 border-amber-100',
+    iconBox: 'bg-amber-100 text-amber-600',
+    title: 'text-amber-900',
+    body: 'text-amber-700',
+    Icon: AlertCircle,
+    label: '참고할 이슈가 있습니다',
+  },
+  pass: {
+    box: 'bg-emerald-50 border-emerald-100',
+    iconBox: 'bg-emerald-100 text-emerald-600',
+    title: 'text-emerald-900',
+    body: 'text-emerald-700',
+    Icon: CheckCircle,
+    label: '모든 테스트를 무사히 통과했습니다!',
+  },
+};
+
 export default function TestRunProgress({ tenantId, runId, onReset }) {
   const [run, setRun] = useState(null);
 
@@ -316,7 +352,24 @@ export default function TestRunProgress({ tenantId, runId, onReset }) {
 
       {run.status === 'done' && (
         <>
-          {haltedCheckpoint && (
+          {run.sessionExpired && (
+            <div className="p-6 rounded-2xl border bg-amber-50 border-amber-200 flex items-start gap-4">
+              <KeyRound className="text-amber-600 flex-shrink-0" size={24} />
+              <div>
+                <h3 className="font-bold text-amber-900 mb-1">캡처된 로그인 세션이 만료된 것으로 보입니다</h3>
+                <p className="text-amber-800 text-sm">
+                  사이트 코드 문제가 아닙니다. 소셜 로그인(OAuth)은 자동화로 매번 다시 뚫을 수 없어서
+                  캡처해둔 세션으로 시작하는데, 지금 세션이 만료·무효화된 것으로 확인됐습니다.{' '}
+                  <code className="bg-white px-1.5 py-0.5 rounded border border-amber-200 text-xs">
+                    scripts/capture-session.js
+                  </code>
+                  로 세션을 다시 캡처한 뒤 재실행해주세요.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {haltedCheckpoint && !run.sessionExpired && (
             <div className="p-6 rounded-2xl border bg-orange-50 border-orange-200 flex items-start gap-4">
               <XCircle className="text-orange-600 flex-shrink-0" size={24} />
               <div>
@@ -328,34 +381,33 @@ export default function TestRunProgress({ tenantId, runId, onReset }) {
             </div>
           )}
 
-          <div
-            className={`p-8 rounded-3xl border ${
-              run.summary?.totalErrors > 0 ? 'bg-red-50 border-red-100' : 'bg-emerald-50 border-emerald-100'
-            } shadow-sm relative overflow-hidden`}
-          >
-            <div className="flex items-start gap-5 relative z-10">
-              <div
-                className={`p-3 rounded-full ${
-                  run.summary?.totalErrors > 0 ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'
-                }`}
-              >
-                {run.summary?.totalErrors > 0 ? <AlertCircle size={32} /> : <CheckCircle size={32} />}
+          {!run.sessionExpired && (() => {
+            const severity = run.severity || (run.summary?.totalErrors > 0 ? 'critical' : 'pass');
+            const style = RUN_SEVERITY_STYLE[severity] || RUN_SEVERITY_STYLE.pass;
+            const expectedErrors = run.summary?.expectedErrors || 0;
+            return (
+              <div className={`p-8 rounded-3xl border ${style.box} shadow-sm relative overflow-hidden`}>
+                <div className="flex items-start gap-5 relative z-10">
+                  <div className={`p-3 rounded-full ${style.iconBox}`}>
+                    <style.Icon size={32} />
+                  </div>
+                  <div>
+                    <h3 className={`font-extrabold text-2xl mb-2 ${style.title}`}>{style.label}</h3>
+                    <p className={`text-lg ${style.body}`}>
+                      총 {run.summary?.totalActions || 0}개 행동 중 <strong>{run.summary?.totalErrors || 0}개</strong>의 에러 로그가
+                      수집되었습니다.
+                      {expectedErrors > 0 && (
+                        <span className="block text-sm mt-1 opacity-80">
+                          별도로, 의도된 오프라인 시뮬레이션 중 발생한 예상된 에러 {expectedErrors}건은 위 집계에서
+                          제외했습니다.
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <h3
-                  className={`font-extrabold text-2xl mb-2 ${
-                    run.summary?.totalErrors > 0 ? 'text-red-900' : 'text-emerald-900'
-                  }`}
-                >
-                  {run.summary?.totalErrors > 0 ? '크리티컬 이슈가 감지되었습니다' : '모든 테스트를 무사히 통과했습니다!'}
-                </h3>
-                <p className={`text-lg ${run.summary?.totalErrors > 0 ? 'text-red-700' : 'text-emerald-700'}`}>
-                  총 {run.summary?.totalActions || 0}개 행동 중 <strong>{run.summary?.totalErrors || 0}개</strong>의 에러 로그가
-                  수집되었습니다.
-                </p>
-              </div>
-            </div>
-          </div>
+            );
+          })()}
 
           <div className="space-y-8">
             <div className="bg-white rounded-3xl shadow-sm border border-slate-100 flex flex-col overflow-hidden">
@@ -382,15 +434,28 @@ export default function TestRunProgress({ tenantId, runId, onReset }) {
               </h3>
               {run.collectedErrors && run.collectedErrors.length > 0 ? (
                 <div className="space-y-3">
-                  {run.collectedErrors.map((err, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-slate-50 p-3 rounded-xl text-xs font-mono text-slate-700 border border-slate-200 flex items-start gap-2"
-                    >
-                      <ChevronRight size={14} className="text-slate-400 flex-shrink-0 mt-0.5" />
-                      <span className="break-all leading-relaxed">{err}</span>
-                    </div>
-                  ))}
+                  {run.collectedErrors.map((err, idx) => {
+                    const isExpected = err.startsWith(EXPECTED_OFFLINE_TAG);
+                    const text = isExpected ? err.slice(EXPECTED_OFFLINE_TAG.length) : err;
+                    return (
+                      <div
+                        key={idx}
+                        className={`p-3 rounded-xl text-xs font-mono border flex items-start gap-2 ${
+                          isExpected ? 'bg-slate-50 border-slate-200 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-700'
+                        }`}
+                      >
+                        <ChevronRight size={14} className="text-slate-400 flex-shrink-0 mt-0.5" />
+                        <span className="break-all leading-relaxed">
+                          {isExpected && (
+                            <span className="inline-block mr-1.5 px-1.5 py-0.5 rounded bg-slate-200 text-slate-500 text-[10px] font-bold align-middle not-italic">
+                              예상됨
+                            </span>
+                          )}
+                          {text}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-slate-500 text-sm">수집된 로그가 없습니다.</p>
