@@ -104,6 +104,7 @@ async function processRun(doc) {
     await ref.update({
       status: 'done',
       summary: result.summary,
+      plainSummary: result.plainSummary || null,
       vibeCoderPrompt: result.vibeCoderPrompt,
       errorAnalysis: result.errorAnalysis,
       collectedErrors: result.collectedErrors,

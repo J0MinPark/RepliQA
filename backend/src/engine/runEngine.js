@@ -441,8 +441,9 @@ async function runTest({
             consoleLogsCount: activity.consoleLogs.length,
             downloadsCount: activity.downloads.length,
           },
+          plainSummary: '로그인이 필요한 화면에서 캡처해둔 로그인 정보가 만료돼 더 진행하지 못했습니다. 사이트 자체의 문제는 아닙니다.',
           vibeCoderPrompt:
-            '이 실행은 코드 버그가 아니라 캡처된 로그인 세션 만료로 중단되었습니다. 사이트 코드를 수정할 필요는 없습니다 — scripts/capture-session.js로 세션을 다시 캡처한 뒤 재실행해주세요.',
+            '[코드 수정 불필요 — 외부 요인] 이 실행은 코드 버그가 아니라 캡처된 로그인 세션 만료로 중단되었습니다. 이 내용은 코딩 에이전트에 붙여넣지 않아도 됩니다 — scripts/capture-session.js로 세션을 다시 캡처한 뒤 재실행해주세요.',
           errorAnalysis: reason,
           sessionExpired: true,
           severity: 'warning',
@@ -512,6 +513,7 @@ async function runTest({
         consoleLogsCount: activity.consoleLogs.length,
         downloadsCount: activity.downloads.length,
       },
+      plainSummary: report.plain_summary,
       vibeCoderPrompt: report.vibe_coder_prompt,
       errorAnalysis: report.error_analysis,
       // generateReport가 문맥(예상된 에러인지, 외부 요인인지)까지 판단해서 내리는 심각도다 —

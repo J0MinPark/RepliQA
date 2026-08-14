@@ -393,15 +393,16 @@ export default function TestRunProgress({ tenantId, runId, onReset }) {
                   </div>
                   <div>
                     <h3 className={`font-extrabold text-2xl mb-2 ${style.title}`}>{style.label}</h3>
+                    {/* plainSummary는 "콘솔 에러", "네트워크 요청" 같은 기술 용어 없이 비개발자도
+                        읽을 수 있게 LLM이 따로 생성한 문장이다 — 이걸 주 문구로 쓰고, 개발자용
+                        수치는 아래 작은 글씨로 보조 정보로만 남긴다. 필드가 없는 과거 실행은
+                        기존 개수 기반 문구로 폴백한다. */}
                     <p className={`text-lg ${style.body}`}>
-                      총 {run.summary?.totalActions || 0}개 행동 중 <strong>{run.summary?.totalErrors || 0}개</strong>의 에러 로그가
-                      수집되었습니다.
-                      {expectedErrors > 0 && (
-                        <span className="block text-sm mt-1 opacity-80">
-                          별도로, 의도된 오프라인 시뮬레이션 중 발생한 예상된 에러 {expectedErrors}건은 위 집계에서
-                          제외했습니다.
-                        </span>
-                      )}
+                      {run.plainSummary || `총 ${run.summary?.totalActions || 0}개 행동 중 ${run.summary?.totalErrors || 0}개의 에러 로그가 수집되었습니다.`}
+                    </p>
+                    <p className={`text-xs mt-2 opacity-70 ${style.body}`}>
+                      기술 세부: 총 {run.summary?.totalActions || 0}개 행동 중 에러 {run.summary?.totalErrors || 0}건
+                      {expectedErrors > 0 && ` (별도로 예상된 시뮬레이션 에러 ${expectedErrors}건은 제외)`}
                     </p>
                   </div>
                 </div>
@@ -410,11 +411,22 @@ export default function TestRunProgress({ tenantId, runId, onReset }) {
           })()}
 
           <div className="space-y-8">
+            {run.errorAnalysis && (
+              <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 sm:p-8">
+                <h3 className="font-bold text-slate-900 mb-1 flex items-center gap-2 text-lg">
+                  <Activity size={20} className="text-slate-400" /> 기술 분석
+                  <span className="text-xs font-normal text-slate-400">(개발자용)</span>
+                </h3>
+                <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap mt-3">{run.errorAnalysis}</p>
+              </div>
+            )}
+
             <div className="bg-white rounded-3xl shadow-sm border border-slate-100 flex flex-col overflow-hidden">
               <div className="bg-slate-900 p-4 border-b border-slate-800 flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <Terminal size={18} className="text-brand-400" />
                   <h3 className="font-bold text-white tracking-wide">Vibe-Coding 프롬프트</h3>
+                  <span className="text-[11px] font-normal text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full">개발자용 · 코딩 에이전트에 붙여넣기</span>
                 </div>
                 <button
                   onClick={copyToClipboard}
