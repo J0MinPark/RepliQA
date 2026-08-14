@@ -44,6 +44,10 @@ const testInboxSchema = z.object({
   address: z.string().email().optional(),
 });
 
+// verificationToken 자체는 절대 그대로 내보내지 않지만(값을 알아도 남이 쓸모는 없으나
+// 굳이 노출할 이유가 없음), 아직 검증 안 된 URL은 그 토큰으로부터 유도되는 파일
+// 경로/내용을 다시 보여줘야 한다 — 안 그러면 등록 직후 응답을 놓치거나 새로고침하면
+// 그 URL을 검증할 방법을 다시 볼 수 없다(등록 직후 1회성 응답에만 있었음).
 function stripSecrets(doc) {
   const { testCredentials, testPaymentMethod, testSessionPath, testInbox, verificationToken, ...rest } = doc;
   return {
@@ -52,6 +56,12 @@ function stripSecrets(doc) {
     hasTestPaymentMethod: !!testPaymentMethod,
     hasTestSession: !!testSessionPath,
     hasTestInbox: !!testInbox,
+    ...(!rest.verified && verificationToken
+      ? {
+          verificationFileUrl: verificationFileUrl(rest.url, verificationToken),
+          verificationFileContent: verificationToken,
+        }
+      : {}),
   };
 }
 
