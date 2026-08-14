@@ -382,11 +382,9 @@ async function runTest({
   const hostname = new URL(targetUrl).hostname;
   const pinnedIp = await resolveSafeIp(hostname);
 
-  // 결제 체크포인트가 하나라도 있는 여정은 런 전체를 스텔스 엔진(Camoufox)으로 띄운다 —
-  // PG 위젯의 봇 탐지는 결제 단계 진입 전부터 세션/행동을 지켜볼 수 있어서, 결제
-  // 체크포인트에서만 엔진을 바꾸는 것보다 런 시작부터 스텔스로 가는 게 안전하다.
-  const needsStealth = checkpoints.some((c) => c.type === 'payment');
-  const { browser, contextOptions } = await launchBrowser({ stealth: needsStealth, hostname, pinnedIp });
+  // 모든 런을 스텔스 엔진(Camoufox)으로 띄운다 — 결제 위젯뿐 아니라 일반 탐색
+  // 체크포인트도 첫 페이지 로드부터 WAF에 막히는 사례가 있었다(browserEngines.js 참고).
+  const { browser, contextOptions } = await launchBrowser({ stealth: true, hostname, pinnedIp });
 
   const collectedErrors = [];
   const allSteps = [];

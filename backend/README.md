@@ -148,7 +148,21 @@ WebSocket 이벤트(연결/프레임 송수신/종료 — 실시간 채팅·대�
 - **안전핀**: "결제하기/구매확정" 류 최종 제출 버튼(`backend/src/engine/paymentSafety.js`의 키워드 목록)은 결제 체크포인트에서 절대 자동 클릭하지 않는다. 그 지점에 도달한 것 자체를 체크포인트 성공으로 기록하고 멈춘다 — 실제 결제·부정거래 탐지 위험을 원천 차단하기 위함.
 - PG 위젯이 팝업이나 iframe으로 뜨는 경우를 지원함: `capture.js`가 iframe 내부 요소도 좌표를 페이지 좌표계로 변환해서 함께 수집하고, 결제 체크포인트 동안은 팝업이 열리면 이후 캡처/실행 대상이 자동으로 그 팝업으로 전환됨.
 - 카드사/은행 선택 같은 `<select>` 드롭다운은 헤드리스 브라우저에서 OS 네이티브 팝업이 스크린샷에 안 잡혀서 좌표 클릭으로 옵션을 고를 수 없다 — `action.type: 'select'`를 지원해서 `Locator.selectOption()`으로 직접 값을 지정한다(`executor.js`). `capture.js`가 select의 `<option>` 목록을 텍스트로 함께 넘겨주므로, 화면엔 안 보이는 옵션도 LLM이 선택할 수 있다.
-- **봇 탐지 우회(Camoufox)**: 결제 체크포인트가 하나라도 있는 여정은 Chromium 대신 [Camoufox](https://camoufox.com)(엔진 레벨 지문 패치가 들어간 스텔스 Firefox 포크, `browserEngines.js`)로 런 전체를 실행한다. 공개 봇 탐지 데모(bot.sannysoft.com)로 직접 비교한 결과, Chromium은 WebDriver/HEADCHR_* 계열 7개 항목에서 탐지됐지만 Camoufox는 전부 통과했다. 알려진 한계: Chromium의 `--host-resolver-rules` IP 고정과 동등한 기능이 Firefox 쪽엔 없어서, 스텔스 경로에서는 DNS 리바인딩 방지 하드닝이 아직 빠져 있다(사설 IP·메타데이터 차단 자체는 그대로 적용됨).
+- **봇 탐지 우회(Camoufox)**: 결제 체크포인트뿐 아니라 이제 모든 런이 Chromium 대신 [Camoufox](https://camoufox.com)(엔진 레벨 지문 패치가 들어간 스텔스 Firefox 포크, `browserEngines.js`)로 실행된다(2026-08 변경 — 원래는 결제 위젯 전용이었으나, 결제와 무관한 일반 탐색 체크포인트도 첫 페이지 로드부터 대상 사이트 WAF에 막히는 사례가 실제로 있어서 기본값으로 확대함). 공개 봇 탐지 데모(bot.sannysoft.com)로 직접 비교한 결과, Chromium은 WebDriver/HEADCHR_* 계열 7개 항목에서 탐지됐지만 Camoufox는 전부 통과했다. 알려진 한계: Chromium의 `--host-resolver-rules` IP 고정과 동등한 기능이 Firefox 쪽엔 없어서, 스텔스 경로에서는 DNS 리바인딩 방지 하드닝이 아직 빠져 있다(사설 IP·메타데이터 차단 자체는 그대로 적용됨).
+
+## 대상 사이트의 WAF/봇 탐지에 걸릴 때
+
+Camoufox로도 정교한 WAF(예: 대형 커머스의 CDN 레벨 봇 탐지)는 완전히 우회되지 않을 수 있다.
+이건 우회로 뚫어야 할 문제가 아니라, **소유권을 검증한 고객이 자기 쪽 보안팀에 정당한 예외
+처리를 요청하는 문제**다 — Pingdom, Datadog Synthetics 같은 실제 모니터링/QA 툴들이 쓰는
+방식과 동일하다.
+
+- 모든 요청에 `X-RepliQA-Test: true` 헤더가 붙는다(`browserEngines.js`의
+  `IDENTIFYING_HEADERS`) — 실제 사용자 트래픽에는 절대 없는 값이라, 고객이 자기 WAF/CDN
+  설정에서 이 헤더가 있는 요청만 예외 처리하도록 안내할 수 있다.
+- 고정 아웃바운드 IP 대역 안내는 아직 제공하지 않는다 — 현재 호스팅(Render 무료/스타터
+  티어 또는 로컬)이 고정 IP를 보장하지 않기 때문. IP 기반 허용 목록이 필요하면 별도 고정
+  IP 애드온/프록시가 필요하며, 이는 아직 미해결 과제로 남아 있다.
 
 ## 보안 메모
 
