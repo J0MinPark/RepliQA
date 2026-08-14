@@ -1,8 +1,56 @@
 import React, { useState } from 'react';
-import { AlertCircle, ArrowRight, Bot, Zap, ShieldCheck } from 'lucide-react';
+import { AlertCircle, ArrowRight, Bot, Zap, ShieldCheck, Check, X as XIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import LegalModal from '../components/LegalModal';
 import Logo from '../components/Logo';
+
+// Firebase가 던지는 에러 코드는 그대로 보여주면("Firebase: Error (auth/...)." 형태) 실사용자
+// 입장에서 뭘 어떻게 고쳐야 할지 알 수 없다 — 실제로 자주 겪는 코드만 한국어로 바꿔준다.
+const AUTH_ERROR_MESSAGES = {
+  'auth/email-already-in-use': '이미 가입된 이메일입니다. 로그인을 시도하거나 비밀번호를 재설정해 주세요.',
+  'auth/invalid-email': '올바른 이메일 형식이 아닙니다.',
+  'auth/weak-password': '비밀번호가 너무 약합니다.',
+  'auth/user-not-found': '가입되지 않은 이메일입니다.',
+  'auth/wrong-password': '이메일 또는 비밀번호가 올바르지 않습니다.',
+  'auth/invalid-credential': '이메일 또는 비밀번호가 올바르지 않습니다.',
+  'auth/too-many-requests': '시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.',
+  'auth/popup-closed-by-user': '로그인 창이 닫혔습니다. 다시 시도해 주세요.',
+  'auth/popup-blocked': '팝업이 차단됐습니다. 브라우저의 팝업 차단을 해제한 뒤 다시 시도해 주세요.',
+};
+function friendlyAuthError(err) {
+  return AUTH_ERROR_MESSAGES[err?.code] || err?.message || '인증에 실패했습니다.';
+}
+
+// 대문자/소문자/숫자를 각각 하나 이상 포함한 8자 이상 — 화면에도 이 규칙을 그대로 문구로
+// 보여준다(placeholder에 "8자 이상"이라고만 적혀 있으면 실제 요구사항을 알 방법이 없었다).
+const PASSWORD_RULE_TEXT = '영문 대소문자와 숫자를 포함해 8자 이상';
+function isPasswordValid(pw) {
+  return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(pw);
+}
+
+// lucide-react는 브랜드 로고를 포함하지 않으므로 구글 4색 "G" 마크만 인라인 SVG로 둔다.
+function GoogleIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true">
+      <path
+        fill="#FFC107"
+        d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"
+      />
+      <path
+        fill="#FF3D00"
+        d="M6.3 14.7l6.6 4.8C14.7 15.9 18.9 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"
+      />
+      <path
+        fill="#4CAF50"
+        d="M24 44c5.5 0 10.5-2.1 14.3-5.6l-6.6-5.6C29.6 34.7 27 35.5 24 35.5c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.6 39.6 16.3 44 24 44z"
+      />
+      <path
+        fill="#1976D2"
+        d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.2-4.1 5.6l6.6 5.6C41.5 36 44 30.5 44 24c0-1.3-.1-2.7-.4-3.5z"
+      />
+    </svg>
+  );
+}
 
 const FEATURES = [
   {
@@ -23,25 +71,45 @@ const FEATURES = [
 ];
 
 export default function LoginPage() {
-  const { login, signup, resetPassword } = useAuth();
+  const { login, signup, loginWithGoogle, resetPassword } = useAuth();
   const [mode, setMode] = useState('login'); // 'login' | 'signup' | 'reset'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [googleSubmitting, setGoogleSubmitting] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [legalModal, setLegalModal] = useState(null); // null | 'terms' | 'privacy'
 
+  // 로그인 폼에서 실패한 뒤 "가입하기"로 넘어가면, 방금 입력한(어쩌면 남의 계정이거나
+  // 오타난) ID/비밀번호가 그대로 회원가입 폼에 남아있던 문제 — 모드가 바뀌면 완전히
+  // 새 폼처럼 비운다.
   const switchMode = (next) => {
     setMode(next);
+    setEmail('');
+    setPassword('');
+    setConfirmPassword('');
     setError('');
     setResetSent(false);
   };
 
+  const passwordValid = isPasswordValid(password);
+  const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
+  const canSubmitSignup = agreed && passwordValid && passwordsMatch;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (mode === 'signup' && !passwordValid) {
+      setError(`비밀번호 규칙을 확인해 주세요 (${PASSWORD_RULE_TEXT}).`);
+      return;
+    }
+    if (mode === 'signup' && !passwordsMatch) {
+      setError('비밀번호가 일치하지 않습니다.');
+      return;
+    }
     setSubmitting(true);
     try {
       if (mode === 'login') {
@@ -53,9 +121,21 @@ export default function LoginPage() {
         setResetSent(true);
       }
     } catch (err) {
-      setError(err.message || '인증에 실패했습니다.');
+      setError(friendlyAuthError(err));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleGoogle = async () => {
+    setError('');
+    setGoogleSubmitting(true);
+    try {
+      await loginWithGoogle();
+    } catch (err) {
+      setError(friendlyAuthError(err));
+    } finally {
+      setGoogleSubmitting(false);
     }
   };
 
@@ -139,12 +219,45 @@ export default function LoginPage() {
                       <input
                         type="password"
                         required
-                        minLength={6}
+                        minLength={8}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="w-full border border-slate-200 rounded-xl p-3 bg-slate-50 outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all text-slate-900 placeholder:text-slate-500"
-                        placeholder="6자 이상"
+                        placeholder={mode === 'signup' ? PASSWORD_RULE_TEXT : '비밀번호'}
                       />
+                      {mode === 'signup' && password.length > 0 && (
+                        <p
+                          className={`mt-1.5 text-xs flex items-center gap-1 ${
+                            passwordValid ? 'text-emerald-600' : 'text-slate-500'
+                          }`}
+                        >
+                          {passwordValid ? <Check size={13} /> : <XIcon size={13} />}
+                          {PASSWORD_RULE_TEXT}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {mode === 'signup' && (
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">비밀번호 확인</label>
+                      <input
+                        type="password"
+                        required
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="w-full border border-slate-200 rounded-xl p-3 bg-slate-50 outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all text-slate-900 placeholder:text-slate-500"
+                        placeholder="비밀번호를 한 번 더 입력해 주세요"
+                      />
+                      {confirmPassword.length > 0 && (
+                        <p
+                          className={`mt-1.5 text-xs flex items-center gap-1 ${
+                            passwordsMatch ? 'text-emerald-600' : 'text-red-500'
+                          }`}
+                        >
+                          {passwordsMatch ? <Check size={13} /> : <XIcon size={13} />}
+                          {passwordsMatch ? '비밀번호가 일치합니다.' : '비밀번호가 일치하지 않습니다.'}
+                        </p>
+                      )}
                     </div>
                   )}
                   {mode === 'signup' && (
@@ -177,13 +290,32 @@ export default function LoginPage() {
                   )}
                   <button
                     type="submit"
-                    disabled={submitting || (mode === 'signup' && !agreed)}
+                    disabled={submitting || (mode === 'signup' && !canSubmitSignup)}
                     className="w-full bg-brand-600 text-white font-bold py-3 rounded-xl hover:bg-brand-700 transition-all flex justify-center items-center gap-2 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2"
                   >
                     {mode === 'login' ? '로그인' : mode === 'signup' ? '가입하기' : '재설정 링크 보내기'}
                     <ArrowRight size={18} />
                   </button>
                 </form>
+              )}
+
+              {mode !== 'reset' && (
+                <div className="mt-4">
+                  <div className="flex items-center gap-3 text-xs text-slate-400">
+                    <span className="flex-1 h-px bg-slate-200" />
+                    또는
+                    <span className="flex-1 h-px bg-slate-200" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleGoogle}
+                    disabled={googleSubmitting}
+                    className="w-full mt-4 border border-slate-200 text-slate-700 font-semibold py-3 rounded-xl hover:bg-slate-50 transition-all flex justify-center items-center gap-2 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2"
+                  >
+                    <GoogleIcon size={18} />
+                    Google로 계속하기
+                  </button>
+                </div>
               )}
 
               {mode === 'login' && (

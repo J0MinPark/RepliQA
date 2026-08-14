@@ -5,6 +5,8 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   sendEmailVerification,
+  signInWithPopup,
+  GoogleAuthProvider,
   signOut,
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
@@ -52,6 +54,9 @@ export function AuthProvider({ children }) {
     await sendEmailVerification(cred.user);
     return cred;
   }, []);
+  // Google은 로그인 화면에서 이미 이메일을 검증하므로, 우리 쪽에서 별도 인증 메일을
+  // 또 보낼 필요가 없다(emailVerified가 구글 계정 자체에서 true로 넘어옴).
+  const loginWithGoogle = useCallback(() => signInWithPopup(auth, new GoogleAuthProvider()), []);
   const logout = useCallback(() => signOut(auth), []);
   const resetPassword = useCallback((email) => sendPasswordResetEmail(auth, email), []);
   const resendVerification = useCallback(() => {
@@ -68,7 +73,18 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, tenantId, loading, login, signup, logout, resetPassword, resendVerification, refreshUser }}
+      value={{
+        user,
+        tenantId,
+        loading,
+        login,
+        signup,
+        loginWithGoogle,
+        logout,
+        resetPassword,
+        resendVerification,
+        refreshUser,
+      }}
     >
       {children}
     </AuthContext.Provider>
