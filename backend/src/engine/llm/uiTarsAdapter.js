@@ -17,7 +17,13 @@ const env = require('../../config/env');
 // 테스트에서 로컬 목(mock) 서버를 가리키게 할 수 있도록 env로 오버라이드 가능하게 둔다
 // (실제 운영에서는 항상 기본값 그대로 OpenRouter를 씀).
 const OPENROUTER_URL = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1/chat/completions';
-const MODEL = 'bytedance/ui-tars-1.5-7b';
+// 2026-08 업그레이드 검토 기록: 더 큰 bytedance-research/ui-tars-72b:free로 교체를
+// 시도했으나, 실제 호출 시 OpenRouter가 "No endpoints found"(HTTP 404)를 반환함을 직접
+// 확인했다 — 모델 카드/가격 페이지엔 존재해도 그 시점에 이 모델을 서빙하는 프로바이더가
+// 실제로는 없었다(무료 티어 커뮤니티 모델 특성상 흔한 일). 그래서 검증된 7B로 원복한다.
+// UI-TARS-2(2026년 발표, 벤치마크상 1.5보다 크게 앞섬)는 이 시점 기준 OpenRouter에 아직
+// 없다 — 나중에 올라오면 실제 호출로 먼저 확인한 뒤 교체할 것.
+const MODEL = process.env.UI_TARS_MODEL || 'bytedance/ui-tars-1.5-7b';
 
 function buildPrompt(instruction) {
   return `You are a GUI grounding model. Given a screenshot and an instruction describing an element, respond with the click point for that element.
