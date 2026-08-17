@@ -276,14 +276,18 @@ async function executeAction(page, action, elements, ctx = {}) {
   // 좌표는 그대로 클릭한다(오탐으로 정상 클릭까지 막을 위험을 피하려고 임의로 바꾸지 않음) —
   // 실제로 짚힌 요소가 기대와 전혀 다르면 경고만 같이 반환해서 runEngine.js가 history에
   // 남기고, 다음 스텝에서 모델이 스스로 판단하게 한다.
-  let clickMismatchWarning = null;
+  // click 전용이었으나 type/clear도 같은 부류의 조용한 실패(좌표는 클릭했는데 실제로는
+  // 엉뚱한 요소가 포커스돼 입력이 어디로도 안 들어간 경우)가 있어서 이름을 일반화했다 —
+  // "경아지의 투자일기" QA에서 실제 확인: 숫자 입력창에 타이핑했다고 기록됐지만 실제
+  // 화면엔 반영이 안 돼 있었는데, 이 검증이 없어서 execOk:true로 조용히 통과됐었다.
+  let actionMismatchWarning = null;
 
   try {
     if (action.type === 'click') {
       const expectedText = target?.text;
       const before = expectedText ? await describePointTarget(page, x, y) : null;
       if (textLooksUnrelated(expectedText, before)) {
-        clickMismatchWarning =
+        actionMismatchWarning =
           before === null
             ? `클릭 좌표(${Math.round(x)},${Math.round(y)})에 아무 요소도 없습니다 — 캡처된 위치와 실제 화면이 어긋났을 수 있습니다.`
             : `클릭 좌표(${Math.round(x)},${Math.round(y)})가 실제로는 "${expectedText}"가 아니라 다른 요소("${before.slice(0, 60)}")를 가리키고 있었습니다 — 캡처된 위치와 실제 화면이 어긋났을 수 있습니다(호버로만 나타나는 요소 등).`;
@@ -293,9 +297,21 @@ async function executeAction(page, action, elements, ctx = {}) {
       await page.mouse.click(x, y);
       if (action.clear) await clearFocusedField(page);
       await page.keyboard.type(action.text || '', { delay: 20 });
+      const actualValue = await readFocusedFieldValue(page);
+      const expectedNorm = normalizeForCompare(action.text);
+      if (expectedNorm && !normalizeForCompare(actualValue).includes(expectedNorm)) {
+        actionMismatchWarning =
+          actualValue == null || actualValue === ''
+            ? `입력한 텍스트("${action.text}")가 실제로 어느 입력창에도 반영되지 않았습니다 — 클릭이 입력 가능한 요소를 포커스하지 못했을 수 있습니다.`
+            : `입력한 텍스트("${action.text}")가 실제 필드 값("${actualValue}")에 반영되지 않았습니다 — 클릭 좌표가 의도한 입력창을 정확히 포커스하지 못했을 수 있습니다.`;
+      }
     } else if (action.type === 'clear') {
       await page.mouse.click(x, y);
       await clearFocusedField(page);
+      const actualValue = await readFocusedFieldValue(page);
+      if (actualValue) {
+        actionMismatchWarning = `필드를 비우려 했으나 실제로는 값("${actualValue}")이 그대로 남아있습니다.`;
+      }
     } else if (action.type === 'hover') {
       await page.mouse.move(x, y);
     } else if (action.type === 'select') {
@@ -314,7 +330,7 @@ async function executeAction(page, action, elements, ctx = {}) {
       return { ok: false, error: `알 수 없는 action.type: ${action.type}` };
     }
     await settleAfterAction(page, framesBefore);
-    return clickMismatchWarning ? { ok: true, warning: clickMismatchWarning } : { ok: true };
+    return actionMismatchWarning ? { ok: true, warning: actionMismatchWarning } : { ok: true };
   } catch (err) {
     return { ok: false, error: err.message };
   }
@@ -336,6 +352,27 @@ async function describePointTarget(page, x, y) {
       { px: x, py: y }
     )
     .catch(() => null);
+}
+
+// type/clear 직후 실제로 포커스된 요소에 값이 반영됐는지 읽어온다. input/textarea는
+// value, contenteditable(리치 텍스트 에디터 등)은 textContent를 본다 — 둘 다 아니면(포커스가
+// 아예 안 잡혔거나 커스텀 위젯이면) null을 반환해서 "확인 불가"와 "빈 값"을 구분한다.
+async function readFocusedFieldValue(page) {
+  return page
+    .evaluate(() => {
+      const el = document.activeElement;
+      if (!el) return null;
+      if ('value' in el) return el.value;
+      if (el.isContentEditable) return el.textContent;
+      return null;
+    })
+    .catch(() => null);
+}
+
+// 공백/구두점을 지우고 비교한다 — 통화 필드가 "100000"을 "100,000"으로 포맷하는 것처럼
+// 사이트가 입력값을 화면에 그대로 안 돌려주는 경우까지 오탐으로 잡지 않기 위함.
+function normalizeForCompare(s) {
+  return (s || '').replace(/[^a-zA-Z0-9가-힣]/g, '').toLowerCase();
 }
 
 // 3단계 상위 조상까지의 textContent에 기대 텍스트가(혹은 그 반대로) 전혀 안 겹치면 "다른
@@ -585,4 +622,11 @@ function attachErrorCollectors(page, collectedErrors, activity = {}) {
   });
 }
 
-module.exports = { executeAction, attachErrorCollectors, centerOf, textLooksUnrelated, EXPECTED_OFFLINE_TAG };
+module.exports = {
+  executeAction,
+  attachErrorCollectors,
+  centerOf,
+  textLooksUnrelated,
+  normalizeForCompare,
+  EXPECTED_OFFLINE_TAG,
+};

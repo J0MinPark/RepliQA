@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { textLooksUnrelated, centerOf } = require('../src/engine/executor');
+const { textLooksUnrelated, centerOf, normalizeForCompare } = require('../src/engine/executor');
 
 test('textLooksUnrelated: expected 텍스트가 없으면 항상 불일치 아님', () => {
   assert.equal(textLooksUnrelated('', 'anything'), false);
@@ -26,4 +26,22 @@ test('textLooksUnrelated: 완전히 다른 요소를 가리키면 불일치로 �
 
 test('centerOf: 박스의 정중앙 좌표를 반환', () => {
   assert.deepEqual(centerOf({ x: 10, y: 20, width: 100, height: 50 }), { x: 60, y: 45 });
+});
+
+test('normalizeForCompare: 통화 포맷(콤마) 차이는 오탐하지 않음', () => {
+  // "100000"을 입력했는데 필드가 "100,000"으로 되돌려주는 경우까지 불일치로 잡으면 안 된다.
+  assert.equal(normalizeForCompare('100000'), normalizeForCompare('100,000'));
+});
+
+test('normalizeForCompare: 공백/대소문자 차이는 무시', () => {
+  assert.equal(normalizeForCompare('Samsung Electronics'), normalizeForCompare('samsung electronics'));
+});
+
+test('normalizeForCompare: null/undefined은 빈 문자열로 취급', () => {
+  assert.equal(normalizeForCompare(null), '');
+  assert.equal(normalizeForCompare(undefined), '');
+});
+
+test('normalizeForCompare: 진짜로 다른 값은 다르게 남음', () => {
+  assert.notEqual(normalizeForCompare('005930'), normalizeForCompare('AAPL'));
 });
