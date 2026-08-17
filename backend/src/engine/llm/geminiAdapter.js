@@ -17,6 +17,7 @@ function getModel() {
 const ACTION_SCHEMA_HINT = `
 반드시 아래 JSON 스키마를 그대로 따라라. 다른 설명은 붙이지 마라:
 {
+  "previousActionEffect": "직전 행동(action_history의 마지막 항목) 이후 화면이 실제로 어떻게 됐는지 판정. 이번이 첫 번째 행동이면 'none'. 그 항목의 thought에 적었던 기대와 지금 스크린샷을 비교해서: 예상대로 바뀌었으면 'success', execOk는 true인데(엔진이 클릭/입력 자체는 정상 실행했다고 확인) 화면이 직전과 똑같아 보이면 'no_change', 전혀 예상 못한 변화(에러 화면, 로그아웃 등)가 일어났으면 'unexpected'.",
   "thought": "현재 화면 상황과 왜 이 행동을 선택했는지 (1~2문장)",
   "action": {
     "type": "아래 action.type 설명 중 하나",
@@ -116,6 +117,14 @@ ${JSON.stringify(elements)}
 ${JSON.stringify(history)}
 </action_history>
 
+result가 "success"인데도(엔진이 클릭/입력 자체는 정상 실행했다고 확인했는데도) 화면이 전혀
+안 바뀌었다면, 이건 우리 쪽 실행 문제가 아니라 "정확히 눌렀는데 사이트가 반응하지 않는" 실제
+문제일 수 있다 — 저장 버튼을 눌렀는데 로딩 상태에서 멈추는 경우 등이 실제로 있었다. 이런
+경우 previousActionEffect를 "no_change"로 표시해라. 같은 요소에 같은 행동을 반복해도
+바뀌지 않는다면(no_change가 연달아 나오면) 예산을 다 쓸 때까지 반복하지 말고, 몇 초 기다려도
+안 바뀌는지 한 번만 wait로 확인한 뒤 finish(blocked)로 멈추고 thought에 "no_change가
+반복됨"을 명확히 남겨라.
+
 ${ACTION_SCHEMA_HINT}`;
 
   const result = await model.generateContent([
@@ -165,6 +174,15 @@ async function generateReport({ errors, steps, haltedInfo }) {
   있다"고 조심스럽게 제시하고, "실제 개발자가 브라우저로 직접 재현해서 확인이 필요하다"는
   말을 반드시 포함해라. 근거 없이 존재하지 않는 버그를 고치라고 확정 지시하는 건 개발자의
   시간을 낭비시키는 심각한 실수다.
+- 단, 위 "확정 지시하지 마라" 규칙에는 예외가 있다: 어떤 스텝의 previousActionEffect가
+  "no_change"라면(엔진이 클릭/입력 자체는 정상 실행했다고 확인했는데도, AI 페르소나가 화면을
+  직접 보고 "예상한 변화가 전혀 없었다"고 판정한 것), 이건 execWarning과는 성격이 다르다 —
+  execWarning은 "우리가 잘못 눌렀다"는 뜻이지만, no_change는 "정확히 눌렀는데 사이트가
+  반응하지 않았다"는 뜻이라 대상 사이트 쪽 문제일 가능성이 훨씬 높다. no_change가 특히
+  같은 요소에서 반복됐다면(예: 저장 버튼을 눌러도 로딩 상태에서 계속 멈춤), 이건 "재현
+  확인 필요"보다 한 단계 더 확신을 갖고 "[코드 수정 필요]"로 분류해도 된다 — 다만 여전히
+  근본 원인(서버 응답 실패인지, 클라이언트 상태 처리 누락인지)까지는 우리가 알 수 없으니
+  vibe_coder_prompt에는 "정확한 원인은 재현해서 확인이 필요하다"는 문구를 포함해라.
 - 에러 로그 앞에 "[예상됨: 오프라인 시뮬레이션]" 태그가 붙어 있으면, 그건 테스트가 일부러
   네트워크를 끊어서 나온 결과다(set_network 액션). 실제 버그의 증거로 취급하지 말고,
   severity를 critical로 올리는 근거로도 쓰지 마라.

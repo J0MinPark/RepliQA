@@ -307,6 +307,12 @@ async function runCheckpoint({
         execOk: execResult.ok,
         execError: execResult.error || null,
         execWarning: execResult.warning || null,
+        // 직전 행동이 execOk:true인데도 화면이 실제로는 안 바뀌었는지를 모델이 스스로
+        // 판정한 값('success'|'no_change'|'unexpected'|'none') — "정확히 눌렀는데 사이트가
+        // 반응하지 않는" 실제 버그(예: 저장 버튼을 눌러도 로딩에서 멈추는 것)를, execWarning
+        // 만으로는 못 잡는다(우리 클릭 자체는 정상이었으므로). generateReport가 이 신호를
+        // execError/execWarning과 동급의 확정된 근거로 취급한다.
+        previousActionEffect: plan.previousActionEffect || null,
         screenshotPath,
         timestamp: new Date().toISOString(),
       };
