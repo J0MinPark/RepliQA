@@ -117,10 +117,29 @@ async function assertSafeUrl(urlString) {
   return { parsed, pinnedIp };
 }
 
+// 벤치마크 하네스(예: WebArena 로컬 Docker 샌드박스) 같은 신뢰된 로컬 스크립트가
+// 의도적으로 사설 대상을 실행할 때만 쓰는 이스케이프 해치다 — 공개 API/워커 경로
+// (routes.js/worker.js)에서는 절대 호출되지 않으며, resolveSafeIp의 차단 정책은
+// 그대로 두고 hostname resolve 로직만 재사용한다.
+async function resolveIpUnchecked(hostname) {
+  if (net.isIP(hostname)) return hostname;
+  let records;
+  try {
+    records = await dns.lookup(hostname, { all: true, verbatim: true });
+  } catch {
+    throw new SsrfViolationError(`호스트를 resolve할 수 없습니다: ${hostname}`);
+  }
+  if (records.length === 0) {
+    throw new SsrfViolationError(`호스트를 resolve할 수 없습니다: ${hostname}`);
+  }
+  return records[0].address;
+}
+
 module.exports = {
   SsrfViolationError,
   assertHttpUrl,
   resolveSafeIp,
+  resolveIpUnchecked,
   assertSafeUrl,
   isDisallowedIp,
 };

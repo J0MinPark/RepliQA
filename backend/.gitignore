@@ -18,3 +18,7 @@ error_log.txt
 # 플레이라이트 브라우저 프로필 및 계정 세션
 auth_state.json
 temp_chrome_profile/
+
+# WebArena 벤치마크 — 로그인 세션과 실행 결과는 로컬 산출물이라 커밋하지 않는다
+scripts/webarena-bench/.auth/
+scripts/webarena-bench/results/

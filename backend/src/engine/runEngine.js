@@ -7,7 +7,7 @@ const { launchBrowser } = require('./browserEngines');
 const geminiAdapter = require('./llm/geminiAdapter');
 const uiTarsAdapter = require('./llm/uiTarsAdapter');
 const screenshotStore = require('./screenshotStore');
-const { assertHttpUrl, resolveSafeIp } = require('../security/ssrfGuard');
+const { assertHttpUrl, resolveSafeIp, resolveIpUnchecked } = require('../security/ssrfGuard');
 const env = require('../config/env');
 
 // Gemini가 고른 elementIndex가 화면이 복잡할 때(요소가 많거나 비슷한 텍스트) 틀릴 수 있다
@@ -363,15 +363,20 @@ async function runCheckpoint({
   // 벤치마크가 에이전트 자기 보고를 안 믿고 환경 상태를 직접 채점하는 것과 같은 원리).
   // 결정론적 증거가 있으면 그쪽을 항상 우선한다 — LLM이 "됐다"고 착각했거나(자기 보고
   // 오탐), 반대로 finish를 안 부르고 예산을 다 썼지만 실제로는 이미 달성된 경우 둘 다 잡는다.
+  // 한 번만 확인하지 않고 오토웨이트처럼 폴링하는 이유: 저장 API 응답→토스트→URL 변경 같은
+  // 비동기 UI 반영이 액션 루프가 끝난 시점엔 아직 안 끝났을 수 있어서다.
   let verifiedBy = null;
   if (checkpoint.verify) {
-    const verifyPassed = await runDeterministicVerify(activePage, activity, checkpoint.verify).catch((err) => {
+    const verifyResult = await pollDeterministicVerify(activePage, activity, checkpoint.verify).catch((err) => {
       collectedErrors.push(`[Verify Error] ${err.message}`);
       return null;
     });
-    if (verifyPassed != null) {
+    if (verifyResult != null) {
+      const verifyPassed = verifyResult.passed;
       if (verifyPassed === success) {
-        verifiedBy = 'both';
+        // 재확인(폴링)까지 가서야 통과한 경우는 "AI 판단이 처음부터 맞았다"와는 다른
+        // 신호라 별도로 구분한다 — UI가 "재확인 후 통과"라고 정직하게 표시할 수 있게.
+        verifiedBy = verifyPassed === true && verifyResult.attempts > 1 ? 'recovered' : 'both';
       } else {
         verifiedBy = 'disagreement';
         if (verifyPassed) {
@@ -390,7 +395,7 @@ async function runCheckpoint({
     await context.setOffline(false);
   }
 
-  return { done, success, failureReason, steps, verifiedBy };
+  return { done, success, failureReason, steps, verifiedBy, finalUrl: activePage.url() };
 }
 
 // checkpoint.verify(routes.js의 VERIFY_TAG로 파싱됨)를 실제 브라우저/네트워크 상태로
@@ -419,6 +424,37 @@ function describeVerify(verify) {
   return verify.type;
 }
 
+const VERIFY_POLL_TIMEOUT_MS = 6000;
+const VERIFY_POLL_INTERVAL_MS = 500;
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// LLM 액션 루프가 끝난 시점에도 저장 API 응답→토스트→URL 변경 같은 비동기 UI 반영이 아직
+// 안 끝났을 수 있다(Playwright의 expect(locator).toHaveText()나 Cypress의 .should()가
+// 조건이 맞을 때까지 재시도하는 것과 같은 문제). runDeterministicVerify의 3개 분기 로직은
+// 그대로 재사용하면서, 통과하거나 timeoutMs가 지날 때까지 intervalMs 간격으로 재확인한다.
+// activity.networkCalls는 executor.js가 계속 push하는 같은 배열 레퍼런스라, 폴링 중
+// 새로 들어오는 네트워크 콜도 별도 배관 없이 그대로 잡힌다.
+async function pollDeterministicVerify(
+  page,
+  activity,
+  verify,
+  { timeoutMs = VERIFY_POLL_TIMEOUT_MS, intervalMs = VERIFY_POLL_INTERVAL_MS } = {}
+) {
+  const deadline = Date.now() + timeoutMs;
+  let attempts = 0;
+  let lastPassed = null;
+  for (;;) {
+    attempts += 1;
+    lastPassed = await runDeterministicVerify(page, activity, verify);
+    if (lastPassed === true) return { passed: true, attempts };
+    if (Date.now() >= deadline) return { passed: lastPassed, attempts };
+    await delay(intervalMs);
+  }
+}
+
 // checkpoints를 순서대로 처리한다. 하나가 예산 안에 끝나지 못하면(done=false) 그 지점에서
 // 런을 중단한다 — 로그인이 안 되는데 결제 체크포인트를 계속 시도해봐야 의미 있는 신호가
 // 아니고, "어디서 막혔는지" 자체가 리포트의 핵심 가치이기 때문.
@@ -429,6 +465,7 @@ async function runTest({
   persona,
   checkpoints,
   browserEngine,
+  allowPrivateTargets,
   maxActionsPerCheckpoint,
   credentials,
   paymentInfo,
@@ -439,9 +476,14 @@ async function runTest({
   onUiuxFindings,
 }) {
   const runStartedAt = new Date();
-  assertHttpUrl(targetUrl);
+  // allowPrivateTargets는 공개 API/워커 경로(testRuns.js→worker.js)에서는 절대 넘어오지
+  // 않는다 — WebArena 같은 로컬 Docker 샌드박스를 대상으로 runTest()를 라이브러리로 직접
+  // 호출하는 벤치마크 스크립트 전용 옵션이다.
+  if (!allowPrivateTargets) assertHttpUrl(targetUrl);
   const hostname = new URL(targetUrl).hostname;
-  const pinnedIp = await resolveSafeIp(hostname);
+  const pinnedIp = allowPrivateTargets
+    ? await resolveIpUnchecked(hostname)
+    : await resolveSafeIp(hostname);
 
   // 기본값은 스텔스 엔진(Camoufox) — 결제 위젯뿐 아니라 일반 탐색 체크포인트도 첫 페이지
   // 로드부터 WAF에 막히는 사례가 있었다(browserEngines.js 참고). browserEngine을 명시하면
@@ -522,6 +564,7 @@ async function runTest({
       });
     }
 
+    let lastFinalUrl = null;
     for (const checkpoint of checkpoints) {
       if (onCheckpointStatus) await onCheckpointStatus(checkpoint.index, 'running');
 
@@ -545,6 +588,7 @@ async function runTest({
       });
 
       allSteps.push(...result.steps.map((s) => ({ ...s, checkpointIndex: checkpoint.index })));
+      lastFinalUrl = result.finalUrl;
 
       if (!result.done || !result.success) {
         if (onCheckpointStatus) {
@@ -575,6 +619,7 @@ async function runTest({
       downloads: activity.downloads,
       websocketFrames: activity.websocketFrames,
       haltedAtCheckpoint,
+      finalUrl: lastFinalUrl,
       summary: {
         totalErrors: unexpectedErrors.length,
         expectedErrors: collectedErrors.length - unexpectedErrors.length,
@@ -596,4 +641,10 @@ async function runTest({
   }
 }
 
-module.exports = { runTest, isPlausibleGroundingPoint, runDeterministicVerify, describeVerify };
+module.exports = {
+  runTest,
+  isPlausibleGroundingPoint,
+  runDeterministicVerify,
+  pollDeterministicVerify,
+  describeVerify,
+};

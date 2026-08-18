@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Network,
   KeyRound,
+  RefreshCw,
 } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { api } from '../lib/api';
@@ -222,6 +223,16 @@ function VerifiedByBadge({ verifiedBy }) {
         title="AI의 자체 판단과 실제 브라우저/네트워크 상태가 달랐습니다 — 결정론적 검증 결과를 우선 반영했습니다"
       >
         <ShieldCheck size={11} /> AI 판단 정정됨
+      </span>
+    );
+  }
+  if (verifiedBy === 'recovered') {
+    return (
+      <span
+        className="flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-sky-50 text-sky-700"
+        title="AI 판단과 일치했지만 페이지 반영에 시간이 걸려 재확인이 필요했습니다"
+      >
+        <RefreshCw size={11} /> 재확인 후 검증 통과
       </span>
     );
   }

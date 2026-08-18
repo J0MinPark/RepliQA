@@ -1,6 +1,11 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { isPlausibleGroundingPoint, runDeterministicVerify, describeVerify } = require('../src/engine/runEngine');
+const {
+  isPlausibleGroundingPoint,
+  runDeterministicVerify,
+  pollDeterministicVerify,
+  describeVerify,
+} = require('../src/engine/runEngine');
 
 function fakePage({ url = '', bodyText = '' } = {}) {
   return {
@@ -73,5 +78,80 @@ test('describeVerify: 사람이 읽을 수 있는 형태로 직렬화', () => {
   assert.equal(
     describeVerify({ type: 'network_status', urlPattern: '/api/orders', status: 200 }),
     'network_status("/api/orders", 200)'
+  );
+});
+
+test('pollDeterministicVerify: 즉시 통과하면 1번만 확인', async () => {
+  const page = fakePage({ url: 'https://shop.example.com/cart' });
+  const result = await pollDeterministicVerify(
+    page,
+    { networkCalls: [] },
+    { type: 'url_contains', value: '/cart' },
+    { timeoutMs: 200, intervalMs: 20 }
+  );
+  assert.deepEqual(result, { passed: true, attempts: 1 });
+});
+
+test('pollDeterministicVerify: 처음엔 실패해도 페이지가 나중에 반영되면 재확인 후 통과(오토웨이트)', async () => {
+  let calls = 0;
+  const page = {
+    url: () => {
+      calls += 1;
+      return calls < 3 ? 'https://shop.example.com/home' : 'https://shop.example.com/cart';
+    },
+  };
+  const result = await pollDeterministicVerify(
+    page,
+    { networkCalls: [] },
+    { type: 'url_contains', value: '/cart' },
+    { timeoutMs: 500, intervalMs: 20 }
+  );
+  assert.equal(result.passed, true);
+  assert.ok(result.attempts >= 3, `실제로 재호출됐어야 함(attempts=${result.attempts})`);
+});
+
+test('pollDeterministicVerify: 끝까지 안 맞으면 timeout까지만 기다리고 false로 종료(행 안 걸림)', async () => {
+  const page = fakePage({ url: 'https://shop.example.com/home' });
+  const start = Date.now();
+  const result = await pollDeterministicVerify(
+    page,
+    { networkCalls: [] },
+    { type: 'url_contains', value: '/cart' },
+    { timeoutMs: 60, intervalMs: 20 }
+  );
+  assert.equal(result.passed, false);
+  assert.ok(Date.now() - start < 1000, 'timeoutMs를 훨씬 넘겨서 걸리면 안 됨');
+});
+
+test('pollDeterministicVerify: 폴링 도중 activity.networkCalls에 새 항목이 늦게 들어와도 잡힘', async () => {
+  const page = fakePage();
+  const activity = { networkCalls: [] };
+  setTimeout(() => {
+    activity.networkCalls.push({ method: 'POST', url: 'https://api.example.com/api/orders', status: 200 });
+  }, 30);
+  const result = await pollDeterministicVerify(
+    page,
+    activity,
+    { type: 'network_status', urlPattern: '/api/orders', status: 200 },
+    { timeoutMs: 500, intervalMs: 20 }
+  );
+  assert.equal(result.passed, true);
+});
+
+test('pollDeterministicVerify: 확인 자체가 에러나면 그대로 reject(호출부의 .catch 계약 유지)', async () => {
+  const page = {
+    url: () => {
+      throw new Error('페이지가 이미 닫힘');
+    },
+  };
+  await assert.rejects(
+    () =>
+      pollDeterministicVerify(
+        page,
+        { networkCalls: [] },
+        { type: 'url_contains', value: '/cart' },
+        { timeoutMs: 40, intervalMs: 10 }
+      ),
+    /페이지가 이미 닫힘/
   );
 });
