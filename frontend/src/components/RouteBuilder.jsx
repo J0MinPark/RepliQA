@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Route, ListChecks, ChevronDown, CreditCard, Clock, HelpCircle } from 'lucide-react';
+import { Route, ListChecks, ChevronDown, CreditCard, Clock, HelpCircle, ShieldCheck } from 'lucide-react';
 import { api } from '../lib/api';
 import Select from './Select';
 
@@ -49,6 +49,29 @@ function CheckpointGuide() {
               <code className="bg-white px-1 py-0.5 rounded border border-slate-200">[장시간]</code> — 대기
               시간 제한이 5초에서 30분으로 늘어납니다. 세션 만료처럼 실제 시간이 걸려야 확인되는 시나리오
               전용입니다.
+            </li>
+          </ul>
+          <p>
+            <strong className="text-slate-800">결정론적 검증(줄 맨 끝에 붙이세요, 선택):</strong> "AI가 목표를
+            달성했다"는 판단과 별개로, 실제 URL·화면 텍스트·네트워크 응답을 엔진이 직접 확인하게 할 수 있습니다.
+            로그인/결제완료처럼 "정확히 이 상태가 돼야 성공"이 분명한 단계에 추천합니다.
+          </p>
+          <ul className="list-disc list-inside space-y-1 ml-1">
+            <li>
+              <code className="bg-white px-1 py-0.5 rounded border border-slate-200">[검증: url_contains(&quot;/cart&quot;)]</code>{' '}
+              — 최종 URL에 이 문자열이 포함돼야 성공
+            </li>
+            <li>
+              <code className="bg-white px-1 py-0.5 rounded border border-slate-200">
+                [검증: text_visible(&quot;주문이 완료되었습니다&quot;)]
+              </code>{' '}
+              — 화면에 이 텍스트가 보여야 성공
+            </li>
+            <li>
+              <code className="bg-white px-1 py-0.5 rounded border border-slate-200">
+                [검증: network_status(&quot;/api/orders&quot;, 200)]
+              </code>{' '}
+              — 이 URL 패턴으로 이 상태 코드 응답이 있어야 성공
             </li>
           </ul>
         </div>
@@ -174,6 +197,15 @@ export default function RouteBuilder({ verifiedUrls, routes, onRefresh }) {
                             >
                               <badge.icon size={11} />
                               {badge.label}
+                            </span>
+                          )}
+                          {c.verify && (
+                            <span
+                              className="flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md flex-shrink-0 bg-emerald-50 text-emerald-700"
+                              title="AI 판단과 별개로 실제 상태를 직접 확인하는 결정론적 검증이 설정돼 있습니다"
+                            >
+                              <ShieldCheck size={11} />
+                              검증
                             </span>
                           )}
                         </li>

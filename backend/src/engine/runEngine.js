@@ -358,11 +358,65 @@ async function runCheckpoint({
     failureReason = `허용된 행동 횟수(${maxActionsPerCheckpoint}회) 안에 목표를 달성하지 못함`;
   }
 
+  // 결정론적 검증: checkpoint.verify가 있으면 "목표를 달성했다"는 LLM 자기 판단과
+  // 무관하게 실제 브라우저/네트워크 상태를 엔진이 직접 확인한다(WebArena/Mind2Web류
+  // 벤치마크가 에이전트 자기 보고를 안 믿고 환경 상태를 직접 채점하는 것과 같은 원리).
+  // 결정론적 증거가 있으면 그쪽을 항상 우선한다 — LLM이 "됐다"고 착각했거나(자기 보고
+  // 오탐), 반대로 finish를 안 부르고 예산을 다 썼지만 실제로는 이미 달성된 경우 둘 다 잡는다.
+  let verifiedBy = null;
+  if (checkpoint.verify) {
+    const verifyPassed = await runDeterministicVerify(activePage, activity, checkpoint.verify).catch((err) => {
+      collectedErrors.push(`[Verify Error] ${err.message}`);
+      return null;
+    });
+    if (verifyPassed != null) {
+      if (verifyPassed === success) {
+        verifiedBy = 'both';
+      } else {
+        verifiedBy = 'disagreement';
+        if (verifyPassed) {
+          success = true;
+          done = true;
+          failureReason = null;
+        } else {
+          success = false;
+          failureReason = `AI는 목표를 달성했다고 판단했지만, 실제로는 검증 조건(${describeVerify(checkpoint.verify)})을 만족하지 않았습니다 — 결정론적 검증 결과를 우선합니다.`;
+        }
+      }
+    }
+  }
+
   if (persona.networkChaos && offline) {
     await context.setOffline(false);
   }
 
-  return { done, success, failureReason, steps };
+  return { done, success, failureReason, steps, verifiedBy };
+}
+
+// checkpoint.verify(routes.js의 VERIFY_TAG로 파싱됨)를 실제 브라우저/네트워크 상태로
+// 확인한다. Playwright locator 재검색 없이 지금 이 시점의 사실만 보는 3가지 얕은 체크다 —
+// 더 정교한 조건(특정 요소의 정확한 텍스트 등)이 필요해지면 여기에 type을 추가하면 된다.
+async function runDeterministicVerify(page, activity, verify) {
+  if (verify.type === 'url_contains') {
+    return page.url().includes(verify.value);
+  }
+  if (verify.type === 'text_visible') {
+    const bodyText = await page.evaluate(() => document.body.innerText).catch(() => '');
+    return bodyText.includes(verify.value);
+  }
+  if (verify.type === 'network_status') {
+    return (activity.networkCalls || []).some(
+      (call) => call.url.includes(verify.urlPattern) && call.status === verify.status
+    );
+  }
+  return null;
+}
+
+function describeVerify(verify) {
+  if (verify.type === 'url_contains') return `url_contains("${verify.value}")`;
+  if (verify.type === 'text_visible') return `text_visible("${verify.value}")`;
+  if (verify.type === 'network_status') return `network_status("${verify.urlPattern}", ${verify.status})`;
+  return verify.type;
 }
 
 // checkpoints를 순서대로 처리한다. 하나가 예산 안에 끝나지 못하면(done=false) 그 지점에서
@@ -487,13 +541,18 @@ async function runTest({
 
       if (!result.done || !result.success) {
         if (onCheckpointStatus) {
-          await onCheckpointStatus(checkpoint.index, 'failed', { failureReason: result.failureReason });
+          await onCheckpointStatus(checkpoint.index, 'failed', {
+            failureReason: result.failureReason,
+            verifiedBy: result.verifiedBy,
+          });
         }
         haltedAtCheckpoint = checkpoint.index;
-        haltedInfo = { checkpointGoal: checkpoint.goal, reason: result.failureReason };
+        haltedInfo = { checkpointGoal: checkpoint.goal, reason: result.failureReason, verifiedBy: result.verifiedBy };
         break;
       }
-      if (onCheckpointStatus) await onCheckpointStatus(checkpoint.index, 'completed');
+      if (onCheckpointStatus) {
+        await onCheckpointStatus(checkpoint.index, 'completed', { verifiedBy: result.verifiedBy });
+      }
     }
 
     const report = await geminiAdapter.generateReport({ errors: collectedErrors, steps: allSteps, haltedInfo });
@@ -530,4 +589,4 @@ async function runTest({
   }
 }
 
-module.exports = { runTest, isPlausibleGroundingPoint };
+module.exports = { runTest, isPlausibleGroundingPoint, runDeterministicVerify, describeVerify };

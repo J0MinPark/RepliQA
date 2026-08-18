@@ -203,14 +203,40 @@ function orderedCheckpoints(checkpointsMap) {
     .sort((a, b) => a.index - b.index);
 }
 
+// checkpoint.verify(결정론적 검증)가 설정된 경우에만 있는 값이다 — "AI가 목표를 달성했다"는
+// 자기 판단과 실제 URL/텍스트/네트워크 상태가 일치했는지(both) 아니면 엔진이 결정론적 증거로
+// 그 판단을 뒤집었는지(disagreement)를 보여준다. 후자가 특히 중요한 신호다 — AI가 틀렸다는
+// 걸 우리가 직접 잡아냈다는 뜻이라서.
+function VerifiedByBadge({ verifiedBy }) {
+  if (verifiedBy === 'both') {
+    return (
+      <span className="flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700">
+        <ShieldCheck size={11} /> 결정론적 검증 일치
+      </span>
+    );
+  }
+  if (verifiedBy === 'disagreement') {
+    return (
+      <span
+        className="flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700"
+        title="AI의 자체 판단과 실제 브라우저/네트워크 상태가 달랐습니다 — 결정론적 검증 결과를 우선 반영했습니다"
+      >
+        <ShieldCheck size={11} /> AI 판단 정정됨
+      </span>
+    );
+  }
+  return null;
+}
+
 function CheckpointSection({ runId, checkpoint }) {
   return (
     <div className="border border-slate-100 rounded-2xl p-5 bg-white">
       <div className={`flex items-center gap-2 ${checkpoint.status === 'failed' && checkpoint.failureReason ? 'mb-1' : 'mb-4'}`}>
         {CHECKPOINT_STATUS_ICON[checkpoint.status] || CHECKPOINT_STATUS_ICON.pending}
-        <h4 className="font-bold text-slate-900 text-sm">
+        <h4 className="font-bold text-slate-900 text-sm flex-1">
           {checkpoint.goal ? checkpoint.goal : '자유 탐색'}
         </h4>
+        <VerifiedByBadge verifiedBy={checkpoint.verifiedBy} />
       </div>
       {checkpoint.status === 'failed' && checkpoint.failureReason && (
         <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-4 ml-6">

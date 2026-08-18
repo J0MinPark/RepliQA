@@ -58,6 +58,26 @@ npm run start:worker
 - 체크포인트 목표 없이(자유 탐색) 실행하던 기존 방식은 여전히 지원됨 — `routeId`를 안 넘기면 자동으로 목표 없는 체크포인트 1개로 흘러감.
 - 각 체크포인트 진입 시 1회, `backend/src/engine/uiuxChecks.js`(WCAG 명암비·터치 타겟 크기·가로 스크롤·alt 누락 등 결정론적 계산)와 `geminiAdapter.evaluateUiUx()`(Toss/Google Material/Kakao·Naver 공개 디자인 원칙 기반 체크리스트 — `backend/src/engine/uiuxChecklist.js`)를 함께 실행해 기능 에러와 별개로 UI/UX 이슈를 리포트에 남김.
 
+## 결정론적 검증 (checkpoint.verify)
+
+체크포인트 목표는 자연어라 "달성했는지"는 기본적으로 AI 자신의 판단(LLM 자기 보고)이다 —
+Playwright의 `expect()`처럼 에이전트와 독립적인 판정이 아니다. 로그인/결제완료처럼 "정확히
+이 상태가 돼야 성공"이 분명한 단계에는, 체크포인트 줄 끝에 `[검증: type(인자)]`를 붙여서
+엔진이 실제 브라우저/네트워크 상태를 직접 확인하게 할 수 있다(`routes.js`의 `VERIFY_TAG` →
+`runEngine.js`의 `runDeterministicVerify`). 지원하는 3가지:
+
+- `url_contains("/cart")` — 최종 URL에 이 문자열이 포함되는가
+- `text_visible("주문이 완료되었습니다")` — 페이지 텍스트(`document.body.innerText`)에 이 문자열이 보이는가
+- `network_status("/api/orders", 200)` — 이 URL 패턴으로 이 상태 코드 응답이 있었는가(`activity.networkCalls`에서 확인)
+
+체크포인트가 끝나면 이 조건을 LLM의 자기 보고(`success`)와 비교해서 `checkpoints.{index}.verifiedBy`에
+`'both'`(일치) 또는 `'disagreement'`(불일치)를 기록한다. 불일치하면 **결정론적 증거를 항상
+우선한다** — AI가 "됐다"고 착각한 경우 실패로 뒤집고, 반대로 AI가 `finish`를 안 부르고
+예산을 다 썼지만 실제로는 이미 달성된 경우 성공으로 뒤집는다. `verify`가 없으면(기본값)
+지금까지처럼 자유 탐색/LLM 판단 그대로 동작 — 순수 추가 기능이라 기존 체크포인트에는
+영향이 없다. `generateReport`도 `disagreement`를 execError/execWarning과 동급의 확정된
+근거로 취급해 severity를 더 확신 있게 판단한다(`reportPrompt.js`).
+
 ## 하이브리드 그라운딩 (UI-TARS)
 
 Gemini는 범용 추론엔 강하지만, "스크린샷 속 이 텍스트가 요소 목록 중 정확히 몇 번인지"

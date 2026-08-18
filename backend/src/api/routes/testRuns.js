@@ -45,9 +45,9 @@ router.post('/', testRunCreationLimiter, async (req, res) => {
       return res.status(400).json({ error: '이 여정은 선택한 URL과 연결되어 있지 않습니다.' });
     }
     routeName = routeData.name;
-    checkpointDefs = routeData.checkpoints.map((c) => ({ goal: c.goal, type: c.type || 'generic' }));
+    checkpointDefs = routeData.checkpoints.map((c) => ({ goal: c.goal, type: c.type || 'generic', verify: c.verify || null }));
   } else {
-    checkpointDefs = [{ goal: null, type: 'generic' }];
+    checkpointDefs = [{ goal: null, type: 'generic', verify: null }];
   }
 
   let quota;
@@ -65,8 +65,8 @@ router.post('/', testRunCreationLimiter, async (req, res) => {
   const maxActionsPerCheckpoint = Math.max(3, Math.floor(maxActions / checkpointDefs.length));
 
   const checkpoints = {};
-  checkpointDefs.forEach(({ goal, type }, index) => {
-    checkpoints[index] = { goal, type, status: 'pending', steps: [], uiuxFindings: [] };
+  checkpointDefs.forEach(({ goal, type, verify }, index) => {
+    checkpoints[index] = { goal, type, verify: verify || null, status: 'pending', steps: [], uiuxFindings: [] };
   });
 
   const runRef = await collections.testRuns(req.tenantId).add({

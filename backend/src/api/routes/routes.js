@@ -16,6 +16,31 @@ router.use(requireAuth, requireTenant);
 const PAYMENT_TAG = /^\[결제\]\s*/;
 const LONG_RUNNING_TAG = /^\[장시간\]\s*/;
 
+// 줄 끝에 "[검증: type(인자)]"를 붙이면, "목표를 달성했다"는 LLM 자기 판단과는 별개로
+// 엔진이 실제 브라우저/네트워크 상태를 직접 확인한다(runEngine.js의
+// runDeterministicVerify) — Playwright의 expect()처럼 에이전트와 독립적인 판정을 만들어서,
+// 자유 탐색이 아닌 "정확히 이 상태가 돼야 성공"이 명확한 핵심 플로우(로그인/결제완료 등)에
+// 결정론적 근거를 더하는 용도다. 지원하는 3가지:
+//   url_contains("/cart")                — 최종 URL에 이 문자열이 포함되는가
+//   text_visible("주문이 완료되었습니다")   — 페이지 텍스트에 이 문자열이 보이는가
+//   network_status("/api/orders", 200)   — 이 URL 패턴으로 이 상태 코드 응답이 있었는가
+// 선택 사항이라 안 붙이면 지금까지처럼 자유 탐색/LLM 판단 그대로 동작한다.
+const VERIFY_TAG = /\s*\[검증:\s*(url_contains|text_visible|network_status)\(([^)]*)\)\]\s*$/;
+
+function parseVerifyArgs(type, argsRaw) {
+  const args = argsRaw.split(',').map((s) => s.trim().replace(/^["']|["']$/g, ''));
+  if (type === 'url_contains' || type === 'text_visible') {
+    if (!args[0]) return null;
+    return { type, value: args[0] };
+  }
+  if (type === 'network_status') {
+    const status = Number(args[1]);
+    if (!args[0] || Number.isNaN(status)) return null;
+    return { type, urlPattern: args[0], status };
+  }
+  return null;
+}
+
 const createSchema = z.object({
   name: z.string().min(1),
   registeredUrlId: z.string().min(1),
@@ -23,11 +48,15 @@ const createSchema = z.object({
 });
 
 function parseCheckpoint(raw, order) {
-  const isPayment = PAYMENT_TAG.test(raw);
-  const isLongRunning = LONG_RUNNING_TAG.test(raw);
-  const goal = raw.replace(PAYMENT_TAG, '').replace(LONG_RUNNING_TAG, '');
+  const verifyMatch = raw.match(VERIFY_TAG);
+  const verify = verifyMatch ? parseVerifyArgs(verifyMatch[1], verifyMatch[2]) : null;
+  const withoutVerify = verifyMatch ? raw.slice(0, verifyMatch.index) : raw;
+
+  const isPayment = PAYMENT_TAG.test(withoutVerify);
+  const isLongRunning = LONG_RUNNING_TAG.test(withoutVerify);
+  const goal = withoutVerify.replace(PAYMENT_TAG, '').replace(LONG_RUNNING_TAG, '').trim();
   const type = isPayment ? 'payment' : isLongRunning ? 'long_running' : 'generic';
-  return { order, goal, type };
+  return { order, goal, type, verify };
 }
 
 router.post('/', async (req, res) => {
@@ -68,3 +97,4 @@ router.get('/:id', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.parseCheckpoint = parseCheckpoint;
