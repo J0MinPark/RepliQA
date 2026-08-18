@@ -216,6 +216,15 @@ async function runCheckpoint({
   };
   context.on('page', popupListener);
 
+  // checkpoint.mock(routes.js의 MOCK_TAG로 파싱됨)이 있으면 이 체크포인트가 실행되는 동안
+  // 해당 URL 패턴으로 나가는 요청에 실제 서버 응답 대신 강제로 지정한 상태코드/본문을
+  // 돌려준다(Playwright의 page.route()/Cypress의 cy.intercept()와 같은 원리) — 에러 응답·빈
+  // 목록 같은 엣지케이스를 대상 서버 협조 없이 재현하기 위함. context 단위로 걸어서 팝업
+  // 페이지로 전환돼도(popupListener) 그대로 적용된다.
+  const mockUrlMatcher = checkpoint.mock ? buildMockRouteMatcher(checkpoint.mock) : null;
+  const mockHandler = checkpoint.mock ? buildMockRouteHandler(checkpoint.mock) : null;
+  if (mockUrlMatcher) await context.route(mockUrlMatcher, mockHandler);
+
   if (isPayment && paymentInfo) {
     await attemptPaymentFill(activePage, paymentInfo).catch((err) => {
       collectedErrors.push(`[Payment Fill Error] ${err.message}`);
@@ -352,6 +361,7 @@ async function runCheckpoint({
     }
   } finally {
     context.off('page', popupListener);
+    if (mockUrlMatcher) await context.unroute(mockUrlMatcher, mockHandler);
   }
 
   if (!done) {
@@ -453,6 +463,23 @@ async function pollDeterministicVerify(
     if (Date.now() >= deadline) return { passed: lastPassed, attempts };
     await delay(intervalMs);
   }
+}
+
+// checkpoint.mock(routes.js의 MOCK_TAG로 파싱됨)을 실제 context.route() 매처/핸들러로
+// 변환한다. 두 개로 분리해둔 이유: url_contains/network_status와 같은 원칙으로 "포함되면"
+// 매칭이라는 게 순수 함수라 유닛 테스트하기 쉽고, runCheckpoint 안에 인라인으로 두면
+// 검증하기 어렵기 때문이다.
+function buildMockRouteMatcher(mock) {
+  return (url) => url.href.includes(mock.urlPattern);
+}
+
+function buildMockRouteHandler(mock) {
+  return (route) =>
+    route.fulfill({
+      status: mock.status,
+      body: mock.body || '',
+      contentType: 'application/json',
+    });
 }
 
 // checkpoints를 순서대로 처리한다. 하나가 예산 안에 끝나지 못하면(done=false) 그 지점에서
@@ -647,4 +674,6 @@ module.exports = {
   runDeterministicVerify,
   pollDeterministicVerify,
   describeVerify,
+  buildMockRouteMatcher,
+  buildMockRouteHandler,
 };

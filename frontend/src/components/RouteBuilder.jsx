@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Route, ListChecks, ChevronDown, CreditCard, Clock, HelpCircle, ShieldCheck } from 'lucide-react';
+import { Route, ListChecks, ChevronDown, CreditCard, Clock, HelpCircle, ShieldCheck, Network } from 'lucide-react';
 import { api } from '../lib/api';
 import Select from './Select';
 
@@ -72,6 +72,25 @@ function CheckpointGuide() {
                 [검증: network_status(&quot;/api/orders&quot;, 200)]
               </code>{' '}
               — 이 URL 패턴으로 이 상태 코드 응답이 있어야 성공
+            </li>
+          </ul>
+          <p>
+            <strong className="text-slate-800">네트워크 모킹(줄 맨 끝에 붙이세요, 선택):</strong> 이 체크포인트가
+            실행되는 동안 해당 URL로 나가는 요청에 실제 서버 응답 대신 강제로 지정한 응답을 돌려줍니다. 에러
+            화면·빈 목록처럼 서버 협조 없이 재현하기 어려운 엣지케이스를 테스트할 때 씁니다.
+          </p>
+          <ul className="list-disc list-inside space-y-1 ml-1">
+            <li>
+              <code className="bg-white px-1 py-0.5 rounded border border-slate-200">
+                [모킹: force_status(&quot;/api/orders&quot;, 500)]
+              </code>{' '}
+              — 이 URL 패턴으로 나가는 요청에 500 응답을 강제
+            </li>
+            <li>
+              <code className="bg-white px-1 py-0.5 rounded border border-slate-200">
+                [모킹: force_response(&quot;/api/cart&quot;, 200, {'{'}&quot;items&quot;:[]{'}'})]
+              </code>{' '}
+              — 상태 코드와 응답 본문을 함께 강제
             </li>
           </ul>
         </div>
@@ -206,6 +225,15 @@ export default function RouteBuilder({ verifiedUrls, routes, onRefresh }) {
                             >
                               <ShieldCheck size={11} />
                               검증
+                            </span>
+                          )}
+                          {c.mock && (
+                            <span
+                              className="flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md flex-shrink-0 bg-violet-50 text-violet-700"
+                              title="이 체크포인트 실행 중 지정한 URL 패턴의 네트워크 응답이 강제로 대체됩니다"
+                            >
+                              <Network size={11} />
+                              모킹
                             </span>
                           )}
                         </li>

@@ -5,6 +5,8 @@ const {
   runDeterministicVerify,
   pollDeterministicVerify,
   describeVerify,
+  buildMockRouteMatcher,
+  buildMockRouteHandler,
 } = require('../src/engine/runEngine');
 
 function fakePage({ url = '', bodyText = '' } = {}) {
@@ -154,4 +156,26 @@ test('pollDeterministicVerify: 확인 자체가 에러나면 그대로 reject(�
       ),
     /페이지가 이미 닫힘/
   );
+});
+
+test('buildMockRouteMatcher: urlPattern이 포함된 URL만 매칭(network_status와 같은 원칙)', () => {
+  const matcher = buildMockRouteMatcher({ urlPattern: '/api/orders' });
+  assert.equal(matcher(new URL('https://api.example.com/api/orders?page=1')), true);
+  assert.equal(matcher(new URL('https://api.example.com/api/users')), false);
+});
+
+test('buildMockRouteHandler: force_status — 지정한 상태코드로 route.fulfill 호출, body는 빈 문자열', async () => {
+  const handler = buildMockRouteHandler({ status: 500, body: null });
+  const calls = [];
+  const fakeRoute = { fulfill: async (opts) => calls.push(opts) };
+  await handler(fakeRoute);
+  assert.deepEqual(calls, [{ status: 500, body: '', contentType: 'application/json' }]);
+});
+
+test('buildMockRouteHandler: force_response — 지정한 상태코드+본문으로 route.fulfill 호출', async () => {
+  const handler = buildMockRouteHandler({ status: 200, body: '{"items":[]}' });
+  const calls = [];
+  const fakeRoute = { fulfill: async (opts) => calls.push(opts) };
+  await handler(fakeRoute);
+  assert.deepEqual(calls, [{ status: 200, body: '{"items":[]}', contentType: 'application/json' }]);
 });

@@ -41,6 +41,39 @@ function parseVerifyArgs(type, argsRaw) {
   return null;
 }
 
+// 줄 끝에 "[모킹: force_status(urlPattern, status)]" 또는
+// "[모킹: force_response(urlPattern, status, body)]"를 붙이면, 그 체크포인트가 실행되는
+// 동안 해당 URL 패턴으로 나가는 네트워크 요청에 실제 서버 응답 대신 강제로 지정한
+// 상태코드/본문을 돌려준다(Playwright의 page.route()/Cypress의 cy.intercept()와 같은
+// 원리). 에러 응답·빈 목록 같은 엣지케이스를 대상 서버 협조 없이 재현하려는 용도다.
+// [검증]과 마찬가지로 선택 사항이고, 순서 상관없이 [검증]과 같이 쓸 수 있다.
+const MOCK_TAG = /\s*\[모킹:\s*(force_status|force_response)\(([^)]*)\)\]\s*$/;
+
+function parseMockArgs(type, argsRaw) {
+  // body(force_response)에 쉼표가 포함될 수 있어서(JSON 등) 처음 등장하는 쉼표 1~2개만
+  // 구분자로 쓰고 나머지는 그대로 body로 취급한다 — verify처럼 전부 split(',')하면 안 됨.
+  const firstComma = argsRaw.indexOf(',');
+  if (firstComma === -1) return null;
+  const urlPattern = argsRaw.slice(0, firstComma).trim().replace(/^["']|["']$/g, '');
+  const rest = argsRaw.slice(firstComma + 1);
+  if (!urlPattern) return null;
+
+  if (type === 'force_status') {
+    const status = Number(rest.trim());
+    if (Number.isNaN(status)) return null;
+    return { type, urlPattern, status, body: null };
+  }
+  if (type === 'force_response') {
+    const secondComma = rest.indexOf(',');
+    if (secondComma === -1) return null;
+    const status = Number(rest.slice(0, secondComma).trim());
+    const body = rest.slice(secondComma + 1).trim().replace(/^["']|["']$/g, '');
+    if (Number.isNaN(status) || !body) return null;
+    return { type, urlPattern, status, body };
+  }
+  return null;
+}
+
 const createSchema = z.object({
   name: z.string().min(1),
   registeredUrlId: z.string().min(1),
@@ -48,15 +81,36 @@ const createSchema = z.object({
 });
 
 function parseCheckpoint(raw, order) {
-  const verifyMatch = raw.match(VERIFY_TAG);
-  const verify = verifyMatch ? parseVerifyArgs(verifyMatch[1], verifyMatch[2]) : null;
-  const withoutVerify = verifyMatch ? raw.slice(0, verifyMatch.index) : raw;
+  // [검증]/[모킹] 둘 다 줄 끝에 붙는 접미 태그라 순서 상관없이 같이 쓸 수 있어야 한다 —
+  // 뒤에서부터 반복해서 하나씩 벗겨낸다.
+  let remaining = raw;
+  let verify = null;
+  let mock = null;
+  for (;;) {
+    if (!verify) {
+      const verifyMatch = remaining.match(VERIFY_TAG);
+      if (verifyMatch) {
+        verify = parseVerifyArgs(verifyMatch[1], verifyMatch[2]);
+        remaining = remaining.slice(0, verifyMatch.index);
+        continue;
+      }
+    }
+    if (!mock) {
+      const mockMatch = remaining.match(MOCK_TAG);
+      if (mockMatch) {
+        mock = parseMockArgs(mockMatch[1], mockMatch[2]);
+        remaining = remaining.slice(0, mockMatch.index);
+        continue;
+      }
+    }
+    break;
+  }
 
-  const isPayment = PAYMENT_TAG.test(withoutVerify);
-  const isLongRunning = LONG_RUNNING_TAG.test(withoutVerify);
-  const goal = withoutVerify.replace(PAYMENT_TAG, '').replace(LONG_RUNNING_TAG, '').trim();
+  const isPayment = PAYMENT_TAG.test(remaining);
+  const isLongRunning = LONG_RUNNING_TAG.test(remaining);
+  const goal = remaining.replace(PAYMENT_TAG, '').replace(LONG_RUNNING_TAG, '').trim();
   const type = isPayment ? 'payment' : isLongRunning ? 'long_running' : 'generic';
-  return { order, goal, type, verify };
+  return { order, goal, type, verify, mock };
 }
 
 router.post('/', async (req, res) => {

@@ -67,6 +67,7 @@ async function processRun(doc) {
         goal: claimed.checkpoints[index].goal,
         type: claimed.checkpoints[index].type || 'generic',
         verify: claimed.checkpoints[index].verify || null,
+        mock: claimed.checkpoints[index].mock || null,
       }));
 
     const result = await runTest({
