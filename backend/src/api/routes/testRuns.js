@@ -10,6 +10,71 @@ const { buildJUnitXml } = require('../junitReport');
 const router = express.Router();
 router.use(requireAuth, requireTenant);
 
+// 여정 전체를 실행할 때와 체크포인트 하나만 격리해서 재실행할 때(routes.js의
+// POST /:id/checkpoints/:index/run) 로직이 동일하다(페르소나 조회, 쿼터 예약, 체크포인트
+// 문서 구성) — 중복하지 않고 이 함수를 공유한다. registeredUrl 소유권 검증은 호출부마다
+// 대상이 다를 수 있어(여정 생성 vs 격리 재실행) 이 함수 밖에서 각자 한다.
+async function createTestRun({
+  tenantId,
+  uid,
+  targetUrl,
+  registeredUrlId,
+  personaId,
+  routeId,
+  routeName,
+  checkpointDefs,
+  browserEngine,
+}) {
+  const personaSnap = await collections.personas().doc(personaId).get();
+  if (!personaSnap.exists) {
+    throw Object.assign(new Error('페르소나를 찾을 수 없습니다.'), { status: 404 });
+  }
+  const persona = personaSnap.data();
+
+  let quota;
+  try {
+    quota = await reserveRunQuota(tenantId);
+  } catch (err) {
+    if (err instanceof QuotaExceededError) throw Object.assign(err, { status: 429 });
+    throw err;
+  }
+
+  // 페르소나가 스스로 정한 행동 수 상한을 존중하되, 테넌트 쿼터를 넘지는 못하게 min을 취한다.
+  const maxActions = Math.min(persona.maxActions || quota.maxActionsPerRun, quota.maxActionsPerRun);
+  const maxActionsPerCheckpoint = Math.max(3, Math.floor(maxActions / checkpointDefs.length));
+
+  const checkpoints = {};
+  checkpointDefs.forEach(({ goal, type, verify, mock }, index) => {
+    checkpoints[index] = {
+      goal,
+      type,
+      verify: verify || null,
+      mock: mock || null,
+      status: 'pending',
+      steps: [],
+      uiuxFindings: [],
+    };
+  });
+
+  const runRef = await collections.testRuns(tenantId).add({
+    targetUrl,
+    registeredUrlId,
+    personaId,
+    personaName: persona.name,
+    routeId: routeId || null,
+    routeName: routeName || null,
+    status: 'queued',
+    checkpoints,
+    browserEngine: browserEngine || null,
+    maxActionsPerCheckpoint,
+    haltedAtCheckpoint: null,
+    createdBy: uid,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  return { id: runRef.id, status: 'queued' };
+}
+
 const createSchema = z.object({
   registeredUrlId: z.string().min(1),
   personaId: z.string().min(1),
@@ -35,10 +100,6 @@ router.post('/', testRunCreationLimiter, async (req, res) => {
     return res.status(403).json({ error: '이 URL은 아직 소유권이 검증되지 않았습니다.' });
   }
 
-  const personaSnap = await collections.personas().doc(personaId).get();
-  if (!personaSnap.exists) return res.status(404).json({ error: '페르소나를 찾을 수 없습니다.' });
-  const persona = personaSnap.data();
-
   // routeId가 있으면 그 여정의 체크포인트를, 없으면 "목표 없는 체크포인트 1개"를 합성해서
   // 자유 탐색(기존 동작)을 동일한 체크포인트 파이프라인으로 흘려보낸다.
   let routeName = null;
@@ -61,50 +122,23 @@ router.post('/', testRunCreationLimiter, async (req, res) => {
     checkpointDefs = [{ goal: null, type: 'generic', verify: null, mock: null }];
   }
 
-  let quota;
   try {
-    quota = await reserveRunQuota(req.tenantId);
+    const result = await createTestRun({
+      tenantId: req.tenantId,
+      uid: req.uid,
+      targetUrl: urlData.url,
+      registeredUrlId,
+      personaId,
+      routeId,
+      routeName,
+      checkpointDefs,
+      browserEngine,
+    });
+    res.status(202).json(result);
   } catch (err) {
-    if (err instanceof QuotaExceededError) {
-      return res.status(429).json({ error: err.message });
-    }
+    if (err.status) return res.status(err.status).json({ error: err.message });
     throw err;
   }
-
-  // 페르소나가 스스로 정한 행동 수 상한을 존중하되, 테넌트 쿼터를 넘지는 못하게 min을 취한다.
-  const maxActions = Math.min(persona.maxActions || quota.maxActionsPerRun, quota.maxActionsPerRun);
-  const maxActionsPerCheckpoint = Math.max(3, Math.floor(maxActions / checkpointDefs.length));
-
-  const checkpoints = {};
-  checkpointDefs.forEach(({ goal, type, verify, mock }, index) => {
-    checkpoints[index] = {
-      goal,
-      type,
-      verify: verify || null,
-      mock: mock || null,
-      status: 'pending',
-      steps: [],
-      uiuxFindings: [],
-    };
-  });
-
-  const runRef = await collections.testRuns(req.tenantId).add({
-    targetUrl: urlData.url,
-    registeredUrlId,
-    personaId,
-    personaName: persona.name,
-    routeId: routeId || null,
-    routeName,
-    status: 'queued',
-    checkpoints,
-    browserEngine: browserEngine || null,
-    maxActionsPerCheckpoint,
-    haltedAtCheckpoint: null,
-    createdBy: req.uid,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
-
-  res.status(202).json({ id: runRef.id, status: 'queued' });
 });
 
 router.get('/', async (req, res) => {
@@ -152,3 +186,4 @@ router.get('/:id/screenshots/:label', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.createTestRun = createTestRun;

@@ -261,6 +261,17 @@ async function runCheckpoint({
 
       await groundActionIfNeeded(activePage, plan.action, state.screenshotBase64, state.elements);
 
+      // capture.js가 요소별로 미리 계산해둔 role+접근성 이름 기반 셀렉터 후보를 이번에
+      // 실제로 선택된 요소에 붙여서 스텝 기록에 남긴다 — 지금은 저장만 하고 실행에는 안 쓴다
+      // (계획 문서의 "셀렉터 로깅" 단계). 같은 체크포인트를 반복 실행할 때 "비전+LLM으로
+      // 다시 추론하지 않고 이 셀렉터부터 시도"하는 캐시 패스트패스의 토대.
+      if (plan.action && plan.action.elementIndex != null) {
+        const targetElement = state.elements[plan.action.elementIndex];
+        if (targetElement?.selectorHint) {
+          plan.action.resolvedSelector = targetElement.selectorHint;
+        }
+      }
+
       // 안전핀: 결제 체크포인트에서 "결제하기/구매확정" 류 최종 제출 버튼은 절대 자동
       // 클릭하지 않는다. 그 지점까지 정상적으로 도달했다는 것 자체를 체크포인트 성공으로
       // 기록하고 멈춘다 — 실제 결제·부정거래 탐지 위험을 원천 차단하기 위한 하드 가드.

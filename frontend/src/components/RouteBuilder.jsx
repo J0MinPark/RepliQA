@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Route, ListChecks, ChevronDown, CreditCard, Clock, HelpCircle, ShieldCheck, Network } from 'lucide-react';
+import { Route, ListChecks, ChevronDown, CreditCard, Clock, HelpCircle, ShieldCheck, Network, Play, Loader2 } from 'lucide-react';
 import { api } from '../lib/api';
 import Select from './Select';
 
@@ -99,13 +99,36 @@ function CheckpointGuide() {
   );
 }
 
-export default function RouteBuilder({ verifiedUrls, routes, onRefresh }) {
+export default function RouteBuilder({ verifiedUrls, routes, onRefresh, personas, onRunCreated }) {
   const [name, setName] = useState('');
   const [registeredUrlId, setRegisteredUrlId] = useState('');
   const [checkpointsText, setCheckpointsText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [expandedId, setExpandedId] = useState(null);
+  // "routeId:index" 문자열을 키로 써서 여러 체크포인트가 동시에 재실행 중이어도 서로
+  // 안 헷갈리게 상태를 구분한다.
+  const [runningKey, setRunningKey] = useState(null);
+  const [runError, setRunError] = useState('');
+
+  // Cypress Component Testing을 "체크포인트 단위 격리 재실행"으로 재해석한 기능 —
+  // 여정 전체가 아니라 이 체크포인트 하나만 등록된 URL 루트부터 독립적으로 재실행한다.
+  const handleRunCheckpoint = async (routeId, index) => {
+    if (!personas || personas.length === 0) {
+      setRunError('사용 가능한 페르소나가 없습니다.');
+      return;
+    }
+    setRunError('');
+    setRunningKey(`${routeId}:${index}`);
+    try {
+      const { id } = await api.runCheckpoint(routeId, index, personas[0].id);
+      onRunCreated?.(id);
+    } catch (err) {
+      setRunError(err.message);
+    } finally {
+      setRunningKey(null);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -236,6 +259,20 @@ export default function RouteBuilder({ verifiedUrls, routes, onRefresh }) {
                               모킹
                             </span>
                           )}
+                          <button
+                            type="button"
+                            onClick={() => handleRunCheckpoint(r.id, idx)}
+                            disabled={runningKey === `${r.id}:${idx}`}
+                            title="여정 전체가 아니라 이 체크포인트만 등록된 URL부터 독립적으로 재실행합니다"
+                            className="flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md flex-shrink-0 bg-brand-50 text-brand-700 hover:bg-brand-100 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-brand-400"
+                          >
+                            {runningKey === `${r.id}:${idx}` ? (
+                              <Loader2 size={11} className="animate-spin" />
+                            ) : (
+                              <Play size={11} />
+                            )}
+                            재실행
+                          </button>
                         </li>
                       );
                     })}
@@ -246,6 +283,7 @@ export default function RouteBuilder({ verifiedUrls, routes, onRefresh }) {
           })}
         </div>
       )}
+      {runError && <p className="text-xs text-red-600 mt-3">{runError}</p>}
     </div>
   );
 }

@@ -22,6 +22,38 @@ function extractInteractiveElements(max) {
       if (el.shadowRoot) collectDeep(el.shadowRoot, out);
     }
   }
+
+  // 이 함수 전체가 page.evaluate로 문자열째 브라우저에 전송되므로(파일 상단 주석 참고),
+  // 바깥 스코프의 다른 함수/상수를 참조할 수 없다 — collectDeep과 마찬가지로 안쪽에
+  // 정의해야 한다. 태그/type만으로 암묵적 접근성 role을 추정한다(Playwright의 getByRole이
+  // 실제 접근성 트리를 쓰는 것과 달리, 여긴 근사치만 낸다 — 완벽할 필요 없음, 나중에
+  // "이 셀렉터로 다시 찾아보고 안 되면 비전으로 폴백"하는 캐시 후보일 뿐이라 틀려도
+  // 최악의 경우 캐시 미스로 끝난다. 지금은 이 값을 어디서도 쓰지 않는다 — 저장만 하고
+  // 아직 캐시/패스트패스에 활용하지 않는 "셀렉터 로깅" 단계).
+  const IMPLICIT_ROLE_BY_TAG = { a: 'link', textarea: 'textbox', select: 'combobox' };
+  const IMPLICIT_ROLE_BY_INPUT_TYPE = {
+    submit: 'button',
+    button: 'button',
+    reset: 'button',
+    checkbox: 'checkbox',
+    radio: 'radio',
+    text: 'textbox',
+    email: 'textbox',
+    password: 'textbox',
+    search: 'textbox',
+    tel: 'textbox',
+    url: 'textbox',
+    number: 'textbox',
+  };
+  function computeSelectorHint(el, tag, type, text) {
+    const explicitRole = el.getAttribute('role');
+    // <input>은 type 속성이 아예 없으면 HTML 스펙상 암묵적으로 text지만, getAttribute는
+    // null/빈 문자열을 그대로 돌려준다 — 그 경우도 textbox로 취급한다.
+    const inputType = tag === 'input' ? IMPLICIT_ROLE_BY_INPUT_TYPE[type] || (type ? null : 'textbox') : null;
+    const role = explicitRole || IMPLICIT_ROLE_BY_TAG[tag] || inputType || (tag === 'button' ? 'button' : null);
+    if (!role || !text) return null;
+    return { role, name: text };
+  }
   const nodes = [];
   collectDeep(document, nodes);
   const items = [];
@@ -48,6 +80,7 @@ function extractInteractiveElements(max) {
         height: Math.round(rect.height),
       },
       inViewport: rect.top >= 0 && rect.top < window.innerHeight,
+      selectorHint: computeSelectorHint(el, el.tagName.toLowerCase(), el.getAttribute('type') || '', text),
     };
 
     // 네이티브 <select>는 헤드리스 브라우저에서 옵션 목록이 스크린샷에 안 보이므로

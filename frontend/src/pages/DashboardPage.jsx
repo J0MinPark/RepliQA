@@ -142,7 +142,13 @@ export default function DashboardPage() {
             {usageInfo && <UsagePanel usage={usageInfo.usage} quota={usageInfo.quota} />}
             <RunHistoryPanel tenantId={tenantId} onSelect={setActiveRunId} />
             <UrlRegistrationPanel urls={urls} onRefresh={refreshUrls} />
-            <RouteBuilder verifiedUrls={verifiedUrls} routes={routes} onRefresh={refreshRoutes} />
+            <RouteBuilder
+              verifiedUrls={verifiedUrls}
+              routes={routes}
+              onRefresh={refreshRoutes}
+              personas={personas}
+              onRunCreated={setActiveRunId}
+            />
             <ApiKeyPanel />
             <TestRunForm
               verifiedUrls={verifiedUrls}

@@ -2,6 +2,10 @@ const express = require('express');
 const { z } = require('zod');
 const { collections, admin } = require('../../db/firestore');
 const { requireAuth, requireTenant } = require('../middleware/auth');
+const { testRunCreationLimiter } = require('../middleware/rateLimit');
+// createTestRun은 testRuns.js가 export하는 헬퍼다 — "여정 전체 실행"과 "체크포인트 하나만
+// 격리 재실행"이 페르소나 조회/쿼터 예약/체크포인트 문서 구성 로직을 그대로 공유한다.
+const { createTestRun } = require('./testRuns');
 
 const router = express.Router();
 router.use(requireAuth, requireTenant);
@@ -148,6 +152,69 @@ router.get('/:id', async (req, res) => {
   const snap = await collections.routes(req.tenantId).doc(req.params.id).get();
   if (!snap.exists) return res.status(404).json({ error: '여정을 찾을 수 없습니다.' });
   res.json({ id: snap.id, ...snap.data() });
+});
+
+const runCheckpointSchema = z.object({
+  personaId: z.string().min(1),
+  browserEngine: z.enum(['chromium', 'firefox', 'webkit']).optional(),
+});
+
+// Cypress Component Testing(소스코드 레벨 컴포넌트 마운트)은 RepliQA의 블랙박스 구조와
+// 근본적으로 안 맞아서 그대로 옮길 수 없다 — 대신 "체크포인트 단위 격리 재실행"으로
+// 재해석한다. 여정 전체가 아니라 특정 체크포인트 하나만 빠르게 반복 검증할 수 있게 한다.
+// 알려진 한계: 항상 등록된 URL 루트부터 시작한다 — 여정 안에서 index번째 체크포인트가
+// 원래 실행되던 "직전 체크포인트가 만들어둔 중간 상태"까지 재현하지는 않는다. goal이
+// 자기완결적인 체크포인트(예: "장바구니 페이지로 이동해서 결제하기")는 잘 맞지만, 직전
+// 맥락에 의존하는 goal(예: "완료 버튼을 눌러라")은 그 맥락까지 AI가 스스로 도달해야 한다.
+router.post('/:id/checkpoints/:index/run', testRunCreationLimiter, async (req, res) => {
+  const parseResult = runCheckpointSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    return res.status(400).json({ error: 'personaId가 필요합니다.' });
+  }
+  const { personaId, browserEngine } = parseResult.data;
+
+  const index = Number(req.params.index);
+  if (!Number.isInteger(index) || index < 0) {
+    return res.status(400).json({ error: '유효하지 않은 체크포인트 인덱스입니다.' });
+  }
+
+  const routeSnap = await collections.routes(req.tenantId).doc(req.params.id).get();
+  if (!routeSnap.exists) return res.status(404).json({ error: '여정을 찾을 수 없습니다.' });
+  const routeData = routeSnap.data();
+  const checkpoint = routeData.checkpoints?.[index];
+  if (!checkpoint) return res.status(404).json({ error: '해당 인덱스의 체크포인트를 찾을 수 없습니다.' });
+
+  const urlSnap = await collections.registeredUrls(req.tenantId).doc(routeData.registeredUrlId).get();
+  if (!urlSnap.exists) return res.status(404).json({ error: '등록된 URL을 찾을 수 없습니다.' });
+  const urlData = urlSnap.data();
+  if (!urlData.verified) {
+    return res.status(403).json({ error: '이 URL은 아직 소유권이 검증되지 않았습니다.' });
+  }
+
+  try {
+    const result = await createTestRun({
+      tenantId: req.tenantId,
+      uid: req.uid,
+      targetUrl: urlData.url,
+      registeredUrlId: routeData.registeredUrlId,
+      personaId,
+      routeId: routeSnap.id,
+      routeName: `${routeData.name} — 체크포인트 ${index + 1}만 격리 재실행`,
+      checkpointDefs: [
+        {
+          goal: checkpoint.goal,
+          type: checkpoint.type || 'generic',
+          verify: checkpoint.verify || null,
+          mock: checkpoint.mock || null,
+        },
+      ],
+      browserEngine,
+    });
+    res.status(202).json(result);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    throw err;
+  }
 });
 
 module.exports = router;

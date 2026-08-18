@@ -43,6 +43,8 @@ export const api = {
     apiFetch('/api/routes', { method: 'POST', body: { name, registeredUrlId, checkpoints } }),
   createTestRun: (registeredUrlId, personaId, routeId) =>
     apiFetch('/api/test-runs', { method: 'POST', body: { registeredUrlId, personaId, routeId } }),
+  runCheckpoint: (routeId, index, personaId) =>
+    apiFetch(`/api/routes/${routeId}/checkpoints/${index}/run`, { method: 'POST', body: { personaId } }),
   getTestRun: (id) => apiFetch(`/api/test-runs/${id}`),
   getScreenshotUrl: (runId, label) => apiFetch(`/api/test-runs/${runId}/screenshots/${label}`),
   getUsageToday: () => apiFetch('/api/usage/today'),
