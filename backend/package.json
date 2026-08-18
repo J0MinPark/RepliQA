@@ -8,6 +8,7 @@
     "start:api": "node src/api/server.js",
     "start:worker": "node src/worker/worker.js",
     "seed:personas": "node src/personas/seed.js",
+    "record:route": "node scripts/recordRoute.js",
     "test": "node --test"
   },
   "keywords": [],

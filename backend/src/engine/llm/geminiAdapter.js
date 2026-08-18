@@ -2,6 +2,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const env = require('../../config/env');
 const { UIUX_CHECKLIST } = require('../uiuxChecklist');
 const { buildReportPrompt } = require('./reportPrompt');
+const { buildRecordingSummaryPrompt } = require('./recordingSummaryPrompt');
 
 // LLM 프로바이더를 여기 뒤로 숨겨둔다. 지금은 Gemini만 구현하지만, 나중에 다른
 // 모델로 바꾸더라도 이 파일의 함수 시그니처(generateNextAction/generateReport/
@@ -233,10 +234,20 @@ ${JSON.stringify(elements)}
   return JSON.parse(result.response.text());
 }
 
+// recordRoute.js가 기록한 사람의 행동(클릭/입력/제출, 입력값 자체는 없음)을 체크포인트
+// 목표 한 줄로 요약한다 — routes.js의 parseCheckpoint가 그대로 소화할 수 있는 평문이다.
+async function summarizeActionsToCheckpoint({ events, url }) {
+  const { prompt } = buildRecordingSummaryPrompt({ events, url });
+  const model = getModel();
+  const result = await model.generateContent(prompt);
+  return JSON.parse(result.response.text());
+}
+
 module.exports = {
   generateNextAction,
   generateReport,
   identifyLoginFields,
   identifyPaymentFields,
   evaluateUiUx,
+  summarizeActionsToCheckpoint,
 };
