@@ -191,6 +191,102 @@ function NetworkAndConsolePanel({ networkCalls, consoleLogs, downloads }) {
   );
 }
 
+// 네트워크 콜/콘솔 로그는 이미 NetworkAndConsolePanel이 통째로 보여주지만, "이 스텝을 찍은
+// 순간 정확히 무슨 일이 있었는지"는 알 수 없었다 — correlateStepActivity(runEngine.js)가
+// 서버에서 스텝 timestamp 구간별로 미리 묶어준 relatedActivity를 스텝 타임라인 + 상세
+// 패널 하나로 보여준다(Playwright Trace Viewer의 축소판).
+function TraceViewer({ runId, correlatedSteps }) {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  if (!correlatedSteps || correlatedSteps.length === 0) return null;
+
+  const clampedIndex = Math.min(selectedIndex, correlatedSteps.length - 1);
+  const selected = correlatedSteps[clampedIndex];
+  const related = selected.relatedActivity || { networkCalls: [], consoleLogs: [], websocketFrames: [] };
+  const activityCount = related.networkCalls.length + related.consoleLogs.length + related.websocketFrames.length;
+
+  return (
+    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+      <div className="p-6 sm:p-8">
+        <h3 className="font-bold text-slate-900 flex items-center gap-2 text-lg mb-4">
+          <Activity size={20} className="text-slate-400" /> 트레이스 뷰어
+          <span className="text-xs font-normal text-slate-400">(스텝 {correlatedSteps.length}개)</span>
+        </h3>
+
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-4">
+          {correlatedSteps.map((step, idx) => {
+            const stepRelated = step.relatedActivity || { networkCalls: [], consoleLogs: [] };
+            const hasError =
+              stepRelated.networkCalls.some((c) => c.status >= 400) ||
+              stepRelated.consoleLogs.some((c) => c.type === 'error');
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => setSelectedIndex(idx)}
+                title={`체크포인트 ${step.checkpointIndex + 1} · 스텝 ${step.stepNumber}`}
+                className={`flex-shrink-0 w-8 h-8 rounded-lg text-[11px] font-bold flex items-center justify-center border transition-colors focus:outline-none focus:ring-2 focus:ring-brand-400 ${
+                  idx === clampedIndex
+                    ? 'bg-brand-500 text-white border-brand-500'
+                    : hasError
+                      ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+                      : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                {step.stepNumber}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex items-start gap-4 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+          <StepScreenshot runId={runId} path={selected.screenshotPath} />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold text-slate-700 mb-1">
+              체크포인트 {selected.checkpointIndex + 1} · 스텝 #{selected.stepNumber}
+              {selected.action?.type && <span className="text-slate-400 font-normal"> · {selected.action.type}</span>}
+            </p>
+            <p className="text-xs text-slate-500 leading-relaxed">{selected.thought}</p>
+            {activityCount === 0 ? (
+              <p className="text-xs text-slate-400 mt-2">이 시점에 기록된 네트워크/콘솔 이벤트가 없습니다.</p>
+            ) : (
+              <div className="mt-2 space-y-1 max-h-56 overflow-y-auto">
+                {related.networkCalls.map((c, i) => (
+                  <div
+                    key={`n${i}`}
+                    className={`text-[11px] font-mono p-1.5 rounded-lg border ${
+                      c.status >= 400 ? 'bg-red-50 border-red-100 text-red-700' : 'bg-white border-slate-200 text-slate-600'
+                    }`}
+                  >
+                    <span className="font-bold">{c.status}</span> {c.method} <span className="break-all">{c.url}</span>
+                  </div>
+                ))}
+                {related.consoleLogs.map((c, i) => (
+                  <div
+                    key={`c${i}`}
+                    className={`text-[11px] font-mono p-1.5 rounded-lg border ${
+                      c.type === 'error' ? 'bg-red-50 border-red-100 text-red-700' : 'bg-white border-slate-200 text-slate-600'
+                    }`}
+                  >
+                    <span className="font-bold">[{c.type}]</span> <span className="break-all">{c.text}</span>
+                  </div>
+                ))}
+                {related.websocketFrames.map((w, i) => (
+                  <div
+                    key={`w${i}`}
+                    className="text-[11px] font-mono p-1.5 rounded-lg border bg-white border-slate-200 text-slate-600"
+                  >
+                    <span className="font-bold">[ws:{w.event}]</span> <span className="break-all">{w.url}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const CHECKPOINT_STATUS_ICON = {
   pending: <CircleDot size={16} className="text-slate-300" />,
   running: <Loader2 size={16} className="text-brand-500 animate-spin" />,
@@ -511,6 +607,8 @@ export default function TestRunProgress({ tenantId, runId, onReset }) {
               )}
             </div>
           </div>
+
+          <TraceViewer runId={runId} correlatedSteps={run.correlatedSteps} />
 
           <NetworkAndConsolePanel networkCalls={run.networkCalls} consoleLogs={run.consoleLogs} downloads={run.downloads} />
 

@@ -7,6 +7,7 @@ const {
   describeVerify,
   buildMockRouteMatcher,
   buildMockRouteHandler,
+  correlateStepActivity,
 } = require('../src/engine/runEngine');
 
 function fakePage({ url = '', bodyText = '' } = {}) {
@@ -178,4 +179,35 @@ test('buildMockRouteHandler: force_response — 지정한 상태코드+본문으
   const fakeRoute = { fulfill: async (opts) => calls.push(opts) };
   await handler(fakeRoute);
   assert.deepEqual(calls, [{ status: 200, body: '{"items":[]}', contentType: 'application/json' }]);
+});
+
+test('correlateStepActivity: 스텝 구간 사이에 일어난 네트워크/콘솔/웹소켓 이벤트를 그 스텝에 묶는다', () => {
+  const steps = [
+    { stepNumber: 1, timestamp: '2026-01-01T00:00:00.000Z' },
+    { stepNumber: 2, timestamp: '2026-01-01T00:00:10.000Z' },
+    { stepNumber: 3, timestamp: '2026-01-01T00:00:20.000Z' },
+  ];
+  const activity = {
+    networkCalls: [
+      { url: '/api/before', status: 200, timestamp: '2026-01-01T00:00:03.000Z' }, // 1번 구간
+      { url: '/api/mid', status: 200, timestamp: '2026-01-01T00:00:15.000Z' }, // 2번 구간
+      { url: '/api/after', status: 200, timestamp: '2026-01-01T00:00:25.000Z' }, // 3번 구간(마지막, 끝없음)
+    ],
+    consoleLogs: [{ type: 'log', text: 'x', timestamp: '2026-01-01T00:00:12.000Z' }], // 2번 구간
+    websocketFrames: [],
+  };
+  const result = correlateStepActivity(steps, activity);
+  assert.equal(result[0].relatedActivity.networkCalls.length, 1);
+  assert.equal(result[0].relatedActivity.networkCalls[0].url, '/api/before');
+  assert.equal(result[1].relatedActivity.networkCalls[0].url, '/api/mid');
+  assert.equal(result[1].relatedActivity.consoleLogs[0].text, 'x');
+  assert.equal(result[2].relatedActivity.networkCalls[0].url, '/api/after');
+});
+
+test('correlateStepActivity: 스텝 자체의 다른 필드(thought/action 등)는 그대로 보존', () => {
+  const steps = [{ stepNumber: 1, timestamp: '2026-01-01T00:00:00.000Z', thought: '생각', action: { type: 'click' } }];
+  const result = correlateStepActivity(steps, { networkCalls: [], consoleLogs: [], websocketFrames: [] });
+  assert.equal(result[0].thought, '생각');
+  assert.deepEqual(result[0].action, { type: 'click' });
+  assert.deepEqual(result[0].relatedActivity, { networkCalls: [], consoleLogs: [], websocketFrames: [] });
 });

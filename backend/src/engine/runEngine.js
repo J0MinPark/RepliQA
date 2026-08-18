@@ -482,6 +482,31 @@ function buildMockRouteHandler(mock) {
     });
 }
 
+// 네트워크 콜/콘솔 로그/웹소켓 프레임은 이미 캡처·저장되고 있지만(activity), 스텝
+// 하나와 그 시점에 일어난 이벤트를 상관관계로 보여줄 방법이 없었다 — 트레이스 뷰어를 위해
+// 각 스텝의 timestamp와 다음 스텝의 timestamp 사이 구간에 속하는 이벤트를 그 스텝에
+// 묶는다. 순수 함수라 유닛 테스트하기 쉽고, steps는 이미 시간순으로 쌓이므로(각
+// 체크포인트 루프가 순서대로 push) 별도 정렬 없이 원래 순서를 그대로 신뢰한다.
+function correlateStepActivity(steps, activity) {
+  return steps.map((step, i) => {
+    const start = new Date(step.timestamp).getTime();
+    const next = steps[i + 1];
+    const end = next ? new Date(next.timestamp).getTime() : Infinity;
+    const inWindow = (item) => {
+      const t = new Date(item.timestamp).getTime();
+      return t >= start && t < end;
+    };
+    return {
+      ...step,
+      relatedActivity: {
+        networkCalls: (activity.networkCalls || []).filter(inWindow),
+        consoleLogs: (activity.consoleLogs || []).filter(inWindow),
+        websocketFrames: (activity.websocketFrames || []).filter(inWindow),
+      },
+    };
+  });
+}
+
 // checkpoints를 순서대로 처리한다. 하나가 예산 안에 끝나지 못하면(done=false) 그 지점에서
 // 런을 중단한다 — 로그인이 안 되는데 결제 체크포인트를 계속 시도해봐야 의미 있는 신호가
 // 아니고, "어디서 막혔는지" 자체가 리포트의 핵심 가치이기 때문.
@@ -647,6 +672,7 @@ async function runTest({
       websocketFrames: activity.websocketFrames,
       haltedAtCheckpoint,
       finalUrl: lastFinalUrl,
+      correlatedSteps: correlateStepActivity(allSteps, activity),
       summary: {
         totalErrors: unexpectedErrors.length,
         expectedErrors: collectedErrors.length - unexpectedErrors.length,
@@ -671,6 +697,7 @@ async function runTest({
 module.exports = {
   runTest,
   isPlausibleGroundingPoint,
+  correlateStepActivity,
   runDeterministicVerify,
   pollDeterministicVerify,
   describeVerify,

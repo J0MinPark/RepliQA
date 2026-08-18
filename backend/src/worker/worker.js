@@ -115,6 +115,7 @@ async function processRun(doc) {
       consoleLogs: result.consoleLogs,
       downloads: result.downloads,
       websocketFrames: result.websocketFrames,
+      correlatedSteps: result.correlatedSteps || [],
       haltedAtCheckpoint: result.haltedAtCheckpoint,
       sessionExpired: Boolean(result.sessionExpired),
       severity: result.severity || null,
