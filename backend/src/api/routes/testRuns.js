@@ -5,6 +5,7 @@ const { requireAuth, requireTenant } = require('../middleware/auth');
 const { reserveRunQuota, QuotaExceededError } = require('../../db/quota');
 const { testRunCreationLimiter } = require('../middleware/rateLimit');
 const { getScreenshotUrl } = require('../../engine/screenshotStore');
+const { buildJUnitXml } = require('../junitReport');
 
 const router = express.Router();
 router.use(requireAuth, requireTenant);
@@ -13,6 +14,11 @@ const createSchema = z.object({
   registeredUrlId: z.string().min(1),
   personaId: z.string().min(1),
   routeId: z.string().min(1).optional(),
+  // 기본값은 안 넘긴다(=엔진 기본값인 Camoufox 스텔스) — webkit/chromium은 크로스 브라우저
+  // 검증처럼 명시적으로 다른 엔진이 필요할 때만 고르는 선택 사항이다. webkit은 Camoufox
+  // 같은 봇 탐지 우회 패치가 없으니, 소유권 검증된 자기 사이트에서 Safari 전용 렌더링
+  // 차이를 잡아내려는 목적으로만 권장한다.
+  browserEngine: z.enum(['chromium', 'firefox', 'webkit']).optional(),
 });
 
 router.post('/', testRunCreationLimiter, async (req, res) => {
@@ -20,7 +26,7 @@ router.post('/', testRunCreationLimiter, async (req, res) => {
   if (!parseResult.success) {
     return res.status(400).json({ error: 'registeredUrlId, personaId가 필요합니다.' });
   }
-  const { registeredUrlId, personaId, routeId } = parseResult.data;
+  const { registeredUrlId, personaId, routeId, browserEngine } = parseResult.data;
 
   const urlSnap = await collections.registeredUrls(req.tenantId).doc(registeredUrlId).get();
   if (!urlSnap.exists) return res.status(404).json({ error: '등록된 URL을 찾을 수 없습니다.' });
@@ -78,6 +84,7 @@ router.post('/', testRunCreationLimiter, async (req, res) => {
     routeName,
     status: 'queued',
     checkpoints,
+    browserEngine: browserEngine || null,
     maxActionsPerCheckpoint,
     haltedAtCheckpoint: null,
     createdBy: req.uid,
@@ -101,6 +108,16 @@ router.get('/:id', async (req, res) => {
   const snap = await collections.testRuns(req.tenantId).doc(req.params.id).get();
   if (!snap.exists) return res.status(404).json({ error: '테스트 실행을 찾을 수 없습니다.' });
   res.json({ id: snap.id, ...snap.data() });
+});
+
+// GitHub Actions/GitLab CI/Jenkins가 표준으로 소비하는 JUnit XML — CI 파이프라인에
+// RepliQA를 다른 테스트 러너처럼 꽂아 넣을 수 있게 한다. X-RepliQA-Api-Key 인증도
+// requireAuth가 이미 지원하므로, CI에서는 API 키만으로 바로 curl 가능하다.
+router.get('/:id/junit.xml', async (req, res) => {
+  const snap = await collections.testRuns(req.tenantId).doc(req.params.id).get();
+  if (!snap.exists) return res.status(404).json({ error: '테스트 실행을 찾을 수 없습니다.' });
+  const xml = buildJUnitXml({ id: snap.id, ...snap.data() });
+  res.type('application/xml').send(xml);
 });
 
 // 스크린샷 저장소(Supabase/Firebase)는 클라이언트가 직접 접근할 권한이 없다 — 이 런이

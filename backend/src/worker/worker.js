@@ -75,6 +75,7 @@ async function processRun(doc) {
       targetUrl: claimed.targetUrl,
       persona,
       checkpoints,
+      browserEngine: claimed.browserEngine || null,
       maxActionsPerCheckpoint: claimed.maxActionsPerCheckpoint || 5,
       credentials,
       paymentInfo,

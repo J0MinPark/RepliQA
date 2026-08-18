@@ -1,4 +1,4 @@
-const { chromium } = require('playwright');
+const { chromium, webkit } = require('playwright');
 const { Camoufox } = require('camoufox-js');
 
 const VIEWPORT = { width: 1280, height: 800 };
@@ -17,12 +17,21 @@ const IDENTIFYING_HEADERS = { 'X-RepliQA-Test': 'true' };
 // camoufox-js가 반환하는 건 표준 Playwright Browser라, 호출부(capture.js/executor.js)는
 // 어느 엔진인지 몰라도 그대로 동작한다. chromium 경로는 비교/폴백용으로 남겨둔다.
 //
-// 알려진 한계: Chromium의 --host-resolver-rules 같은 per-host IP 고정 옵션이 Firefox
+// 알려진 한계: Chromium의 --host-resolver-rules 같은 per-host IP 고정 옵션이 Firefox/WebKit
 // 쪽엔 깔끔하게 없다. resolveSafeIp()로 사설 IP·클라우드 메타데이터 여부는 그대로
-// 검증하지만, DNS 리바인딩(검증 시점 이후 IP가 바뀌는) 방지 하드닝은 스텔스 경로에서는
+// 검증하지만, DNS 리바인딩(검증 시점 이후 IP가 바뀌는) 방지 하드닝은 이 두 엔진 경로에서는
 // 아직 없다 — 후속 과제로 남겨둔다.
-async function launchBrowser({ stealth, hostname, pinnedIp, headless = true }) {
-  if (stealth) {
+//
+// engine: 'chromium' | 'firefox'(기본, Camoufox 스텔스) | 'webkit'. stealth는 예전
+// 시그니처와의 하위 호환용 — engine이 없으면 stealth 값으로 유추한다(true→firefox,
+// false→chromium). webkit은 Safari 전용 렌더링/동작 차이를 잡아내려는 크로스 브라우저
+// 검증용으로 명시적으로 골라야만 쓰인다(Selenium/Playwright가 원래 지원하는 3대 엔진 중
+// 이것만 빠져 있었다) — Camoufox 같은 지문 패치가 없어 봇 탐지가 있는 실전 QA 기본
+// 경로로는 아직 안 쓴다.
+async function launchBrowser({ engine, stealth, hostname, pinnedIp, headless = true }) {
+  const resolvedEngine = engine || (stealth ? 'firefox' : 'chromium');
+
+  if (resolvedEngine === 'firefox') {
     const browser = await Camoufox({
       headless,
       window: [VIEWPORT.width, VIEWPORT.height],
@@ -35,6 +44,14 @@ async function launchBrowser({ stealth, hostname, pinnedIp, headless = true }) {
     return {
       browser,
       contextOptions: { viewport: null, acceptDownloads: true, extraHTTPHeaders: IDENTIFYING_HEADERS },
+    };
+  }
+
+  if (resolvedEngine === 'webkit') {
+    const browser = await webkit.launch({ headless });
+    return {
+      browser,
+      contextOptions: { viewport: VIEWPORT, acceptDownloads: true, extraHTTPHeaders: IDENTIFYING_HEADERS },
     };
   }
 

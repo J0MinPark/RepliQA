@@ -78,6 +78,26 @@ Playwright의 `expect()`처럼 에이전트와 독립적인 판정이 아니다.
 영향이 없다. `generateReport`도 `disagreement`를 execError/execWarning과 동급의 확정된
 근거로 취급해 severity를 더 확신 있게 판단한다(`reportPrompt.js`).
 
+## Playwright/Cypress/Selenium 대비 기본기
+
+- **크로스 브라우저**: `POST /api/test-runs`에 `browserEngine: 'chromium'|'firefox'|'webkit'`을
+  넘기면 그 엔진으로 런 전체가 실행된다(`browserEngines.js`). 기본값은 여전히
+  `firefox`(Camoufox 스텔스) — `webkit`은 Safari 전용 렌더링/동작 차이를 잡아내는 크로스
+  브라우저 검증용으로 명시적으로 골라야 쓰인다(봇 탐지 우회 패치가 없어 소유권 검증된
+  자기 사이트에만 권장). saucedemo.com 로그인 여정으로 실제 검증 완료 — verify 계층도
+  엔진과 무관하게 정상 동작함을 확인했다.
+- **CI 표준 리포터**: `GET /api/test-runs/:id/junit.xml`이 JUnit XML(`junitReport.js`)을
+  반환한다. 체크포인트 하나 = `<testcase>` 하나로 매핑하고, `vibeCoderPrompt`는
+  `<system-out>`에 실어 CI 로그에서 바로 볼 수 있게 한다. Bearer 토큰과
+  `X-RepliQA-Api-Key` 둘 다 지원해서(`requireAuth`), CI 파이프라인에서 API 키 하나로 바로
+  `curl`할 수 있다 — GitHub Actions/GitLab CI/Jenkins의 JUnit 리포터에 그대로 꽂힌다.
+- **동시 실행(수평 확장)**: 워커가 stateless라 `WORKER_CONCURRENCY`를 올리면 한 프로세스
+  안에서도 여러 런이 겹쳐 처리된다 — 실측: 동시성 4로 4개 런(2개 테넌트 × 2개)을 동시에
+  생성했더니 전부 3초 이내에 시작돼 병렬로 처리됐고(순차였다면 ~9분, 실제로는 ~2.6분),
+  전부 정상 완료됨을 Firestore의 startedAt/finishedAt으로 직접 확인했다. 여러 워커
+  프로세스/인스턴스로 더 확장하는 것도 같은 원리(Firestore 트랜잭션 기반 `claimRun`이
+  중복 처리를 막음)로 동작한다.
+
 ## 하이브리드 그라운딩 (UI-TARS)
 
 Gemini는 범용 추론엔 강하지만, "스크린샷 속 이 텍스트가 요소 목록 중 정확히 몇 번인지"

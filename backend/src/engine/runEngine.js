@@ -428,6 +428,7 @@ async function runTest({
   targetUrl,
   persona,
   checkpoints,
+  browserEngine,
   maxActionsPerCheckpoint,
   credentials,
   paymentInfo,
@@ -442,9 +443,15 @@ async function runTest({
   const hostname = new URL(targetUrl).hostname;
   const pinnedIp = await resolveSafeIp(hostname);
 
-  // 모든 런을 스텔스 엔진(Camoufox)으로 띄운다 — 결제 위젯뿐 아니라 일반 탐색
-  // 체크포인트도 첫 페이지 로드부터 WAF에 막히는 사례가 있었다(browserEngines.js 참고).
-  const { browser, contextOptions } = await launchBrowser({ stealth: true, hostname, pinnedIp });
+  // 기본값은 스텔스 엔진(Camoufox) — 결제 위젯뿐 아니라 일반 탐색 체크포인트도 첫 페이지
+  // 로드부터 WAF에 막히는 사례가 있었다(browserEngines.js 참고). browserEngine을 명시하면
+  // (예: 'webkit') Safari 전용 렌더링/동작 차이를 잡아내는 크로스 브라우저 검증에 쓸 수
+  // 있다 — 봇 탐지 우회 패치는 없으니 소유권 검증된 자기 사이트에만 권장.
+  const { browser, contextOptions } = await launchBrowser({
+    engine: browserEngine || 'firefox',
+    hostname,
+    pinnedIp,
+  });
 
   const collectedErrors = [];
   const allSteps = [];
