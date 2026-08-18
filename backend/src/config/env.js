@@ -44,6 +44,11 @@ const env = {
   // 외부 사용자에게 여는 시점엔 SKIP_OWNERSHIP_VERIFICATION=false로 반드시 되돌릴 것
   // (URL 소유권 검증이 곧 "이 도구로 남의 사이트를 못 때리게" 막는 유일한 장치임).
   skipOwnershipVerification: process.env.SKIP_OWNERSHIP_VERIFICATION !== 'false',
+  // 실험적 기능 — 같은 체크포인트(registeredUrlId+goal)를 반복 실행할 때, 직전 성공
+  // 실행에서 기록해둔 셀렉터(click/hover만)를 비전+LLM 없이 먼저 시도한다(stepCache.js).
+  // 새 기능 추가가 아니라 "기존 실행 경로를 우회"하는 것이라, 검증 전까지는 기본 off로
+  // 두고 명시적으로 켜야만 동작한다 — openRouterApiKey 조건부 그라운딩과 같은 원칙.
+  fastPathCacheEnabled: process.env.FASTPATH_CACHE_ENABLED === 'true',
 };
 
 module.exports = env;

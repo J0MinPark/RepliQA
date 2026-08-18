@@ -28,6 +28,8 @@ const collections = {
   routes: (tenantId) => db.collection('tenants').doc(tenantId).collection('routes'),
   testRuns: (tenantId) => db.collection('tenants').doc(tenantId).collection('testRuns'),
   usage: (tenantId) => db.collection('tenants').doc(tenantId).collection('usage'),
+  // 체크포인트별 셀렉터 캐시(패스트패스) — 문서 ID는 hashCacheKey(registeredUrlId, goal).
+  stepCache: (tenantId) => db.collection('tenants').doc(tenantId).collection('stepCache'),
   personas: () => db.collection('personas'),
   // Worker needs to scan across all tenants for queued jobs — collectionGroup query.
   allTestRuns: () => db.collectionGroup('testRuns'),

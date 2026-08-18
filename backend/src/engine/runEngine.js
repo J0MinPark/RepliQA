@@ -8,6 +8,7 @@ const geminiAdapter = require('./llm/geminiAdapter');
 const uiTarsAdapter = require('./llm/uiTarsAdapter');
 const screenshotStore = require('./screenshotStore');
 const { assertHttpUrl, resolveSafeIp, resolveIpUnchecked } = require('../security/ssrfGuard');
+const { isFastPathEligible, tryFastPathAction, loadStepCache, saveStepCache } = require('./stepCache');
 const env = require('../config/env');
 
 // Gemini가 고른 elementIndex가 화면이 복잡할 때(요소가 많거나 비슷한 텍스트) 틀릴 수 있다
@@ -150,6 +151,7 @@ async function runCheckpoint({
   context,
   tenantId,
   runId,
+  registeredUrlId,
   checkpoint,
   persona,
   paymentInfo,
@@ -165,6 +167,17 @@ async function runCheckpoint({
 }) {
   const isPayment = checkpoint.type === 'payment';
   const isLongRunning = checkpoint.type === 'long_running';
+
+  // 실험적 기능(기본 off) — 같은 체크포인트(registeredUrlId+goal)를 반복 실행할 때,
+  // 직전 성공 실행에서 기록해둔 셀렉터(click/hover만)를 비전+LLM 없이 먼저 시도한다.
+  // 캐시에 없거나 한 번이라도 실패하면 그 즉시 이 체크포인트의 나머지는 계속 일반 경로로
+  // 돌아간다 — 애매한 상태에서 계속 추측하지 않는다.
+  let fastPathActive = false;
+  let stepCacheData = null;
+  if (env.fastPathCacheEnabled && registeredUrlId) {
+    stepCacheData = await loadStepCache({ tenantId, registeredUrlId, goal: checkpoint.goal }).catch(() => null);
+    fastPathActive = Boolean(stepCacheData);
+  }
 
   const entryState = await captureState(page);
   const objectiveFindings = await runObjectiveChecks(page).catch((err) => {
@@ -246,6 +259,46 @@ async function runCheckpoint({
       if (persona.networkChaos) {
         offline = !offline;
         await context.setOffline(offline);
+      }
+
+      // 패스트패스: 이번 스텝에 해당하는 캐시된 click/hover가 있으면 비전+LLM 호출 없이
+      // 먼저 시도한다. "로그인 정보 입력(type) → 입력(type) → 로그인 버튼(click)"처럼
+      // 캐시 대상이 아닌 스텝이 앞에 섞여 있는 흔한 흐름을 감안해서, 이번 스텝이 원래도
+      // 캐시 대상이 아니었던 경우(type 등)는 이번 스텝만 일반 경로로 건너뛰고
+      // fastPathActive는 유지한다 — 다음 캐시된 스텝에서 다시 시도할 수 있게. 반대로
+      // 캐시된 셀렉터가 더 이상 정확히 1개로 안 찾아지거나(사이트가 바뀜) 캐시된 스텝
+      // 수를 넘어서면(참고할 데이터 소진) 그때는 이 체크포인트의 나머지 전부를 일반
+      // 경로로 돌린다 — 그건 "이 스텝만 다른 처리가 필요하다"가 아니라 "캐시 자체를
+      // 더 이상 못 믿는다"는 신호라서다.
+      if (fastPathActive) {
+        const cachedStep = stepCacheData.steps.find((s) => s.stepNumber === stepInCheckpoint);
+        if (!cachedStep) {
+          fastPathActive = false;
+        } else if (isFastPathEligible(cachedStep.action)) {
+          const fastResult = await tryFastPathAction(activePage, cachedStep).catch(() => null);
+          if (fastResult && fastResult.ok) {
+            const step = {
+              stepNumber: stepInCheckpoint,
+              thought: '(캐시된 셀렉터로 실행 — 비전 호출 생략)',
+              action: cachedStep.action,
+              execOk: true,
+              execError: null,
+              execWarning: null,
+              previousActionEffect: null,
+              fromCache: true,
+              screenshotPath: null,
+              timestamp: new Date().toISOString(),
+            };
+            history.push({ thought: step.thought, action: step.action, result: 'success' });
+            steps.push(step);
+            if (onStep) await onStep(checkpoint.index, step);
+            await activePage.waitForTimeout(300);
+            continue;
+          }
+          fastPathActive = false;
+        }
+        // else: 이번 스텝은 원래도 캐시 대상이 아니었음(type 등) — fastPathActive는
+        // 유지한 채 이번 스텝만 아래 일반 경로로 흘려보낸다.
       }
 
       const state = stepInCheckpoint === 1 && activePage === page ? entryState : await captureState(activePage);
@@ -524,6 +577,7 @@ function correlateStepActivity(steps, activity) {
 async function runTest({
   tenantId,
   runId,
+  registeredUrlId,
   targetUrl,
   persona,
   checkpoints,
@@ -636,6 +690,7 @@ async function runTest({
         context,
         tenantId,
         runId,
+        registeredUrlId,
         checkpoint,
         persona,
         paymentInfo,
@@ -666,6 +721,13 @@ async function runTest({
       }
       if (onCheckpointStatus) {
         await onCheckpointStatus(checkpoint.index, 'completed', { verifiedBy: result.verifiedBy });
+      }
+      // 캐시는 항상 "가장 최근에 실제로 성공한 실행"으로 덮어쓴다 — 사이트가 바뀌어도
+      // 다음 성공 실행이 자동으로 최신 셀렉터로 갱신하므로 별도 무효화 로직이 없어도 된다.
+      if (env.fastPathCacheEnabled && registeredUrlId) {
+        await saveStepCache({ tenantId, registeredUrlId, goal: checkpoint.goal, steps: result.steps }).catch((err) => {
+          collectedErrors.push(`[StepCache Error] ${err.message}`);
+        });
       }
     }
 

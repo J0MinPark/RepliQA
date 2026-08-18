@@ -73,6 +73,7 @@ async function processRun(doc) {
     const result = await runTest({
       tenantId,
       runId,
+      registeredUrlId: claimed.registeredUrlId || null,
       targetUrl: claimed.targetUrl,
       persona,
       checkpoints,
