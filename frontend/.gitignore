@@ -14,6 +14,10 @@ dist-ssr
 .env
 .env.local
 
+# mcp-server/package.json의 build 스크립트가 여기로 복사해준다 — mcp-server 소스가
+# 바뀌면 mcp-server에서 `npm run build`를 다시 돌려야 최신 상태로 갱신된다.
+public/repliqa-mcp.bundle.mjs
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

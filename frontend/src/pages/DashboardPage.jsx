@@ -8,7 +8,7 @@ import TestRunForm from '../components/TestRunForm';
 import TestRunProgress from '../components/TestRunProgress';
 import RunHistoryPanel from '../components/RunHistoryPanel';
 import UsagePanel from '../components/UsagePanel';
-import ApiKeyPanel from '../components/ApiKeyPanel';
+import ConnectStep from '../components/ConnectStep';
 import SettingsModal from '../components/SettingsModal';
 import Logo from '../components/Logo';
 
@@ -19,6 +19,7 @@ export default function DashboardPage() {
   const [personas, setPersonas] = useState([]);
   const [usageInfo, setUsageInfo] = useState(null);
   const [activeRunId, setActiveRunId] = useState(null);
+  const [showConnect, setShowConnect] = useState(false);
   const [verifyCooldown, setVerifyCooldown] = useState(0);
   const [verifyChecking, setVerifyChecking] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -70,6 +71,7 @@ export default function DashboardPage() {
 
   const handleReset = () => {
     setActiveRunId(null);
+    setShowConnect(false);
     refreshUsage();
   };
 
@@ -135,9 +137,7 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
-        {activeRunId ? (
-          <TestRunProgress tenantId={tenantId} runId={activeRunId} onReset={handleReset} />
-        ) : (
+        {!activeRunId && (
           <div className="space-y-6 animate-in fade-in duration-500">
             {usageInfo && <UsagePanel usage={usageInfo.usage} quota={usageInfo.quota} />}
             <RunHistoryPanel tenantId={tenantId} onSelect={setActiveRunId} />
@@ -149,7 +149,6 @@ export default function DashboardPage() {
               personas={personas}
               onRunCreated={setActiveRunId}
             />
-            <ApiKeyPanel />
             <TestRunForm
               verifiedUrls={verifiedUrls}
               personas={personas}
@@ -158,6 +157,17 @@ export default function DashboardPage() {
             />
           </div>
         )}
+
+        {activeRunId && !showConnect && (
+          <TestRunProgress
+            tenantId={tenantId}
+            runId={activeRunId}
+            onReset={handleReset}
+            onGoToConnect={() => setShowConnect(true)}
+          />
+        )}
+
+        {activeRunId && showConnect && <ConnectStep onReset={handleReset} />}
       </main>
 
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}

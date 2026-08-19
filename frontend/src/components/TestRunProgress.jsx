@@ -3,12 +3,6 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import {
   AlertCircle,
   CheckCircle,
-  Copy,
-  Terminal,
-  Activity,
-  ChevronRight,
-  ChevronDown,
-  ChevronUp,
   Loader2,
   Bot,
   Eye,
@@ -16,7 +10,6 @@ import {
   CheckCircle2,
   XCircle,
   ShieldCheck,
-  Network,
   KeyRound,
   RefreshCw,
 } from 'lucide-react';
@@ -113,180 +106,6 @@ function UiuxFindings({ findings }) {
   );
 }
 
-// 에러가 아닌 것도 포함한 전체 네트워크/콘솔 기록 — "200은 떨어졌는데 데이터가 이상한"
-// 것처럼 겉으론 정상인 버그를 사람이 직접 훑어볼 수 있게 원본을 그대로 보여준다. 기본은
-// 접어둔다(디버그용 원본이라 항상 볼 필요는 없음).
-function NetworkAndConsolePanel({ networkCalls, consoleLogs, downloads }) {
-  const [open, setOpen] = useState(false);
-  const hasData = (networkCalls?.length || 0) > 0 || (consoleLogs?.length || 0) > 0 || (downloads?.length || 0) > 0;
-  if (!hasData) return null;
-
-  return (
-    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between p-6 sm:p-8 text-left focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-inset"
-      >
-        <h3 className="font-bold text-slate-900 flex items-center gap-2 text-lg">
-          <Network size={20} className="text-slate-400" /> 네트워크 호출 · 콘솔 로그
-          <span className="text-xs font-normal text-slate-400">
-            ({networkCalls?.length || 0}건 / {consoleLogs?.length || 0}건{downloads?.length ? ` / 다운로드 ${downloads.length}건` : ''})
-          </span>
-        </h3>
-        {open ? <ChevronUp size={18} className="text-slate-400" /> : <ChevronDown size={18} className="text-slate-400" />}
-      </button>
-      {open && (
-        <div className="px-6 sm:px-8 pb-6 sm:pb-8 space-y-6">
-          <div className="space-y-6">
-            <div>
-              <p className="text-xs font-bold text-slate-500 mb-2">네트워크 호출(XHR/fetch)</p>
-              <div className="space-y-1.5 max-h-72 overflow-y-auto">
-                {(networkCalls || []).map((c, idx) => (
-                  <div
-                    key={idx}
-                    className={`text-xs font-mono p-2 rounded-lg border ${
-                      c.status >= 400 ? 'bg-red-50 border-red-100 text-red-700' : 'bg-slate-50 border-slate-200 text-slate-600'
-                    }`}
-                  >
-                    <span className="font-bold">{c.status}</span> {c.method} <span className="break-all">{c.url}</span>
-                  </div>
-                ))}
-                {(!networkCalls || networkCalls.length === 0) && <p className="text-xs text-slate-400">기록 없음</p>}
-              </div>
-            </div>
-            <div>
-              <p className="text-xs font-bold text-slate-500 mb-2">콘솔 로그</p>
-              <div className="space-y-1.5 max-h-72 overflow-y-auto">
-                {(consoleLogs || []).map((c, idx) => (
-                  <div
-                    key={idx}
-                    className={`text-xs font-mono p-2 rounded-lg border ${
-                      c.type === 'error' ? 'bg-red-50 border-red-100 text-red-700' : 'bg-slate-50 border-slate-200 text-slate-600'
-                    }`}
-                  >
-                    <span className="font-bold">[{c.type}]</span> <span className="break-all">{c.text}</span>
-                  </div>
-                ))}
-                {(!consoleLogs || consoleLogs.length === 0) && <p className="text-xs text-slate-400">기록 없음</p>}
-              </div>
-            </div>
-          </div>
-          {downloads?.length > 0 && (
-            <div>
-              <p className="text-xs font-bold text-slate-500 mb-2">
-                다운로드 (내용 일치는 확인 못함 — 파일이 정상적으로 만들어졌는지만 확인)
-              </p>
-              <div className="space-y-1.5">
-                {downloads.map((d, idx) => (
-                  <div key={idx} className="text-xs font-mono p-2 rounded-lg border bg-slate-50 border-slate-200 text-slate-600">
-                    {d.filename} — {(d.sizeBytes / 1024).toFixed(1)}KB — sha256:{d.sha256.slice(0, 12)}...
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// 네트워크 콜/콘솔 로그는 이미 NetworkAndConsolePanel이 통째로 보여주지만, "이 스텝을 찍은
-// 순간 정확히 무슨 일이 있었는지"는 알 수 없었다 — correlateStepActivity(runEngine.js)가
-// 서버에서 스텝 timestamp 구간별로 미리 묶어준 relatedActivity를 스텝 타임라인 + 상세
-// 패널 하나로 보여준다(Playwright Trace Viewer의 축소판).
-function TraceViewer({ runId, correlatedSteps }) {
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  if (!correlatedSteps || correlatedSteps.length === 0) return null;
-
-  const clampedIndex = Math.min(selectedIndex, correlatedSteps.length - 1);
-  const selected = correlatedSteps[clampedIndex];
-  const related = selected.relatedActivity || { networkCalls: [], consoleLogs: [], websocketFrames: [] };
-  const activityCount = related.networkCalls.length + related.consoleLogs.length + related.websocketFrames.length;
-
-  return (
-    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-      <div className="p-6 sm:p-8">
-        <h3 className="font-bold text-slate-900 flex items-center gap-2 text-lg mb-4">
-          <Activity size={20} className="text-slate-400" /> 트레이스 뷰어
-          <span className="text-xs font-normal text-slate-400">(스텝 {correlatedSteps.length}개)</span>
-        </h3>
-
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-4">
-          {correlatedSteps.map((step, idx) => {
-            const stepRelated = step.relatedActivity || { networkCalls: [], consoleLogs: [] };
-            const hasError =
-              stepRelated.networkCalls.some((c) => c.status >= 400) ||
-              stepRelated.consoleLogs.some((c) => c.type === 'error');
-            return (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => setSelectedIndex(idx)}
-                title={`체크포인트 ${step.checkpointIndex + 1} · 스텝 ${step.stepNumber}`}
-                className={`flex-shrink-0 w-8 h-8 rounded-lg text-[11px] font-bold flex items-center justify-center border transition-colors focus:outline-none focus:ring-2 focus:ring-brand-400 ${
-                  idx === clampedIndex
-                    ? 'bg-brand-500 text-white border-brand-500'
-                    : hasError
-                      ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
-                      : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
-                }`}
-              >
-                {step.stepNumber}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex items-start gap-4 bg-slate-50 border border-slate-200 rounded-2xl p-4">
-          <StepScreenshot runId={runId} path={selected.screenshotPath} />
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-slate-700 mb-1">
-              체크포인트 {selected.checkpointIndex + 1} · 스텝 #{selected.stepNumber}
-              {selected.action?.type && <span className="text-slate-400 font-normal"> · {selected.action.type}</span>}
-            </p>
-            <p className="text-xs text-slate-500 leading-relaxed">{selected.thought}</p>
-            {activityCount === 0 ? (
-              <p className="text-xs text-slate-400 mt-2">이 시점에 기록된 네트워크/콘솔 이벤트가 없습니다.</p>
-            ) : (
-              <div className="mt-2 space-y-1 max-h-56 overflow-y-auto">
-                {related.networkCalls.map((c, i) => (
-                  <div
-                    key={`n${i}`}
-                    className={`text-[11px] font-mono p-1.5 rounded-lg border ${
-                      c.status >= 400 ? 'bg-red-50 border-red-100 text-red-700' : 'bg-white border-slate-200 text-slate-600'
-                    }`}
-                  >
-                    <span className="font-bold">{c.status}</span> {c.method} <span className="break-all">{c.url}</span>
-                  </div>
-                ))}
-                {related.consoleLogs.map((c, i) => (
-                  <div
-                    key={`c${i}`}
-                    className={`text-[11px] font-mono p-1.5 rounded-lg border ${
-                      c.type === 'error' ? 'bg-red-50 border-red-100 text-red-700' : 'bg-white border-slate-200 text-slate-600'
-                    }`}
-                  >
-                    <span className="font-bold">[{c.type}]</span> <span className="break-all">{c.text}</span>
-                  </div>
-                ))}
-                {related.websocketFrames.map((w, i) => (
-                  <div
-                    key={`w${i}`}
-                    className="text-[11px] font-mono p-1.5 rounded-lg border bg-white border-slate-200 text-slate-600"
-                  >
-                    <span className="font-bold">[ws:{w.event}]</span> <span className="break-all">{w.url}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 const CHECKPOINT_STATUS_ICON = {
   pending: <CircleDot size={16} className="text-slate-300" />,
   running: <Loader2 size={16} className="text-brand-500 animate-spin" />,
@@ -362,10 +181,6 @@ function CheckpointSection({ runId, checkpoint }) {
 
 const STATUS_LABEL = { queued: '대기 중', running: '실행 중', done: '완료', failed: '실패' };
 
-// executor.js가 오프라인 시뮬레이션 중 발생한 에러 앞에 붙이는 태그와 동일한 문자열이다 —
-// 백엔드 상수를 그대로 import할 수 없는 별도 프로젝트라 값만 맞춰서 복제해뒀다.
-const EXPECTED_OFFLINE_TAG = '[예상됨: 오프라인 시뮬레이션] ';
-
 // "에러가 1건이라도 있으면 무조건 빨간 배너"는 실제로 과장 표시로 이어졌다(외부 분석
 // 스크립트 401, 오프라인 시뮬레이션 중 발생한 예상된 네트워크 에러 등도 전부 "크리티컬"로
 // 뜸). generateReport가 문맥까지 판단해서 내리는 severity를 우선 쓰고, 값이 없는 과거
@@ -397,7 +212,7 @@ const RUN_SEVERITY_STYLE = {
   },
 };
 
-export default function TestRunProgress({ tenantId, runId, onReset }) {
+export default function TestRunProgress({ tenantId, runId, onReset, onGoToConnect }) {
   const [run, setRun] = useState(null);
 
   useEffect(() => {
@@ -406,13 +221,6 @@ export default function TestRunProgress({ tenantId, runId, onReset }) {
     });
     return unsub;
   }, [tenantId, runId]);
-
-  const copyToClipboard = () => {
-    if (run?.vibeCoderPrompt) {
-      navigator.clipboard.writeText(run.vibeCoderPrompt);
-      alert('프롬프트가 클립보드에 복사되었습니다!');
-    }
-  };
 
   if (!run) {
     return (
@@ -543,83 +351,22 @@ export default function TestRunProgress({ tenantId, runId, onReset }) {
             );
           })()}
 
-          <div className="space-y-8">
-            {run.errorAnalysis && (
-              <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 sm:p-8">
-                <h3 className="font-bold text-slate-900 mb-1 flex items-center gap-2 text-lg">
-                  <Activity size={20} className="text-slate-400" /> 기술 분석
-                  <span className="text-xs font-normal text-slate-400">(개발자용)</span>
-                </h3>
-                <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap mt-3">{run.errorAnalysis}</p>
+          {(run.severity || (run.summary?.totalErrors > 0 ? 'critical' : 'pass')) !== 'pass' && (
+            <div className="bg-slate-900 rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-bold text-white text-lg mb-1">발견된 문제, 바로 고쳐볼까요?</h3>
+                <p className="text-slate-400 text-sm">
+                  Claude Code와 연결하면 방금 찾은 문제를 코드에서 바로 수정할 수 있습니다.
+                </p>
               </div>
-            )}
-
-            <div className="bg-white rounded-3xl shadow-sm border border-slate-100 flex flex-col overflow-hidden">
-              <div className="bg-slate-900 p-4 border-b border-slate-800 flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <Terminal size={18} className="text-brand-400" />
-                  <h3 className="font-bold text-white tracking-wide">Vibe-Coding 프롬프트</h3>
-                  <span className="text-[11px] font-normal text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full">개발자용 · 코딩 에이전트에 붙여넣기</span>
-                </div>
-                <button
-                  onClick={copyToClipboard}
-                  className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg flex items-center gap-1.5 font-semibold transition border border-slate-700"
-                >
-                  <Copy size={14} /> 바로 복사하기
-                </button>
-              </div>
-              <div className="bg-[#0D1117] text-green-400 p-6 font-mono text-sm max-h-96 overflow-auto leading-relaxed whitespace-pre-wrap">
-                {run.vibeCoderPrompt || '수집된 에러가 없어 생성된 프롬프트가 없습니다.'}
-              </div>
+              <button
+                onClick={onGoToConnect}
+                className="flex-shrink-0 w-full sm:w-auto bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 py-3 rounded-xl transition"
+              >
+                Claude Code로 고치기
+              </button>
             </div>
-
-            <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100 max-h-[500px] overflow-y-auto">
-              <h3 className="font-bold text-slate-900 mb-6 flex items-center gap-2 text-lg">
-                <Activity size={20} className="text-slate-400" /> 수집된 에러 로그 원본
-              </h3>
-              {run.collectedErrors && run.collectedErrors.length > 0 ? (
-                <div className="space-y-3">
-                  {run.collectedErrors.map((err, idx) => {
-                    const isExpected = err.startsWith(EXPECTED_OFFLINE_TAG);
-                    const text = isExpected ? err.slice(EXPECTED_OFFLINE_TAG.length) : err;
-                    return (
-                      <div
-                        key={idx}
-                        className={`p-3 rounded-xl text-xs font-mono border flex items-start gap-2 ${
-                          isExpected ? 'bg-slate-50 border-slate-200 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-700'
-                        }`}
-                      >
-                        <ChevronRight size={14} className="text-slate-400 flex-shrink-0 mt-0.5" />
-                        <span className="break-all leading-relaxed">
-                          {isExpected && (
-                            <span className="inline-block mr-1.5 px-1.5 py-0.5 rounded bg-slate-200 text-slate-500 text-[10px] font-bold align-middle not-italic">
-                              예상됨
-                            </span>
-                          )}
-                          {text}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-slate-500 text-sm">수집된 로그가 없습니다.</p>
-              )}
-            </div>
-          </div>
-
-          <TraceViewer runId={runId} correlatedSteps={run.correlatedSteps} />
-
-          <NetworkAndConsolePanel networkCalls={run.networkCalls} consoleLogs={run.consoleLogs} downloads={run.downloads} />
-
-          <div>
-            <h3 className="font-bold text-slate-900 mb-4 text-lg">여정 단계별 상세 리포트</h3>
-            <div className="space-y-4">
-              {checkpoints.map((c) => (
-                <CheckpointSection key={c.index} runId={runId} checkpoint={c} />
-              ))}
-            </div>
-          </div>
+          )}
         </>
       )}
     </div>
