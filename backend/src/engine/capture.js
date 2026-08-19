@@ -64,7 +64,18 @@ function extractInteractiveElements(max) {
       rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
     if (!visible) continue;
 
-    const text = (el.innerText || el.value || el.placeholder || el.getAttribute('aria-label') || '')
+    // title도 폴백 체인에 둔다 — 실제 ARIA 접근성 이름 계산의 폴백 순서(aria-label →
+    // 텍스트 콘텐츠 → title)와 더 가깝게 맞춘 것. 텍스트도 aria-label도 없는 순수
+    // 아이콘 버튼 중 title로 라벨링된 것들을 이걸로 추가 구제한다(무상 개선 — 셋 다
+    // 없으면 여전히 null이라 캐시 대상에서 안전하게 빠진다).
+    const text = (
+      el.innerText ||
+      el.value ||
+      el.placeholder ||
+      el.getAttribute('aria-label') ||
+      el.getAttribute('title') ||
+      ''
+    )
       .trim()
       .slice(0, 80);
 

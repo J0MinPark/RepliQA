@@ -89,6 +89,27 @@ test('tryFastPathAction: type/paste 같은 캐시 대상 아닌 액션은 시도
   }
 });
 
+test('tryFastPathAction: 아이콘+텍스트 조합처럼 접근성 이름에 여분 공백이 있어도 매칭된다', async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    // 실제 the-internet.herokuapp.com 로그인 버튼과 동일한 구조 — 아이콘 <i> 안에 앞
+    // 공백이 있는 텍스트가 들어 있으면 실제 접근성 이름은 " Login"(공백 포함)이지만,
+    // capture.js는 trim해서 "Login"으로 저장한다. exact:true였을 때는 이 케이스가
+    // 항상 캐시 미스였다(실측 확인됨).
+    await page.setContent(
+      '<button id="btn"><i class="icon"> Login</i></button><script>window.__clicked=false;document.getElementById("btn").onclick=()=>{window.__clicked=true;};</script>'
+    );
+    const result = await tryFastPathAction(page, {
+      action: { type: 'click', resolvedSelector: { role: 'button', name: 'Login' } },
+    });
+    assert.deepEqual(result, { ok: true });
+    assert.equal(await page.evaluate(() => window.__clicked), true);
+  } finally {
+    await browser.close();
+  }
+});
+
 test('tryFastPathAction: 숨겨진(비표시) 요소면 null(폴백 신호)', async () => {
   const browser = await chromium.launch({ headless: true });
   try {

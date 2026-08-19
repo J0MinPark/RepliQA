@@ -28,7 +28,14 @@ async function tryFastPathAction(activePage, cachedStep) {
 
   let locator;
   try {
-    locator = activePage.getByRole(role, { name, exact: true });
+    // exact:true였다가 완화함 — 브라우저의 실제 접근성 이름 계산이 capture.js의 단순
+    // innerText.trim()과 다르게 공백을 남기는 경우가 실제로 있었다(아이콘+텍스트 버튼:
+    // <button><i> Login</i></button>의 실제 접근성 이름은 " Login"인데 저장된 name은
+    // "Login" — the-internet.herokuapp.com 로그인 버튼에서 실측 확인함, 항상 캐시 미스
+    // 였음). 비-exact 매칭(공백 정규화 + 부분일치)이 이 케이스를 그대로 흡수한다. 이름이
+    // 겹쳐 count가 늘어나는 경우도 결국 아래 count!==1 검사로 폴백할 뿐이라 새로운
+    // 오클릭 위험은 생기지 않는다 — 재현율만 넓어진다.
+    locator = activePage.getByRole(role, { name });
     const count = await locator.count();
     if (count !== 1) return null;
     if (!(await locator.isVisible())) return null;
