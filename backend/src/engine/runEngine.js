@@ -348,6 +348,10 @@ async function runCheckpoint({
         break;
       }
 
+      const activePageBeforeAction = activePage;
+      const pagesCountBeforeAction = context.pages().length;
+      const isClickTypeAction = plan.action?.type === 'click' || plan.action?.type === 'rapid_click';
+
       const execResult = await executeAction(activePage, plan.action, state.elements, {
         context,
         allowedHostname,
@@ -421,7 +425,40 @@ async function runCheckpoint({
         success = finishReason !== 'blocked';
         if (!success) failureReason = step.thought || '모델이 목표 달성이 불가능하다고 판단해 중단함';
       }
-      await activePage.waitForTimeout(300);
+      // popupListener(context.on('page', ...))는 새 페이지가 생기는 즉시 activePage를
+      // 갱신하지만, 그 타이밍은 이 루프와 완전히 비동기라 다음 캡처가 아직 안 바뀐 옛
+      // 페이지를 찍어버릴 수 있다(SKKU 재현: AI가 몇 스텝을 헤맴). 처음엔 첫 'page'
+      // 이벤트 하나만 기다려서 즉시 확정하는 방식으로 고쳤었는데, 실기 재검증에서 SKKU가
+      // 클릭 한 번에 팝업을 두 개(광고/트래킹성 팝업 먼저, 진짜 로그인 팝업은 뒤늦게)
+      // 띄우는 걸 확인했다 — 첫 팝업만 성급하게 확정하면 엉뚱한(빈 화면) 팝업에 멈춰버린다.
+      // 그래서 "몇 개가 뜨든 일단 다 뜨고 나서(개수 변화가 800ms간 없으면 안정된 것으로
+      // 간주) 가장 마지막에 열린 페이지로 이동"하는 방식으로 바꿨다 — 속도보다 정확도를
+      // 우선한다는 방침에 따라 최대 8초까지는 감수한다.
+      if (isClickTypeAction) {
+        let lastCount = context.pages().length;
+        let stableSince = Date.now();
+        const deadline = Date.now() + 8000;
+        while (Date.now() < deadline) {
+          await page.waitForTimeout(200).catch(() => {});
+          const count = context.pages().length;
+          if (count !== lastCount) {
+            lastCount = count;
+            stableSince = Date.now();
+          } else if (Date.now() - stableSince >= 800) {
+            break;
+          }
+        }
+        const openPages = context.pages();
+        if (openPages.length > pagesCountBeforeAction) {
+          activePage = openPages[openPages.length - 1];
+        }
+      }
+      if (activePage !== activePageBeforeAction) {
+        await activePage.waitForLoadState('domcontentloaded', { timeout: 15000 }).catch(() => {});
+        await activePage.waitForTimeout(500);
+      } else {
+        await activePage.waitForTimeout(300);
+      }
     }
   } finally {
     context.off('page', popupListener);
