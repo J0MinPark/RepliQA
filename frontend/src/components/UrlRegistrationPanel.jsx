@@ -146,6 +146,9 @@ function PaymentMethodForm({ urlId, onSaved }) {
 
 function InboxConfigForm({ urlId, onSaved }) {
   const [open, setOpen] = useState(false);
+  const [autoCreating, setAutoCreating] = useState(false);
+  const [createdAddress, setCreatedAddress] = useState(null);
+  const [showManual, setShowManual] = useState(false);
   const [fields, setFields] = useState({ provider: 'mailosaur', apiKey: '', serverId: '', address: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -160,6 +163,26 @@ function InboxConfigForm({ urlId, onSaved }) {
       </button>
     );
   }
+
+  // mail.tm은 가입/결제/API 키 발급이 전혀 필요 없어서, 대상 사이트의 회원가입 폼을 테스트할
+  // 때 "이메일 인증 코드를 못 읽어서 막힌다"는 가장 흔한 벽을 버튼 한 번으로 없앤다.
+  // Mailosaur(유료, 이미 서버를 갖춘 팀용)는 접어둔 고급 옵션으로만 남긴다.
+  const handleAutoCreate = async () => {
+    setError('');
+    setAutoCreating(true);
+    try {
+      const result = await api.autoCreateTestInbox(urlId);
+      setCreatedAddress(result.address);
+      // onSaved()가 부모 목록을 새로고침하면 u.hasTestInbox=true가 되면서 이 컴포넌트 자체가
+      // "등록되어 있습니다" 한 줄로 즉시 대체된다 — 방금 만든 이메일 주소를 사용자가 볼
+      // 틈도 없이 사라지므로, 잠깐 보여준 뒤에 새로고침한다.
+      setTimeout(() => onSaved?.(), 4000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setAutoCreating(false);
+    }
+  };
 
   const save = async (e) => {
     e.preventDefault();
@@ -176,39 +199,72 @@ function InboxConfigForm({ urlId, onSaved }) {
     }
   };
 
+  if (createdAddress) {
+    return (
+      <div className="mt-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-800">
+        <p className="font-bold">테스트 메일함이 만들어졌습니다.</p>
+        <p className="mt-1 font-mono break-all">{createdAddress}</p>
+        <p className="mt-1">
+          대상 사이트의 회원가입 폼에서 이 이메일 주소를 쓰도록 목표에 적어주세요 — 인증
+          코드·링크는 자동으로 읽어옵니다.
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <form onSubmit={save} className="mt-2 flex flex-wrap gap-2 items-center">
-      <input
-        placeholder="API 키"
-        value={fields.apiKey}
-        onChange={(e) => setFields({ ...fields, apiKey: e.target.value })}
-        className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white w-32"
-      />
-      <input
-        placeholder="서버 ID"
-        value={fields.serverId}
-        onChange={(e) => setFields({ ...fields, serverId: e.target.value })}
-        className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white w-28"
-      />
-      <input
-        placeholder="테스트 이메일 주소 (선택)"
-        value={fields.address}
-        onChange={(e) => setFields({ ...fields, address: e.target.value })}
-        className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white w-44"
-      />
+    <div className="mt-2">
       <button
-        type="submit"
-        disabled={saving}
-        className="text-xs bg-slate-900 text-white rounded-lg px-3 py-1.5 font-semibold disabled:opacity-60"
+        onClick={handleAutoCreate}
+        disabled={autoCreating}
+        className="text-xs bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white rounded-lg px-3 py-2 font-semibold flex items-center gap-1.5"
       >
-        {saving ? '저장 중...' : '저장'}
+        {autoCreating && <Loader2 size={12} className="animate-spin" />}
+        무료 테스트 메일함 자동 생성 (추천)
       </button>
-      {error && <p className="text-xs text-red-600 w-full">{error}</p>}
-      <p className="text-xs text-slate-500 w-full">
-        Mailosaur 등 테스트 인박스 서비스의 정보입니다. 회원가입 인증메일, 비밀번호 재설정 링크를
-        여정 중 자동으로 읽어 입력하는 데 씁니다.
+      <p className="text-xs text-slate-500 mt-1.5">
+        가입도 결제도 필요 없습니다 — 버튼 한 번이면 회원가입 인증 코드까지 자동으로 읽어옵니다.
       </p>
-    </form>
+      {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
+
+      <button
+        type="button"
+        onClick={() => setShowManual((v) => !v)}
+        className="text-xs text-slate-400 hover:text-slate-600 mt-2"
+      >
+        {showManual ? '접기' : 'Mailosaur 등 이미 갖고 있는 서비스 쓰기'}
+      </button>
+      {showManual && (
+        <form onSubmit={save} className="mt-2 flex flex-wrap gap-2 items-center">
+          <input
+            placeholder="API 키"
+            value={fields.apiKey}
+            onChange={(e) => setFields({ ...fields, apiKey: e.target.value })}
+            className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white w-32"
+          />
+          <input
+            placeholder="서버 ID"
+            value={fields.serverId}
+            onChange={(e) => setFields({ ...fields, serverId: e.target.value })}
+            className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white w-28"
+          />
+          <input
+            placeholder="테스트 이메일 주소 (선택)"
+            value={fields.address}
+            onChange={(e) => setFields({ ...fields, address: e.target.value })}
+            className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white w-44"
+          />
+          <button
+            type="submit"
+            disabled={saving}
+            className="text-xs bg-slate-900 text-white rounded-lg px-3 py-1.5 font-semibold disabled:opacity-60"
+          >
+            {saving ? '저장 중...' : '저장'}
+          </button>
+          <p className="text-xs text-slate-500 w-full">Mailosaur 계정 정보입니다.</p>
+        </form>
+      )}
+    </div>
   );
 }
 

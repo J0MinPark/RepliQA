@@ -10,6 +10,7 @@ const {
 } = require('../../security/urlVerification');
 const { encryptSecret } = require('../../security/crypto');
 const { uploadEncryptedSession } = require('../../engine/sessionStore');
+const { provisionMailtmInbox } = require('../../engine/testInbox');
 const env = require('../../config/env');
 
 const router = express.Router();
@@ -35,14 +36,12 @@ const paymentMethodSchema = z
 // Playwright storageState 그대로(쿠키+로컬스토리지 스냅샷) — capture-session.js가 만들어서
 // 보낸다. 정확한 내부 구조는 신경 쓰지 않고 통째로 암호화해서 저장했다가 그대로 복원한다.
 const testSessionSchema = z.object({ storageState: z.record(z.string(), z.any()) });
-// 이메일/문자 인증 코드를 읽어야 하는 여정용 — 지금은 Mailosaur 하나만 실제 지원
-// (engine/testInbox.js). serverId/address는 Mailosaur 콘솔에서 발급받은 값.
-const testInboxSchema = z.object({
-  provider: z.enum(['mailosaur']),
-  apiKey: z.string().min(1),
-  serverId: z.string().min(1),
-  address: z.string().email().optional(),
-});
+// 이메일/문자 인증 코드를 읽어야 하는 여정용(engine/testInbox.js) — mail.tm(무료, 주소+
+// 비밀번호만 있으면 됨)과 Mailosaur(유료, 이미 서버를 갖춘 팀용) 둘 중 하나.
+const testInboxSchema = z.union([
+  z.object({ provider: z.literal('mailosaur'), apiKey: z.string().min(1), serverId: z.string().min(1), address: z.string().email().optional() }),
+  z.object({ provider: z.literal('mailtm'), address: z.string().email(), password: z.string().min(1) }),
+]);
 
 // verificationToken 자체는 절대 그대로 내보내지 않지만(값을 알아도 남이 쓸모는 없으나
 // 굳이 노출할 이유가 없음), 아직 검증 안 된 URL은 그 토큰으로부터 유도되는 파일
@@ -192,6 +191,31 @@ router.put('/:id/test-inbox', async (req, res) => {
     testInboxUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
   res.json({ id: snap.id, hasTestInbox: true });
+});
+
+// 위 라우트가 요구하는 provider/apiKey/serverId(또는 address/password)를 사용자가 직접
+// 입력하지 않아도 되게, mail.tm에 새 메일함을 그 자리에서 만들어 곧바로 등록까지 한다 —
+// 가입도 결제도 필요 없는 무료 서비스라 가능한 지름길이다. 비밀번호는 응답에 절대
+// 포함하지 않는다(저장은 되지만 클라이언트가 알 필요는 없음 — read_test_inbox 액션이
+// 서버 쪽에서만 복호화해 쓴다).
+router.post('/:id/test-inbox/auto', async (req, res) => {
+  const ref = collections.registeredUrls(req.tenantId).doc(req.params.id);
+  const snap = await ref.get();
+  if (!snap.exists) return res.status(404).json({ error: '등록된 URL을 찾을 수 없습니다.' });
+
+  let inbox;
+  try {
+    inbox = await provisionMailtmInbox();
+  } catch (err) {
+    return res.status(502).json({ error: `테스트 메일함 생성 실패: ${err.message}` });
+  }
+
+  const encrypted = encryptSecret(JSON.stringify({ provider: 'mailtm', address: inbox.address, password: inbox.password }));
+  await ref.update({
+    testInbox: encrypted,
+    testInboxUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  res.json({ id: snap.id, hasTestInbox: true, address: inbox.address });
 });
 
 router.post('/:id/verify', async (req, res) => {
