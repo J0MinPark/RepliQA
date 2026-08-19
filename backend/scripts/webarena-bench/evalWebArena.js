@@ -46,7 +46,14 @@ function urlMatchScore(predUrl, referenceUrl, urlNote) {
   const { basePaths: refBasePaths, queries: refQueries } = parseUrls(refUrls);
   const { basePath: predBasePath, query: predQuery } = parseUrl(pred);
 
-  const baseScore = refBasePaths.includes(predBasePath) ? 1 : 0;
+  // 원본(evaluators.py)의 `ref_base_path in pred_base_paths`는 파이썬 문자열의 부분
+  // 문자열 포함 검사다 — "참조 경로가 예측 URL 안에 부분 문자열로 들어있는지"를 본다.
+  // 처음 이식할 때 방향을 반대로(예측 경로가 참조 목록과 완전 일치해야 함) 짰었는데,
+  // Magento가 필터 상태를 쿼리스트링이 아니라 URL 경로 자체에 base64로 박아넣는 방식이라
+  // (예: .../sales/filter/<base64>/) 실제로는 정확히 통과해야 할 태스크(704: 매출 리포트
+  // 생성, 날짜 값은 정확히 일치했음)가 억울하게 실패 처리됐다 — 실제 Show Report 버튼을
+  // 직접 눌러 재현해서 확인함.
+  const baseScore = refBasePaths.some((refBasePath) => predBasePath.includes(refBasePath)) ? 1 : 0;
   let queryScore = 1;
   for (const [k, possibleValues] of Object.entries(refQueries)) {
     const predValues = predQuery[k] || [];
