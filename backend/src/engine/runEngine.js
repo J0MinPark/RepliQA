@@ -591,6 +591,7 @@ async function runTest({
   onCheckpointStatus,
   onStep,
   onUiuxFindings,
+  pageSetupHook,
 }) {
   const runStartedAt = new Date();
   // allowPrivateTargets는 공개 API/워커 경로(testRuns.js→worker.js)에서는 절대 넘어오지
@@ -637,6 +638,12 @@ async function runTest({
     const tabs = [page];
 
     await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
+
+    // pageSetupHook도 allowPrivateTargets와 같은 이유로 존재한다 — 공개 API/워커 경로에는
+    // 절대 넘어오지 않는 벤치마크 스크립트 전용 훅. 첫 페이지 로드 직후, 체크포인트 루프가
+    // 시작되기 전에 개입할 수 있게 해준다(예: DOM id를 무작위로 바꿔서 "사이트 개편으로
+    // 셀렉터가 깨진 상황"을 재현하는 실험용).
+    if (pageSetupHook) await pageSetupHook(page);
 
     // 캡처된 세션으로 시작했는데도 로그인 화면이면, 세션이 만료/무효화된 것이다. 이후
     // 체크포인트를 그대로 진행해도 전부 로그인 화면에 막혀 실패할 뿐이고, 그 실패들을 모아
