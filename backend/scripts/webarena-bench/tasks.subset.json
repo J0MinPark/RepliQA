@@ -1,0 +1,1627 @@
+[
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 423,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__",
+    "geolocation": null,
+    "intent_template": "Mark all {{brand}} shirts on sale",
+    "instantiation_dict": {
+      "brand": "Hollister"
+    },
+    "intent": "Mark all Hollister shirts on sale",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__SHOPPING_ADMIN__/catalog/product/edit/id/126/",
+          "locator": "document.querySelector('input[name=\"product[sale]\"]').value",
+          "required_contents": {
+            "exact_match": "1"
+          }
+        }
+      ]
+    },
+    "intent_template_id": 237
+  },
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 538,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__",
+    "geolocation": null,
+    "intent_template": "Modify the address of order #{{order_id}} to {{address}}",
+    "instantiation_dict": {
+      "order_id": "299",
+      "address": "456 Oak Avenue, Apartment 5B, New York, NY, 10001"
+    },
+    "intent": "Modify the address of order #299 to 456 Oak Avenue, Apartment 5B, New York, NY, 10001",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__SHOPPING_ADMIN__/sales/order/view/order_id/299",
+          "locator": "",
+          "required_contents": {
+            "must_include": [
+              "456 Oak Avenue",
+              "Apartment 5B",
+              "New York",
+              "10001"
+            ]
+          }
+        }
+      ]
+    },
+    "intent_template_id": 240
+  },
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 768,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__",
+    "geolocation": null,
+    "intent_template": "{{quantity}} {{product}} arrived, update the stock",
+    "instantiation_dict": {
+      "quantity": "5",
+      "product": "blue Cronus yoga pants with size 33"
+    },
+    "intent": "5 blue Cronus yoga pants with size 33 arrived, update the stock",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__SHOPPING_ADMIN__/catalog/product/edit/id/872/",
+          "locator": "document.querySelector('[name=\"product[quantity_and_stock_status][qty]\"').value",
+          "required_contents": {
+            "exact_match": "5"
+          }
+        },
+        {
+          "url": "__SHOPPING_ADMIN__/catalog/product/edit/id/872/",
+          "locator": "document.querySelector('[name=\"product[quantity_and_stock_status][is_in_stock]\"').value",
+          "required_contents": {
+            "exact_match": "1"
+          }
+        }
+      ]
+    },
+    "intent_template_id": 241
+  },
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 453,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__",
+    "geolocation": null,
+    "intent_template": "Disable {{product}} from the site, they are facing some quality issues.",
+    "instantiation_dict": {
+      "product": "Teton pullover hoodie"
+    },
+    "intent": "Disable Teton pullover hoodie from the site, they are facing some quality issues.",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__SHOPPING_ADMIN__/catalog/product/edit/id/78/",
+          "locator": "document.querySelector('[name=\"product[status]\"').value",
+          "required_contents": {
+            "exact_match": "2"
+          }
+        }
+      ]
+    },
+    "intent_template_id": 242
+  },
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 771,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__",
+    "geolocation": null,
+    "intent_template": "Approve the positive reviews to display in our store.",
+    "instantiation_dict": {},
+    "intent": "Approve the positive reviews to display in our store.",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__SHOPPING_ADMIN__/review/product/edit/id/352",
+          "locator": "document.querySelector('[name=\"status_id\"').value",
+          "required_contents": {
+            "exact_match": "1"
+          }
+        },
+        {
+          "url": "__SHOPPING_ADMIN__/review/product/edit/id/349",
+          "locator": "document.querySelector('[name=\"status_id\"').value",
+          "required_contents": {
+            "exact_match": "1"
+          }
+        },
+        {
+          "url": "__SHOPPING_ADMIN__/review/product/edit/id/347",
+          "locator": "document.querySelector('[name=\"status_id\"').value",
+          "required_contents": {
+            "exact_match": "1"
+          }
+        }
+      ]
+    },
+    "intent_template_id": 243
+  },
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 772,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__",
+    "geolocation": null,
+    "intent_template": "Delete all {{review_type}}",
+    "instantiation_dict": {
+      "review_type": "pending negative reviews for Circe fleece"
+    },
+    "intent": "Delete all pending negative reviews for Circe fleece",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__SHOPPING_ADMIN__/review/product/edit/id/999",
+          "locator": "",
+          "required_contents": {
+            "must_include": [
+              "Rating isn't Available"
+            ]
+          }
+        }
+      ]
+    },
+    "intent_template_id": 246
+  },
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 458,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__/catalog/product/edit/id/1481/",
+    "geolocation": null,
+    "intent_template": "{{action}} the price of this product by {{amount}}",
+    "instantiation_dict": {
+      "amount": "$5",
+      "action": "Reduce"
+    },
+    "intent": "Reduce the price of this product by $5",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__SHOPPING_ADMIN__/catalog/product/edit/id/1481/",
+          "locator": "document.querySelector('[name=\"product[price]\"').value",
+          "required_contents": {
+            "exact_match": "27.00"
+          }
+        }
+      ]
+    },
+    "intent_template_id": 247
+  },
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 464,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__",
+    "geolocation": null,
+    "intent_template": "Update the product description of {{product}} to highlight the real user positive reviews by quoting the comments",
+    "instantiation_dict": {
+      "product": "Antonia Racer Tank"
+    },
+    "intent": "Update the product description of Antonia Racer Tank to highlight the real user positive reviews by quoting the comments",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__SHOPPING_ADMIN__/../antonia-racer-tank.html",
+          "locator": "document.querySelector('.data.item.content').outerText + (document.querySelector('.product.attribute.overview [itemprop=\"description\"]')?.outerText || '')",
+          "required_contents": {
+            "must_include": [
+              "This is in regular rotation at the gym",
+              "Its colorful and looks kinda cute under my exercise tanks",
+              "it's very stylish for yoga or something else low impact"
+            ]
+          }
+        }
+      ]
+    },
+    "intent_template_id": 251
+  },
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 547,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__",
+    "geolocation": null,
+    "intent_template": "Add a new {{option}} option {{value}} to the {{base_setting}} of {{product}}",
+    "instantiation_dict": {
+      "option": "color",
+      "value": "brown",
+      "base_setting": "size S",
+      "product": "Phoebe Zipper Sweatshirt"
+    },
+    "intent": "Add a new color option brown to the size S of Phoebe Zipper Sweatshirt",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__SHOPPING_ADMIN__/catalog/product/edit/id/1130/",
+          "locator": "document.querySelector('[data-index=\"configurable\"').outerText",
+          "required_contents": {
+            "must_include": [
+              "Phoebe Zipper Sweatshirt-S-Brown"
+            ]
+          }
+        }
+      ]
+    },
+    "intent_template_id": 252
+  },
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 676,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__",
+    "geolocation": null,
+    "intent_template": "Lookup orders that are {{status}}",
+    "instantiation_dict": {
+      "status": "suspected of being fraudulent"
+    },
+    "intent": "Lookup orders that are suspected of being fraudulent",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "url_match",
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "__SHOPPING_ADMIN__/sales/order/",
+      "program_html": [
+        {
+          "url": "last",
+          "locator": "document.querySelector(\"div.admin__data-grid-filters-current\").outerText",
+          "required_contents": {
+            "must_include": [
+              "Suspected Fraud"
+            ]
+          }
+        }
+      ],
+      "url_note": "GOLD in PRED"
+    },
+    "intent_template_id": 253
+  },
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 157,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__",
+    "geolocation": null,
+    "intent_template": "Show all customers",
+    "instantiation_dict": {},
+    "intent": "Show all customers",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "url_match"
+      ],
+      "reference_answers": null,
+      "reference_url": "__SHOPPING_ADMIN__/customer/index/",
+      "program_html": [],
+      "url_note": "GOLD in PRED"
+    },
+    "intent_template_id": 255
+  },
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 694,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__",
+    "geolocation": null,
+    "intent_template": "Add a simple product named {{product}} with {{stock}} in stock, available in size {{size}} and color {{color}}, priced at ${{price}}",
+    "instantiation_dict": {
+      "product": "Energy-Bulk Women Shirt",
+      "stock": "50",
+      "size": "S",
+      "color": "blue",
+      "price": "60"
+    },
+    "intent": "Add a simple product named Energy-Bulk Women Shirt with 50 in stock, available in size S and color blue, priced at $60",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "url_match",
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "__SHOPPING_ADMIN__/catalog/product",
+      "program_html": [
+        {
+          "url": "last",
+          "locator": "document.querySelector('[name=\"product[price]\"').value",
+          "required_contents": {
+            "exact_match": "60.00"
+          }
+        },
+        {
+          "url": "last",
+          "locator": "document.querySelector('[name=\"product[name]\"').value",
+          "required_contents": {
+            "must_include": [
+              "Energy-Bulk Women Shirt"
+            ]
+          }
+        },
+        {
+          "url": "last",
+          "locator": "document.querySelector('[name=\"product[quantity_and_stock_status][qty]\"').value",
+          "required_contents": {
+            "exact_match": "50"
+          }
+        },
+        {
+          "url": "last",
+          "locator": "document.querySelector('[data-role=\"selected-option\"').outerText",
+          "required_contents": {
+            "must_include": [
+              "top"
+            ]
+          }
+        },
+        {
+          "url": "last",
+          "locator": "document.querySelector('[name=\"product[size]\"').value",
+          "required_contents": {
+            "exact_match": "167"
+          }
+        },
+        {
+          "url": "last",
+          "locator": "document.querySelector('[name=\"product[color]\"').value",
+          "required_contents": {
+            "exact_match": "50"
+          }
+        },
+        {
+          "url": "last",
+          "locator": "document.querySelector('[data-index=\"category_ids\"').outerText",
+          "required_contents": {
+            "must_include": [
+              "tops"
+            ]
+          }
+        }
+      ],
+      "url_note": "GOLD in PRED"
+    },
+    "intent_template_id": 256
+  },
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 470,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__",
+    "geolocation": null,
+    "intent_template": "Cancel order {{id}}",
+    "instantiation_dict": {
+      "id": "302"
+    },
+    "intent": "Cancel order 302",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__SHOPPING_ADMIN__/sales/order/view/order_id/302/",
+          "locator": "document.querySelector(\"#order_status\").outerText",
+          "required_contents": {
+            "exact_match": "Canceled"
+          }
+        }
+      ]
+    },
+    "intent_template_id": 257
+  },
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 699,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__",
+    "geolocation": null,
+    "intent_template": "Draft a new marketing price rule for {{topic}} that offers {{rule}} for all customers",
+    "instantiation_dict": {
+      "topic": "spring sale",
+      "rule": "a 20 percent discount site-wide"
+    },
+    "intent": "Draft a new marketing price rule for spring sale that offers a 20 percent discount site-wide for all customers",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "url_match",
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "__SHOPPING_ADMIN__/sales_rule/promo_quote",
+      "program_html": [
+        {
+          "url": "last",
+          "locator": "document.querySelector(\"[name='name'\").value",
+          "required_contents": {
+            "must_include": [
+              "spring sale"
+            ]
+          }
+        },
+        {
+          "url": "last",
+          "locator": "document.querySelector('[name=\"website_ids\"').selectedIndex",
+          "required_contents": {
+            "exact_match": "0"
+          }
+        },
+        {
+          "url": "last",
+          "locator": "document.querySelector('[name=\"customer_group_ids\"').selectedIndex",
+          "required_contents": {
+            "exact_match": "1"
+          }
+        },
+        {
+          "url": "last",
+          "locator": "document.querySelector('[name=\"simple_action\"').value",
+          "prep_actions": [
+            "document.querySelector('[data-index=\"actions\"]').querySelector('.admin__collapsible-title').click()"
+          ],
+          "required_contents": {
+            "exact_match": "by_percent"
+          }
+        },
+        {
+          "url": "last",
+          "locator": "document.querySelector('[name=\"discount_amount\"').value",
+          "prep_actions": [
+            "document.querySelector('[data-index=\"actions\"]').querySelector('.admin__collapsible-title').click()"
+          ],
+          "required_contents": {
+            "exact_match": "20"
+          }
+        }
+      ],
+      "url_note": "GOLD in PRED"
+    },
+    "intent_template_id": 258
+  },
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 374,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__",
+    "geolocation": null,
+    "intent_template": "Preview the {{name}} theme for my shop",
+    "instantiation_dict": {
+      "name": "Magento Blank"
+    },
+    "intent": "Preview the Magento Blank theme for my shop",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "url_match"
+      ],
+      "reference_answers": null,
+      "reference_url": "__SHOPPING_ADMIN__/admin/system_design_theme/edit/id/1",
+      "program_html": [],
+      "url_note": "GOLD in PRED"
+    },
+    "intent_template_id": 266
+  },
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 704,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__",
+    "geolocation": null,
+    "intent_template": "Today is 3/15/2023, generate a {{report}} {{time_span}}",
+    "instantiation_dict": {
+      "report": "sales order report",
+      "time_span": "for last month"
+    },
+    "intent": "Today is 3/15/2023, generate a sales order report for last month",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "url_match",
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "__SHOPPING_ADMIN__/reports/report_sales/sales",
+      "program_html": [
+        {
+          "url": "last",
+          "locator": "document.querySelector('[id=\"sales_report_from\"').value",
+          "required_contents": {
+            "exact_match": "2/1/23"
+          }
+        },
+        {
+          "url": "last",
+          "locator": "document.querySelector('[id=\"sales_report_to\"').value",
+          "required_contents": {
+            "exact_match": "2/28/23"
+          }
+        }
+      ],
+      "url_note": "GOLD in PRED"
+    },
+    "intent_template_id": 268
+  },
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 709,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__",
+    "geolocation": null,
+    "intent_template": "Create an {{type}} report from {{start_date}} to {{end_date}}",
+    "instantiation_dict": {
+      "type": "orders",
+      "start_date": "beginning of May 2021",
+      "end_date": "end of March 2022"
+    },
+    "intent": "Create an orders report from beginning of May 2021 to end of March 2022",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "url_match",
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "__SHOPPING_ADMIN__/reports/report_sales/sales",
+      "program_html": [
+        {
+          "url": "last",
+          "locator": "document.querySelector('[id=\"sales_report_from\"').value",
+          "required_contents": {
+            "exact_match": "5/1/2021"
+          }
+        },
+        {
+          "url": "last",
+          "locator": "document.querySelector('[id=\"sales_report_to\"').value",
+          "required_contents": {
+            "exact_match": "3/31/2022"
+          }
+        }
+      ],
+      "url_note": "GOLD in PRED"
+    },
+    "intent_template_id": 271
+  },
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 486,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__",
+    "geolocation": null,
+    "intent_template": "Change the page title of \"{{old-heading}}\" page on my site to \"{{heading}}\".",
+    "instantiation_dict": {
+      "old-heading": "404 Not Found",
+      "heading": "Bruh bro you clicked the wrong page"
+    },
+    "intent": "Change the page title of \"404 Not Found\" page on my site to \"Bruh bro you clicked the wrong page\".",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__SHOPPING_ADMIN__/cms/page/edit/page_id/1/",
+          "locator": "document.querySelector('input[name=\"title\"').value",
+          "required_contents": {
+            "exact_match": "Bruh bro you clicked the wrong page"
+          }
+        }
+      ]
+    },
+    "intent_template_id": 275
+  },
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 492,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__",
+    "geolocation": null,
+    "intent_template": "Notify {{name}} in their most recent pending order with message \"{{message}}\"",
+    "instantiation_dict": {
+      "name": "Jane Doe",
+      "message": "sorry we are out of stock, please reorder"
+    },
+    "intent": "Notify Jane Doe in their most recent pending order with message \"sorry we are out of stock, please reorder\"",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__SHOPPING_ADMIN__/sales/order/view/order_id/302/",
+          "locator": "document.querySelector(\"#order_history_block\").querySelector(\".note-list\").firstElementChild.querySelector(\".note-list-comment\").outerText",
+          "required_contents": {
+            "exact_match": "sorry we are out of stock, please reorder"
+          }
+        }
+      ]
+    },
+    "intent_template_id": 280
+  },
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 496,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__",
+    "geolocation": null,
+    "intent_template": "Update order #{{order}} with the {{service}} tracking number {{tracking}}",
+    "instantiation_dict": {
+      "tracking": "8974568499",
+      "order": "299",
+      "service": "Federal Express"
+    },
+    "intent": "Update order #299 with the Federal Express tracking number 8974568499",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__SHOPPING_ADMIN__/sales/order/commentsHistory/order_id/299/active_tab/order_shipments/",
+          "locator": "",
+          "required_contents": {
+            "must_include": [
+              "Tracking number 8974568499 for Federal Express assigned"
+            ]
+          }
+        }
+      ]
+    },
+    "intent_template_id": 284
+  },
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 501,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__",
+    "geolocation": null,
+    "intent_template": "Make all {{product}} as out of stock",
+    "instantiation_dict": {
+      "product": "Taurus Elements Shell"
+    },
+    "intent": "Make all Taurus Elements Shell as out of stock",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__SHOPPING_ADMIN__/catalog/product/edit/id/350/",
+          "locator": "document.querySelector('[name=\"product[quantity_and_stock_status][is_in_stock]\"').value",
+          "required_contents": {
+            "exact_match": "0"
+          }
+        }
+      ]
+    },
+    "intent_template_id": 287
+  },
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 777,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__",
+    "geolocation": null,
+    "intent_template": "{{action}} the price of {{config}} by {{amount}}",
+    "instantiation_dict": {
+      "amount": "$5",
+      "action": "Reduce",
+      "config": "green Hollister backyard sweater in all size"
+    },
+    "intent": "Reduce the price of green Hollister backyard sweater in all size by $5",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__SHOPPING_ADMIN__/catalog/product/edit/id/120/",
+          "locator": "document.querySelector('[name=\"product[price]\"').value",
+          "required_contents": {
+            "exact_match": "47.00"
+          }
+        },
+        {
+          "url": "__SHOPPING_ADMIN__/catalog/product/edit/id/117/",
+          "locator": "document.querySelector('[name=\"product[price]\"').value",
+          "required_contents": {
+            "exact_match": "47.00"
+          }
+        },
+        {
+          "url": "__SHOPPING_ADMIN__/catalog/product/edit/id/114/",
+          "locator": "document.querySelector('[name=\"product[price]\"').value",
+          "required_contents": {
+            "exact_match": "47.00"
+          }
+        },
+        {
+          "url": "__SHOPPING_ADMIN__/catalog/product/edit/id/111/",
+          "locator": "document.querySelector('[name=\"product[price]\"').value",
+          "required_contents": {
+            "exact_match": "47.00"
+          }
+        },
+        {
+          "url": "__SHOPPING_ADMIN__/catalog/product/edit/id/123/",
+          "locator": "document.querySelector('[name=\"product[price]\"').value",
+          "required_contents": {
+            "exact_match": "47.00"
+          }
+        }
+      ]
+    },
+    "intent_template_id": 742
+  },
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 539,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__",
+    "geolocation": null,
+    "intent_template": "Modify the address of order #{{order_id}} to {{address}}",
+    "instantiation_dict": {
+      "order_id": "65",
+      "address": "789 Pine Lane, San Francisco, CA, 94102"
+    },
+    "intent": "Modify the address of order #65 to 789 Pine Lane, San Francisco, CA, 94102",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__SHOPPING_ADMIN__/sales/order/view/order_id/65",
+          "locator": "",
+          "required_contents": {
+            "must_include": [
+              "789 Pine Lane",
+              "San Francisco",
+              "California",
+              "94102"
+            ]
+          }
+        }
+      ]
+    },
+    "intent_template_id": 240
+  },
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 769,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__",
+    "geolocation": null,
+    "intent_template": "We've received {{quantity}} {{product}}, please update the inventory.",
+    "instantiation_dict": {
+      "quantity": "378",
+      "product": "brown Aero daily fitness tee in every size"
+    },
+    "intent": "We've received 378 brown Aero daily fitness tee in every size, please update the inventory.",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__SHOPPING_ADMIN__/catalog/product/edit/id/544/",
+          "locator": "document.querySelector('[name=\"product[quantity_and_stock_status][qty]\"').value",
+          "required_contents": {
+            "exact_match": "478"
+          }
+        },
+        {
+          "url": "__SHOPPING_ADMIN__/catalog/product/edit/id/547/",
+          "locator": "document.querySelector('[name=\"product[quantity_and_stock_status][qty]\"').value",
+          "required_contents": {
+            "exact_match": "478"
+          }
+        },
+        {
+          "url": "__SHOPPING_ADMIN__/catalog/product/edit/id/550/",
+          "locator": "document.querySelector('[name=\"product[quantity_and_stock_status][qty]\"').value",
+          "required_contents": {
+            "exact_match": "478"
+          }
+        },
+        {
+          "url": "__SHOPPING_ADMIN__/catalog/product/edit/id/553/",
+          "locator": "document.querySelector('[name=\"product[quantity_and_stock_status][qty]\"').value",
+          "required_contents": {
+            "exact_match": "478"
+          }
+        },
+        {
+          "url": "__SHOPPING_ADMIN__/catalog/product/edit/id/556/",
+          "locator": "document.querySelector('[name=\"product[quantity_and_stock_status][qty]\"').value",
+          "required_contents": {
+            "exact_match": "478"
+          }
+        }
+      ]
+    },
+    "intent_template_id": 241
+  },
+  {
+    "sites": [
+      "shopping_admin"
+    ],
+    "task_id": 454,
+    "require_login": true,
+    "storage_state": "./.auth/shopping_admin_state.json",
+    "start_url": "__SHOPPING_ADMIN__",
+    "geolocation": null,
+    "intent_template": "Disable {{product}} from the site, they are facing some quality issues.",
+    "instantiation_dict": {
+      "product": "Ryker Tee Crew Neck"
+    },
+    "intent": "Disable Ryker Tee Crew Neck from the site, they are facing some quality issues.",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__SHOPPING_ADMIN__/catalog/product/edit/id/478/",
+          "locator": "document.querySelector('[name=\"product[status]\"').value",
+          "required_contents": {
+            "exact_match": "2"
+          }
+        }
+      ]
+    },
+    "intent_template_id": 242
+  },
+  {
+    "sites": [
+      "reddit"
+    ],
+    "task_id": 595,
+    "require_login": true,
+    "storage_state": "./.auth/reddit_state.json",
+    "start_url": "__REDDIT__",
+    "geolocation": null,
+    "intent_template": "Open the thread of a trending post on the forum \"{{subreddit}}\" and subscribe.",
+    "instantiation_dict": {
+      "subreddit": "space"
+    },
+    "intent": "Open the thread of a trending post on the forum \"space\" and subscribe.",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "url_match",
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "__REDDIT__/f/space",
+      "program_html": [
+        {
+          "url": "__REDDIT__/",
+          "locator": "document.querySelector(\"#sidebar > section\").outerText",
+          "required_contents": {
+            "must_include": [
+              "space"
+            ]
+          }
+        }
+      ],
+      "url_note": "GOLD in PRED"
+    },
+    "intent_template_id": 4
+  },
+  {
+    "sites": [
+      "reddit"
+    ],
+    "task_id": 399,
+    "require_login": true,
+    "storage_state": "./.auth/reddit_state.json",
+    "start_url": "__REDDIT__",
+    "geolocation": null,
+    "intent_template": "Change my reddit bio to \"{{content}}\"",
+    "instantiation_dict": {
+      "content": "I am a robot"
+    },
+    "intent": "Change my reddit bio to \"I am a robot\"",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__REDDIT__/user/MarvelsGrantMan136",
+          "locator": "document.querySelector(\".user-bio__biography\").outerText",
+          "required_contents": {
+            "exact_match": "I am a robot"
+          }
+        }
+      ]
+    },
+    "intent_template_id": 6
+  },
+  {
+    "sites": [
+      "reddit"
+    ],
+    "task_id": 580,
+    "require_login": true,
+    "storage_state": "./.auth/reddit_state.json",
+    "start_url": "__REDDIT__",
+    "geolocation": null,
+    "intent_template": "Create a new forum named {{name}}, with a description of {{description}}, and include {{sidebar_list}} in the sidebar?",
+    "instantiation_dict": {
+      "name": "sci_fi",
+      "description": "A wild place for sci-fi enthusiasts",
+      "sidebar_list": [
+        "New",
+        "Classic",
+        "Movies",
+        "Post my novel",
+        "Random"
+      ]
+    },
+    "intent": "Create a new forum named sci_fi, with a description of A wild place for sci-fi enthusiasts, and include ['New', 'Classic', 'Movies', 'Post my novel', 'Random'] in the sidebar?",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__REDDIT__/f/sci_fi/edit",
+          "locator": "document.querySelector(\"#forum_description\").value",
+          "required_contents": {
+            "must_include": [
+              "A wild place for sci-fi enthusiasts"
+            ]
+          }
+        },
+        {
+          "url": "__REDDIT__/f/sci_fi/edit",
+          "locator": "document.querySelector(\"#forum_sidebar\").value",
+          "required_contents": {
+            "must_include": [
+              "New",
+              "Classic",
+              "Movies",
+              "Post my novel",
+              "Random"
+            ]
+          }
+        }
+      ]
+    },
+    "intent_template_id": 7
+  },
+  {
+    "sites": [
+      "reddit"
+    ],
+    "task_id": 404,
+    "require_login": true,
+    "storage_state": "./.auth/reddit_state.json",
+    "start_url": "__REDDIT__",
+    "geolocation": null,
+    "intent_template": "Upvote the newest post in {{subreddit}} subreddit",
+    "instantiation_dict": {
+      "subreddit": "books"
+    },
+    "intent": "Upvote the newest post in books subreddit",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__REDDIT__/f/books/124260/adults-reading-to-each-other-out-loud",
+          "locator": "document.querySelector('div.submission__vote').querySelector('form').getAttribute('class')",
+          "required_contents": {
+            "must_include": [
+              "vote vote--user-upvoted"
+            ]
+          }
+        }
+      ]
+    },
+    "intent_template_id": 22
+  },
+  {
+    "sites": [
+      "reddit"
+    ],
+    "task_id": 409,
+    "require_login": true,
+    "storage_state": "./.auth/reddit_state.json",
+    "start_url": "__REDDIT__/f/books/59421/friendly-reminder-bookshop-org-exists",
+    "geolocation": null,
+    "intent_template": "Reply to {{position_description}} in this post with \"{{content_description}}\"",
+    "instantiation_dict": {
+      "position_description": "the manager of the website",
+      "content_description": "thanks! I am a big fan of your website."
+    },
+    "intent": "Reply to the manager of the website in this post with \"thanks! I am a big fan of your website.\"",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__REDDIT__/f/books/59421/-/comment/1235250",
+          "locator": "",
+          "required_contents": {
+            "must_include": [
+              "thanks! I am a big fan of your website."
+            ]
+          }
+        }
+      ]
+    },
+    "intent_template_id": 23
+  },
+  {
+    "sites": [
+      "reddit"
+    ],
+    "task_id": 714,
+    "require_login": true,
+    "storage_state": "./.auth/reddit_state.json",
+    "start_url": "__REDDIT__",
+    "geolocation": null,
+    "intent_template": "Thumbs down the top {{k}} post ever in {{subreddit}}.",
+    "instantiation_dict": {
+      "subreddit": "gadgets",
+      "k": "1"
+    },
+    "intent": "Thumbs down the top 1 post ever in gadgets.",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__REDDIT__/f/gadgets/19459/a-custom-gaming-pc-built-inside-a-vintage-1940s-motorola",
+          "locator": "document.querySelector('div.submission__vote').querySelector('form').getAttribute('class')",
+          "required_contents": {
+            "must_include": [
+              "vote vote--user-downvoted"
+            ]
+          }
+        }
+      ]
+    },
+    "intent_template_id": 24
+  },
+  {
+    "sites": [
+      "reddit"
+    ],
+    "task_id": 719,
+    "require_login": true,
+    "storage_state": "./.auth/reddit_state.json",
+    "start_url": "__REDDIT__",
+    "geolocation": null,
+    "intent_template": "Like all submissions created by {{user}} in subreddit {{subreddit}}",
+    "instantiation_dict": {
+      "subreddit": "wallstreetbets",
+      "user": "ThetaGang_wsb"
+    },
+    "intent": "Like all submissions created by ThetaGang_wsb in subreddit wallstreetbets",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__REDDIT__/f/wallstreetbets/29478/how-will-airbnb-close-following-their-earnings-report-on",
+          "locator": "document.querySelector('div.submission__vote').querySelector('form').getAttribute('class')",
+          "required_contents": {
+            "must_include": [
+              "vote vote--user-upvoted"
+            ]
+          }
+        },
+        {
+          "url": "__REDDIT__/f/wallstreetbets/29458/how-much-will-the-federal-reserve-raise-interest-rates-in",
+          "locator": "document.querySelector('div.submission__vote').querySelector('form').getAttribute('class')",
+          "required_contents": {
+            "must_include": [
+              "vote vote--user-upvoted"
+            ]
+          }
+        }
+      ]
+    },
+    "intent_template_id": 25
+  },
+  {
+    "sites": [
+      "reddit"
+    ],
+    "task_id": 731,
+    "require_login": true,
+    "storage_state": "./.auth/reddit_state.json",
+    "start_url": "__REDDIT__",
+    "geolocation": null,
+    "intent_template": "Edit my post on {{post}} by adding a line to the body that says \"{{content}}\"",
+    "instantiation_dict": {
+      "post": "Nvidia RTX 4090",
+      "content": "EDIT: This news aged well"
+    },
+    "intent": "Edit my post on Nvidia RTX 4090 by adding a line to the body that says \"EDIT: This news aged well\"",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__REDDIT__/f/MachineLearning/1/nvidia-rtx-4090",
+          "locator": "document.querySelector('.submission__body').outerText",
+          "required_contents": {
+            "must_include": [
+              "EDIT: This news aged well",
+              "Crazy device for ML!"
+            ]
+          }
+        }
+      ]
+    },
+    "intent_template_id": 27
+  },
+  {
+    "sites": [
+      "reddit"
+    ],
+    "task_id": 725,
+    "require_login": true,
+    "storage_state": "./.auth/reddit_state.json",
+    "start_url": "__REDDIT__",
+    "geolocation": null,
+    "intent_template": "DisLike all submissions created by {{user}} in subreddit {{subreddit}}",
+    "instantiation_dict": {
+      "subreddit": "massachusetts",
+      "user": "RickyDontLoseThat"
+    },
+    "intent": "DisLike all submissions created by RickyDontLoseThat in subreddit massachusetts",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__REDDIT__/f/massachusetts/84954/the-last-of-lincoln",
+          "locator": "document.querySelector('div.submission__vote').querySelector('form').getAttribute('class')",
+          "required_contents": {
+            "must_include": [
+              "vote vote--user-downvoted"
+            ]
+          }
+        }
+      ]
+    },
+    "intent_template_id": 1510
+  },
+  {
+    "sites": [
+      "reddit"
+    ],
+    "task_id": 596,
+    "require_login": true,
+    "storage_state": "./.auth/reddit_state.json",
+    "start_url": "__REDDIT__",
+    "geolocation": null,
+    "intent_template": "Open the thread of a trending post on the forum \"{{subreddit}}\" and subscribe.",
+    "instantiation_dict": {
+      "subreddit": "books"
+    },
+    "intent": "Open the thread of a trending post on the forum \"books\" and subscribe.",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "url_match",
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "__REDDIT__/f/books",
+      "program_html": [
+        {
+          "url": "__REDDIT__/",
+          "locator": "document.querySelector(\"#sidebar > section\").outerText",
+          "required_contents": {
+            "must_include": [
+              "books"
+            ]
+          }
+        }
+      ],
+      "url_note": "GOLD in PRED"
+    },
+    "intent_template_id": 4
+  },
+  {
+    "sites": [
+      "reddit"
+    ],
+    "task_id": 400,
+    "require_login": true,
+    "storage_state": "./.auth/reddit_state.json",
+    "start_url": "__REDDIT__",
+    "geolocation": null,
+    "intent_template": "Change my reddit bio to \"{{content}}\"",
+    "instantiation_dict": {
+      "content": "Pro Python Developer with 20 years of Experience"
+    },
+    "intent": "Change my reddit bio to \"Pro Python Developer with 20 years of Experience\"",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__REDDIT__/user/MarvelsGrantMan136",
+          "locator": "document.querySelector(\".user-bio__biography\").outerText",
+          "required_contents": {
+            "exact_match": "Pro Python Developer with 20 years of Experience"
+          }
+        }
+      ]
+    },
+    "intent_template_id": 6
+  },
+  {
+    "sites": [
+      "reddit"
+    ],
+    "task_id": 581,
+    "require_login": true,
+    "storage_state": "./.auth/reddit_state.json",
+    "start_url": "__REDDIT__",
+    "geolocation": null,
+    "intent_template": "Create a new forum named {{name}}, with a description of {{description}}, and include {{sidebar_list}} in the sidebar?",
+    "instantiation_dict": {
+      "name": "cmu_lti",
+      "description": "Language Technologies Institute at Carnegie Mellon University",
+      "sidebar_list": [
+        "announcement",
+        "paper",
+        "alumni"
+      ]
+    },
+    "intent": "Create a new forum named cmu_lti, with a description of Language Technologies Institute at Carnegie Mellon University, and include ['announcement', 'paper', 'alumni'] in the sidebar?",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__REDDIT__/f/cmu_lti/edit",
+          "locator": "document.querySelector(\"#forum_description\").value",
+          "required_contents": {
+            "must_include": [
+              "Language Technologies Institute at Carnegie Mellon University"
+            ]
+          }
+        },
+        {
+          "url": "__REDDIT__/f/cmu_lti/edit",
+          "locator": "document.querySelector(\"#forum_sidebar\").value",
+          "required_contents": {
+            "must_include": [
+              "announcement",
+              "paper",
+              "alumni"
+            ]
+          }
+        }
+      ]
+    },
+    "intent_template_id": 7
+  },
+  {
+    "sites": [
+      "reddit"
+    ],
+    "task_id": 405,
+    "require_login": true,
+    "storage_state": "./.auth/reddit_state.json",
+    "start_url": "__REDDIT__",
+    "geolocation": null,
+    "intent_template": "Upvote the newest post in {{subreddit}} subreddit",
+    "instantiation_dict": {
+      "subreddit": "DIY"
+    },
+    "intent": "Upvote the newest post in DIY subreddit",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__REDDIT__/f/DIY/119019/how-can-i-bring-an-hdmi-cable-from-my-pc-downstairs-to-my-tv",
+          "locator": "document.querySelector('div.submission__vote').querySelector('form').getAttribute('class')",
+          "required_contents": {
+            "must_include": [
+              "vote vote--user-upvoted"
+            ]
+          }
+        }
+      ]
+    },
+    "intent_template_id": 22
+  },
+  {
+    "sites": [
+      "reddit"
+    ],
+    "task_id": 410,
+    "require_login": true,
+    "storage_state": "./.auth/reddit_state.json",
+    "start_url": "__REDDIT__/f/singularity/69404/this-is-how-chatgpt-sees-itself",
+    "geolocation": null,
+    "intent_template": "Reply to {{position_description}} in this post with \"{{content_description}}\"",
+    "instantiation_dict": {
+      "position_description": "the first reply",
+      "content_description": "don't panic"
+    },
+    "intent": "Reply to the first reply in this post with \"don't panic\"",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__REDDIT__/f/singularity/69404/-/comment/1042264",
+          "locator": "",
+          "required_contents": {
+            "must_include": [
+              "don't panic"
+            ]
+          }
+        }
+      ]
+    },
+    "intent_template_id": 23
+  },
+  {
+    "sites": [
+      "reddit"
+    ],
+    "task_id": 715,
+    "require_login": true,
+    "storage_state": "./.auth/reddit_state.json",
+    "start_url": "__REDDIT__",
+    "geolocation": null,
+    "intent_template": "Thumbs down the top {{k}} post ever in {{subreddit}}.",
+    "instantiation_dict": {
+      "subreddit": "history",
+      "k": "2"
+    },
+    "intent": "Thumbs down the top 2 post ever in history.",
+    "require_reset": false,
+    "eval": {
+      "eval_types": [
+        "program_html"
+      ],
+      "reference_answers": null,
+      "reference_url": "",
+      "program_html": [
+        {
+          "url": "__REDDIT__/f/history/84338/the-scientist-who-discovered-sperm-was-so-grossed-out-he",
+          "locator": "document.querySelector('div.submission__vote').querySelector('form').getAttribute('class')",
+          "required_contents": {
+            "must_include": [
+              "vote vote--user-downvoted"
+            ]
+          }
+        },
+        {
+          "url": "__REDDIT__/f/history/105990/4-500-year-old-sumerian-temple-dedicated-to-mighty-thunder",
+          "locator": "document.querySelector('div.submission__vote').querySelector('form').getAttribute('class')",
+          "required_contents": {
+            "must_include": [
+              "vote vote--user-downvoted"
+            ]
+          }
+        }
+      ]
+    },
+    "intent_template_id": 24
+  }
+]
