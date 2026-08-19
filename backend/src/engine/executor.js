@@ -262,6 +262,25 @@ async function executeAction(page, action, elements, ctx = {}) {
   // 체크포인트에서 방어가 무력화되는 걸 실제로 확인했다(automationexercise.com 회귀
   // 스윕에서 y=-560 좌표 클릭이 그대로 통과함). null이면 실제 window 크기를 직접 조회한다.
   const viewport = page.viewportSize() || (await page.evaluate(() => ({ width: window.innerWidth, height: window.innerHeight })).catch(() => null));
+  if (viewport && (y < 0 || y > viewport.height) && x >= 0 && x <= viewport.width) {
+    // 세로 방향으로만 화면 밖이면(가로는 정상 범위) 곧바로 실패시키기 전에 스크롤로
+    // 살릴 수 있는지 먼저 시도한다 — practicetestautomation.com 로그인에서 실제 확인:
+    // Camoufox는 viewport:null로 띄워서(browserEngines.js) 브라우저 자체 UI가 콘텐츠
+    // 영역을 갉아먹어 실제 렌더링 뷰포트가 캡처 시점 가정(800px)보다 작아지고(예: 743px),
+    // 화면 하단 근처 버튼이 몇십 픽셀 정도만 화면 밖으로 밀려나는 일이 생긴다. Habitica
+    // y=-1826처럼 스크롤로도 못 살리는 진짜 잘못된 좌표(페이지가 통째로 바뀐 경우 등)는
+    // 아래 재검사에서 여전히 걸러진다 — 스크롤이 문서 끝에서 막히면 실제 이동량이
+    // 요청한 만큼 안 나와 y가 여전히 범위 밖으로 남기 때문.
+    const margin = Math.min(80, viewport.height * 0.1);
+    const requestedScroll = y > viewport.height ? y - viewport.height + margin : y - margin;
+    const scrollYBefore = await page.evaluate(() => window.scrollY).catch(() => null);
+    await page.mouse.wheel(0, requestedScroll).catch(() => {});
+    await page.waitForTimeout(150);
+    const scrollYAfter = await page.evaluate(() => window.scrollY).catch(() => null);
+    if (scrollYBefore != null && scrollYAfter != null) {
+      y -= scrollYAfter - scrollYBefore;
+    }
+  }
   if (viewport && (x < 0 || y < 0 || x > viewport.width || y > viewport.height)) {
     return {
       ok: false,
