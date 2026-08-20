@@ -1,15 +1,23 @@
 services:
   - type: web
     name: repliqa-worker
-    runtime: docker
+    runtime: node
     plan: free
     rootDir: backend
-    dockerfilePath: ./Dockerfile
-    dockerContext: .
+    buildCommand: npm install && npx camoufox-js fetch
+    startCommand: npm run start:worker
     healthCheckPath: /
-    # Xvfb+x11vnc(원격 브라우저 세션 캡처)를 쓰려면 Docker 런타임이 필수라 네이티브 Node
-    # 런타임(buildpack, apt 권한 없음)에서 전환했다 — Dockerfile 참고. PORT는 Render가
-    # Docker 런타임 web 서비스에도 자동으로 주입해준다(worker.js가 process.env.PORT를 읽음).
+    # 원격 브라우저 세션 캡처(Xvfb+x11vnc)는 Docker 런타임이 있어야 돌아가는데(backend/
+    # Dockerfile 참고), 그 배포 방식 자체가 Render 실서버에서 아직 한 번도 검증된 적이
+    # 없다 — 데모데이(2026-08-21) 전날 QA 실행 정확도와는 무관한 배포 리스크만 지는
+    # 셈이라 일단 검증된 네이티브 Node 런타임으로 되돌린다. 세션 캡처 라우트 코드
+    # (worker.js/sessionCaptureRoutes.js/remoteSessionCapture.js)는 그대로 배포되지만,
+    # 이 런타임엔 Xvfb가 없어 실제로 호출되면 500 에러로 깔끔하게 실패할 뿐 다른 기능에는
+    # 영향 없다. Docker 전환은 데모 이후 Render에서 실제로 빌드가 되는지 별도로 검증한
+    # 뒤 다시 시도할 것 — render.yaml을 이 블록으로 되돌리면 된다:
+    #   runtime: docker
+    #   dockerfilePath: ./Dockerfile
+    #   dockerContext: .
     envVars:
       - key: GEMINI_API_KEY
         sync: false
