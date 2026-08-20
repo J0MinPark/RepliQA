@@ -216,14 +216,45 @@ function CheckpointSection({ runId, checkpoint, showSteps = true }) {
   );
 }
 
-const SEVERITY_LABEL = { critical: '크리티컬', warning: '참고 필요', pass: '통과' };
+// 체크포인트 실패는 두 종류가 섞여 있다 — (1) 결정론적 검증이 직접 뒤집었거나(verifiedBy:
+// 'disagreement') 실제 기술적 에러(execError)가 있었던 "확정된" 실패, (2) 엔진은 모든 행동을
+// 정상 실행했다고 확인했는데 AI 스스로 "달성 불가"라고 판단해서 멈춘 "추정" 실패. automation
+// exercise.com 실사용 검증에서 후자가 실제로는 오탐(그라운딩 오차)인 사례를 직접 확인했다 —
+// "확실하지 않은 에러"를 확정된 문제와 나란히 보여주면 E2E QA 리포트로서 신뢰를 잃는다.
+function isConfirmedCheckpointFailure(c) {
+  if (c.verifiedBy === 'disagreement') return true;
+  return (c.steps || []).some((s) => s.execError);
+}
+
+const SEVERITY_LABEL = { critical: '문제 확인됨', warning: '경미한 문제 확인됨', pass: '확인된 문제 없음' };
 
 // PDF는 별도 라이브러리(html2canvas 등) 없이 브라우저 자체 인쇄 엔진(window.print())을 쓴다.
 // 화면에 이미 나와 있는 배지·아이콘투성이 카드 UI를 그대로 인쇄하면 "로그 캡처"처럼
 // 보이니, 인쇄 전용으로 목차·표 형식의 별도 문서 레이아웃을 만든다 — index.css의
 // .print-only/.no-print 규칙이 화면에서는 숨기고 인쇄할 때만 이 블록으로 바꿔치기한다.
-function PrintableReport({ run, checkpoints, haltedCheckpoint }) {
-  const severity = run.severity || (run.summary?.totalErrors > 0 ? 'critical' : 'pass');
+//
+// "종합 판정"은 backend가 내려준 run.severity를 그대로 쓰지 않고 여기서 다시 계산한다 —
+// run.severity는 확정 실패와 추정 실패를 구분하지 않고 매긴 값이라, 추정 실패 하나 때문에
+// "크리티컬"이 찍히는 걸 이 리포트에서까지 그대로 보여주면 안 된다.
+function PrintableReport({ run, checkpoints }) {
+  const confirmedFailures = checkpoints.filter((c) => c.status === 'failed' && isConfirmedCheckpointFailure(c));
+  const estimatedFailures = checkpoints.filter((c) => c.status === 'failed' && !isConfirmedCheckpointFailure(c));
+
+  const measuredFindings = [];
+  const aiFindings = [];
+  checkpoints.forEach((c) => {
+    (c.uiuxFindings || []).forEach((f) => {
+      (f.source === 'ai_judgment' ? aiFindings : measuredFindings).push({ ...f, checkpoint: c });
+    });
+  });
+
+  const hasConfirmedErrorFinding = measuredFindings.some((f) => f.severity === 'error');
+  let severity = 'pass';
+  if (confirmedFailures.length > 0 || hasConfirmedErrorFinding) severity = 'critical';
+  else if (measuredFindings.length > 0) severity = 'warning';
+
+  const appendixCount = estimatedFailures.length + aiFindings.length;
+
   return (
     <div className="print-only print-report">
       <div className="print-header">
@@ -245,58 +276,85 @@ function PrintableReport({ run, checkpoints, haltedCheckpoint }) {
         </div>
         <div>
           <dt>종합 판정</dt>
-          <dd className={`sev-${severity}`}>{SEVERITY_LABEL[severity] || severity}</dd>
+          <dd className={`sev-${severity}`}>{SEVERITY_LABEL[severity]}</dd>
         </div>
       </dl>
 
       <section className="print-section">
-        <h2>요약</h2>
-        <p>{run.plainSummary || '요약 정보가 없습니다.'}</p>
-        {haltedCheckpoint && (
-          <p className="print-note">
-            "{haltedCheckpoint.goal || '자유 탐색'}" 단계에서 여정이 중단되어 이후 단계는 진행되지 않았습니다.
-          </p>
-        )}
-      </section>
-
-      <section className="print-section">
-        <h2>단계별 발견 내용</h2>
-        {checkpoints.map((c) => (
-          <div className="print-checkpoint" key={c.index}>
-            <h3>
-              {c.index + 1}. {c.goal || '자유 탐색'}
-            </h3>
-            {c.status === 'failed' && c.failureReason && <p className="print-fail">{c.failureReason}</p>}
-            {c.uiuxFindings?.length > 0 ? (
+        <h2>확인된 문제 {measuredFindings.length + confirmedFailures.length > 0 ? `(${measuredFindings.length + confirmedFailures.length})` : ''}</h2>
+        {confirmedFailures.length === 0 && measuredFindings.length === 0 ? (
+          <p className="print-empty">엔진이 직접 측정하거나 확정적으로 검증한 문제는 없었습니다.</p>
+        ) : (
+          <>
+            {confirmedFailures.map((c) => (
+              <p className="print-fail" key={`cf-${c.index}`}>
+                <strong>
+                  {c.index + 1}. {c.goal || '자유 탐색'} —{' '}
+                </strong>
+                {c.failureReason}
+              </p>
+            ))}
+            {measuredFindings.length > 0 && (
               <table className="print-table">
                 <thead>
                   <tr>
                     <th>분류</th>
-                    <th>출처</th>
                     <th>내용</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {c.uiuxFindings.map((f, i) => (
+                  {measuredFindings.map((f, i) => (
                     <tr key={i}>
-                      <td>{CATEGORY_LABEL[f.category] || f.category}</td>
-                      <td className="col-source">{f.source === 'ai_judgment' ? 'AI 판단' : '측정됨'}</td>
+                      <td className="col-source">{CATEGORY_LABEL[f.category] || f.category}</td>
                       <td>{f.message || f.detail || f.description}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            ) : (
-              <p className="print-empty">발견된 항목이 없습니다.</p>
             )}
-          </div>
-        ))}
+          </>
+        )}
       </section>
 
+      {appendixCount > 0 && (
+        <section className="print-section print-appendix">
+          <h2>부록 — 추가 확인이 필요한 항목 ({appendixCount})</h2>
+          <p className="print-note">
+            아래는 엔진이 직접 측정하거나 검증한 게 아니라, AI가 스크린샷을 보고 내린 판단입니다.
+            실제 문제가 아닐 수 있어 별도로 분리했습니다 — 재현 확인 후 참고하세요.
+          </p>
+          {estimatedFailures.map((c) => (
+            <p className="print-fail print-fail-est" key={`ef-${c.index}`}>
+              <strong>
+                {c.index + 1}. {c.goal || '자유 탐색'} —{' '}
+              </strong>
+              {c.failureReason}
+            </p>
+          ))}
+          {aiFindings.length > 0 && (
+            <table className="print-table">
+              <thead>
+                <tr>
+                  <th>분류</th>
+                  <th>내용</th>
+                </tr>
+              </thead>
+              <tbody>
+                {aiFindings.map((f, i) => (
+                  <tr key={i}>
+                    <td className="col-source">{CATEGORY_LABEL[f.category] || f.category}</td>
+                    <td>{f.message || f.detail || f.description}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </section>
+      )}
+
       <div className="print-footer">
-        "측정됨"은 화면을 실제로(픽셀·DOM 단위) 측정해서 나온 결과이고, "AI 판단"은 AI가
-        스크린샷을 보고 내린 참고용 판단입니다. 체크포인트 실패 사유는 자동화 엔진 자체의
-        오차(그라운딩 오류 등)일 수 있어, 확정하기 전 직접 재현 확인을 권장합니다.
+        "확인된 문제"는 화면을 실제로(픽셀·DOM 단위) 측정했거나 엔진이 직접 검증한 항목만
+        포함합니다. 부록의 항목은 AI의 참고용 판단이라 확정된 문제로 보지 않는 게 안전합니다.
       </div>
     </div>
   );
@@ -527,7 +585,7 @@ export default function TestRunProgress({ tenantId, runId, onReset, onGoToConnec
       )}
     </div>
     {run.status === 'done' && !run.sessionExpired && (
-      <PrintableReport run={run} checkpoints={checkpoints} haltedCheckpoint={haltedCheckpoint} />
+      <PrintableReport run={run} checkpoints={checkpoints} />
     )}
     </>
   );
