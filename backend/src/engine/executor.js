@@ -45,6 +45,19 @@ async function executeAction(page, action, elements, ctx = {}) {
   }
   if (action.type === 'go_back') {
     try {
+      // samsung.com 16단계 긴 순차 여정 실측 재현: Camoufox 컨텍스트에서는
+      // window.history.length가 실제 페이지 이동을 여러 번 거쳐도 계속 1로 남는다 —
+      // 브라우저 자체의 방문 기록이 안 쌓여서 page.goBack()/window.history.back() 둘 다
+      // 아무 반응 없이 제자리에 머문다(원인은 Camoufox/Juggler 프로토콜 쪽으로 추정,
+      // 추가 조사 필요). 그래서 브라우저 네이티브 히스토리를 아예 안 믿고, runEngine.js가
+      // 직접 추적해온 방문 URL 스택(ctx.urlHistory)을 우선 사용한다 — 그 스택이 없는
+      // 호출부(예: 단위 테스트)에서는 기존처럼 네이티브 goBack으로 폴백한다.
+      if (ctx.urlHistory && ctx.urlHistory.length > 1) {
+        ctx.urlHistory.pop(); // 스택 맨 위 = 지금 있는 페이지 자신 — 제거하고 그 아래로
+        const previousUrl = ctx.urlHistory[ctx.urlHistory.length - 1];
+        await page.goto(previousUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
+        return { ok: true };
+      }
       await page.goBack({ waitUntil: 'domcontentloaded', timeout: 5000 });
       return { ok: true };
     } catch (err) {
@@ -52,6 +65,11 @@ async function executeAction(page, action, elements, ctx = {}) {
     }
   }
   if (action.type === 'go_forward') {
+    // go_back과 달리 엔진 자체 추적으로 대체하지 않았다 — "뒤로 간 뒤 다시 앞으로"는
+    // go_back만큼 흔한 패턴이 아니고, 제대로 하려면 되돌아간 지점부터의 forward 스택을
+    // 별도로 관리해야 해서 지금 당장의 가치 대비 비용이 크다. Camoufox 히스토리 자체가
+    // 신뢰 못 할 수 있다는 걸 감안하고 쓸 것 — 필요성이 실측으로 확인되면 그때 go_back과
+    // 같은 방식으로 옮긴다.
     try {
       await page.goForward({ waitUntil: 'domcontentloaded', timeout: 5000 });
       return { ok: true };

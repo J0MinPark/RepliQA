@@ -5,6 +5,7 @@ const { isPaymentSubmitElement } = require('./paymentSafety');
 const { looksLoggedOut } = require('./sessionValidity');
 const { launchBrowser } = require('./browserEngines');
 const geminiAdapter = require('./llm/geminiAdapter');
+const claudeAdapter = require('./llm/claudeAdapter');
 const uiTarsAdapter = require('./llm/uiTarsAdapter');
 const screenshotStore = require('./screenshotStore');
 const { assertHttpUrl, resolveSafeIp, resolveIpUnchecked } = require('../security/ssrfGuard');
@@ -159,6 +160,7 @@ async function runCheckpoint({
   collectedErrors,
   activity,
   tabs,
+  urlHistory,
   allowedHostname,
   testInboxConfig,
   runStartedAt,
@@ -384,6 +386,7 @@ async function runCheckpoint({
         allowedHostname,
         testInboxConfig,
         tabs,
+        urlHistory,
         allowLongWait: isLongRunning,
         runStartedAt,
         activity,
@@ -519,6 +522,20 @@ async function runCheckpoint({
           if (last) {
             last.result += ` [엔진 확인: 이 행동 직후 페이지 URL이 실제로 바뀌었습니다(${urlBeforeAction} → ${urlAfterAction}) — 화면이 그대로처럼 보여도 이동이 일어난 게 확실합니다]`;
           }
+        }
+      }
+
+      // samsung.com 16단계 긴 순차 여정 실사용 검증에서 재현: Camoufox(스텔스 Firefox)
+      // 컨텍스트에서는 실제 페이지 이동을 여러 번 거쳐도 window.history.length가 계속 1로
+      // 남아있다 — 즉 브라우저 자체의 방문 기록이 정상적으로 쌓이지 않는다(Camoufox/Juggler
+      // 프로토콜 쪽 특성으로 보임, 원인은 더 조사 필요). page.goBack()도
+      // window.history.back()도 둘 다 아무 반응 없이 그 자리에 머문다 — 브라우저 뒤로가기가
+      // 필요한 모든 여정이 이 지점에서 막혔다. 브라우저 자체 히스토리를 못 믿으니, 엔진이
+      // 실제로 방문한 URL을 직접 스택으로 추적해서 go_back(executor.js)이 그걸 쓰게 한다.
+      if (urlHistory && execResult.ok) {
+        const currentUrl = activePage.url();
+        if (urlHistory[urlHistory.length - 1] !== currentUrl) {
+          urlHistory.push(currentUrl);
         }
       }
     }
@@ -735,6 +752,10 @@ async function runTest({
     const page = await context.newPage();
     attachErrorCollectors(page, collectedErrors, activity);
     const tabs = [page];
+    // go_back이 브라우저 네이티브 히스토리 대신 쓰는 엔진 자체 방문 기록 — 체크포인트를
+    // 넘나들어도 하나로 이어지는 스택이라 tabs와 마찬가지로 runTest 레벨에서 한 번만
+    // 만들어 매 체크포인트에 그대로 넘긴다.
+    const urlHistory = [targetUrl];
 
     await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
 
@@ -804,6 +825,7 @@ async function runTest({
         collectedErrors,
         activity,
         tabs,
+        urlHistory,
         allowedHostname: hostname,
         testInboxConfig,
         runStartedAt,
@@ -837,7 +859,14 @@ async function runTest({
       }
     }
 
-    const report = await geminiAdapter.generateReport({ errors: collectedErrors, steps: allSteps, haltedInfo });
+    // generateReport는 체크포인트당 1회만 호출되고 스크린샷도 안 들어가는 순수 텍스트
+    // 호출이라, 매 스텝 호출되는 generateNextAction보다 비용 부담 없이 더 강한 모델을
+    // 써볼 수 있는 지점이다 — ANTHROPIC_API_KEY가 설정돼 있으면 Claude로, 아니면 기존
+    // Gemini로 리포트를 작성한다(claudeAdapter.js/geminiAdapter.js는 같은 프롬프트를
+    // reportPrompt.js에서 공유해서 판단 기준 자체는 동일하다).
+    // TODO: 아직 실제 API 키로 라이브 검증 못 함 — 검증 전까진 커밋하지 않는다.
+    const reportAdapter = env.anthropicApiKey ? claudeAdapter : geminiAdapter;
+    const report = await reportAdapter.generateReport({ errors: collectedErrors, steps: allSteps, haltedInfo });
 
     // 오프라인 시뮬레이션 중 발생한(태그가 붙은) 에러는 "예상된 결과"라 실제 버그 집계에서
     // 뺀다 — totalErrors는 항상 "설명이 필요한" 에러 개수를 뜻하게 유지한다.
