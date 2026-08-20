@@ -274,9 +274,31 @@ async function executeAction(page, action, elements, ctx = {}) {
     const margin = Math.min(80, viewport.height * 0.1);
     const requestedScroll = y > viewport.height ? y - viewport.height + margin : y - margin;
     const scrollYBefore = await page.evaluate(() => window.scrollY).catch(() => null);
-    await page.mouse.wheel(0, requestedScroll).catch(() => {});
-    await page.waitForTimeout(150);
-    const scrollYAfter = await page.evaluate(() => window.scrollY).catch(() => null);
+    // Camoufox(Firefox 기반)의 마우스 휠 이벤트는 요청한 delta를 그대로 스크롤하지 않고
+    // 한 번의 호출당 일정量(실측: viewport 743px 기준 약 493px)으로 잘라낸다 — 처음엔 이걸
+    // "애니메이션이 덜 끝나서 느리게 측정된다"는 타이밍 문제로 오인해 대기시간을 늘리는
+    // 방향으로 고쳤었는데, 실제로 Camoufox를 직접 띄워 반복 측정해보니 위치가 안정된 후에도
+    // 요청한 delta에 크게 못 미쳤다(1500 요청 → 493만 이동, 같은 호출을 반복하면 그만큼씩
+    // 더 이동) — 즉 시간이 아니라 "한 번에 스크롤되는 양" 자체가 부족한 것이었다. 화면
+    // 여러 개 높이(1000px+)를 스크롤해야 하는 경우 한 번의 호출로는 어림도 없어서, 목표
+    // 위치 근처에 도달할 때까지(또는 문서 끝에 막혀 더 이상 안 움직일 때까지) 남은 거리를
+    // 다시 계산해가며 반복 호출한다.
+    let scrollYAfter = scrollYBefore;
+    if (scrollYBefore != null) {
+      let remaining = requestedScroll;
+      let currentY = scrollYBefore;
+      for (let i = 0; i < 12 && Math.abs(remaining) > 20; i += 1) {
+        await page.mouse.wheel(0, remaining).catch(() => {});
+        await page.waitForTimeout(120);
+        // eslint-disable-next-line no-await-in-loop
+        const measured = await page.evaluate(() => window.scrollY).catch(() => currentY);
+        const moved = measured - currentY;
+        currentY = measured;
+        remaining -= moved;
+        if (Math.abs(moved) < 5) break; // 문서 끝 등으로 더 이상 안 움직이면 중단
+      }
+      scrollYAfter = currentY;
+    }
     if (scrollYBefore != null && scrollYAfter != null) {
       y -= scrollYAfter - scrollYBefore;
     }
