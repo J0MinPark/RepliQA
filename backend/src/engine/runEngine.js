@@ -444,6 +444,14 @@ async function runCheckpoint({
         const finishReason = plan.action?.finishReason || plan.finishReason;
         success = finishReason !== 'blocked';
         if (!success) failureReason = step.thought || '모델이 목표 달성이 불가능하다고 판단해 중단함';
+      } else if (plan.done) {
+        // 스키마상으로는 목표 달성 시 action.type도 "finish"로 같이 설정해야 하는데(위
+        // ACTION_SCHEMA_HINT), 모델이 done:true만 다른 action.type(예: click)에 붙이는
+        // 프로토콜 위반이 실제로 관측됐다(성균관대 QA 재현) — 이 경우도 done:true 자체가
+        // "목표를 달성했다"는 명시적 신호다(실패라면 애초에 done을 true로 안 뒀을 것이다).
+        // 이걸 무시하고 success를 false로 두면, 모델은 성공했다고 믿는데 체크포인트는
+        // "행동 예산 소진"으로 실패 처리되는 모순이 생긴다.
+        success = true;
       }
       // popupListener(context.on('page', ...))는 새 페이지가 생기는 즉시 activePage를
       // 갱신하지만, 그 타이밍은 이 루프와 완전히 비동기라 다음 캡처가 아직 안 바뀐 옛
