@@ -55,8 +55,15 @@ index를 대체하는 게 아니라, 화면이 복잡해서(요소가 많거나 
 좌표는 targetDescription을 바탕으로 별도 검증 단계가 다시 확인해준다. "목록의 이 인덱스가
 정확히 그 요소인지 확신이 안 선다"는 이유로 포기하거나(finish/blocked) 스크롤로 도망치지
 마라 — 스크린샷에 눈으로 보이는데 목록과 매칭이 안 된다고 느껴질 때일수록, 그 실패를
-피하려고 회피하는 게 아니라 가장 그럴듯한 index로 과감히 시도하는 쪽이 정답이다. 정말로
-스크린샷 어디에도 안 보일 때만 스크롤하거나 포기해라.
+피하려고 회피하는 게 아니라 가장 그럴듯한 index로 과감히 시도하는 쪽이 정답이다.
+
+목표에 필요한 요소가 지금 스크린샷 어디에도 안 보인다면(목록에도 없다면) 절대 바로
+finish(blocked)로 포기하지 마라 — 스크린샷은 지금 스크롤 위치의 화면(뷰포트)만 보여줄 뿐
+페이지 전체가 아니다. 아직 문서 끝까지 스크롤해보지 않았다면(direction:bottom으로
+내려봤다는 기록이 action_history에 없다면) 먼저 scroll(direction: down 또는 bottom)로
+최소 한두 번은 찾아본 뒤에 다시 판단해라. 이미 direction:bottom까지 스크롤했는데도(직전
+action_history로 확인 가능) 여전히 안 보일 때만 정말로 없는 것으로 보고 finish(blocked)로
+멈춰라.
 
 각 action.type 설명:
 - click: elementIndex 요소를 클릭
@@ -229,7 +236,7 @@ ${JSON.stringify(elements)}
 // 평가하는 역할이지 체크포인트 성패 판정은 별도 로직(runCheckpoint의 액션 루프+verify)의
 // 몫인데, 그 경계를 침범한 것이다. 프롬프트에서 "아직 시도 전"이라는 시점과 "성패 판단은
 // 하지 마라"를 명시해서 막는다.
-async function evaluateUiUx({ screenshotBase64, elements, objectiveFindings, checkpointGoal }) {
+async function evaluateUiUx({ screenshotBase64, elements, objectiveFindings, viewportClippedLabels, checkpointGoal }) {
   const model = getModel();
   const prompt = `너는 시니어 프론트엔드 개발자 겸 프로덕트 디자이너로서 아래 화면을 평가한다.
 ${checkpointGoal ? `참고: 사용자는 이제 곧 "${checkpointGoal}"를 시도할 예정이다. 이 스크린샷은 그 행동을 하기 전, 이 화면에 막 도착한 시점이다 — 아직 아무 행동도 하지 않았다. 이 목표를 이미 달성했는지/실패했는지는 절대 판단하지 마라. 그건 이 함수가 아니라 별도 로직이 실제 행동 실행 후에 판정한다. 여기서는 오직 지금 보이는 화면 자체의 시각적 품질(간격/명암/일관성/카피톤 등)만 평가해라 — "목표를 시도했지만 안 됐다" 같은 서술은 절대 쓰지 마라.\n` : ''}
@@ -239,6 +246,15 @@ ${UIUX_CHECKLIST}
 <objective_findings>
 ${JSON.stringify(objectiveFindings || [])}
 </objective_findings>
+${viewportClippedLabels && viewportClippedLabels.length > 0 ? `
+중요: 이 스크린샷은 지금 스크롤 위치의 화면(뷰포트)만 찍은 것이지 페이지 전체가 아니다.
+아래 텍스트를 포함한 요소들은 지금 화면 위/아래 경계에 걸쳐 있어서 스크린샷에서 잘려 보일
+뿐이다 — 실제로 CSS가 그 요소의 내용을 자르고 있는 게 아니라, 스크롤하면 전체가 다 보인다
+(saucedemo.com 실측: 상품 카드 설명이 뷰포트 경계에 걸려서 "텍스트가 잘려서 안 보인다"는
+오탐으로 이어졌던 사례). 아래 목록에 있는 요소를(혹은 그 요소를 담은 카드/블록을) "잘려서
+안 보인다/끝까지 읽을 수 없다/내용이 가려진다" 같은 문제로 보고하지 마라:
+${viewportClippedLabels.map((t) => `- "${t}"`).join('\n')}
+` : ''}
 
 <interactive_elements>
 ${JSON.stringify(elements)}

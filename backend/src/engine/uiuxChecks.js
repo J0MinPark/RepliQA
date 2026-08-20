@@ -1,6 +1,8 @@
 // LLM 없이 page.evaluate()만으로 계산 가능한 객관적·결정론적 UI/UX 체크.
 // evaluateUiUx()의 LLM 판단은 주관적일 수밖에 없는데, 이 체크들은 같은 화면에 대해
 // 항상 같은 결과가 나와야 하고("정확도 수치"로 팔 수 있는 부분) — 그래서 별도 모듈로 분리했다.
+// { findings, viewportClippedLabels }를 반환한다 — findings는 사용자에게 보여줄 확정된
+// 발견 목록, viewportClippedLabels는 evaluateUiUx가 오판하지 않도록 참고만 하는 메타 정보다.
 async function runObjectiveChecks(page) {
   return page.evaluate(() => {
     const findings = [];
@@ -229,6 +231,37 @@ async function runObjectiveChecks(page) {
       }
     }
 
+    // 7) 뷰포트 경계 잘림 후보 — evaluateUiUx(LLM)에게 넘길 참고 정보일 뿐 findings에는
+    // 안 넣는다(사용자에게 "문제"로 보여줄 게 아니라, LLM이 오판하지 않게 미리 알려주는
+    // 메타 정보). 스크린샷은 항상 지금 스크롤 위치의 뷰포트만 찍는데, 화면 아래(혹은 위)
+    // 경계에 걸쳐 있는 요소는 그 요소 자체의 CSS가 잘못돼서가 아니라 스크린샷 프레임 밖으로
+    // 내용이 이어질 뿐이다(saucedemo.com 실측: 상품 카드 설명이 뷰포트 800px 경계에 걸려서
+    // overflow:visible인데도 LLM이 "텍스트가 잘려서 안 보인다"고 오탐 — 실제로 스크롤하면
+    // 전체가 다 보임). 매 스크롤 위치마다 사실이 다르므로 매번 새로 계산한다.
+    // textEls(p/span/a/button 등)는 contrast/font-size 체크용으로 일부러 좁게 잡은 셀렉터라,
+    // 상품 설명처럼 <div>에 바로 텍스트가 들어있는 흔한 카드 레이아웃을 놓친다(실측:
+    // saucedemo.com의 .inventory_item_desc가 정확히 이 경우) — 여기서는 div까지 포함한
+    // 별도 셀렉터로 다시 훑는다.
+    const vh = window.innerHeight;
+    const clipCandidates = Array.from(document.querySelectorAll('p, div, span, a, button, h1, h2, h3, h4, h5, h6, label, li, td, th'))
+      .filter(hasOwnText)
+      .slice(0, 200);
+    const viewportClippedLabels = [];
+    const seenClipped = new Set();
+    for (const el of clipCandidates) {
+      if (viewportClippedLabels.length >= 8) break;
+      const rect = el.getBoundingClientRect();
+      const straddlesBottom = rect.top < vh && rect.bottom > vh + 4;
+      const straddlesTop = rect.bottom > 0 && rect.top < -4;
+      if (straddlesBottom || straddlesTop) {
+        const text = (el.textContent || '').trim().slice(0, 40);
+        if (text && !seenClipped.has(text)) {
+          seenClipped.add(text);
+          viewportClippedLabels.push(text);
+        }
+      }
+    }
+
     // 결과가 너무 많으면 노이즈가 되므로 카테고리별로 상한을 둔다.
     const capped = [];
     const perRuleCount = {};
@@ -236,7 +269,7 @@ async function runObjectiveChecks(page) {
       perRuleCount[f.rule] = (perRuleCount[f.rule] || 0) + 1;
       if (perRuleCount[f.rule] <= 5) capped.push(f);
     }
-    return capped;
+    return { findings: capped, viewportClippedLabels };
   });
 }
 

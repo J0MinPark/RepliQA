@@ -180,15 +180,17 @@ async function runCheckpoint({
   }
 
   const entryState = await captureState(page);
-  const objectiveFindings = await runObjectiveChecks(page).catch((err) => {
+  const objectiveResult = await runObjectiveChecks(page).catch((err) => {
     collectedErrors.push(`[UIUX Objective Check Error] ${err.message}`);
-    return [];
+    return { findings: [], viewportClippedLabels: [] };
   });
+  const objectiveFindings = objectiveResult.findings;
   const uiuxResult = await geminiAdapter
     .evaluateUiUx({
       screenshotBase64: entryState.screenshotBase64,
       elements: toPromptElements(entryState.elements),
       objectiveFindings,
+      viewportClippedLabels: objectiveResult.viewportClippedLabels,
       checkpointGoal: checkpoint.goal,
     })
     .catch((err) => {
