@@ -1,12 +1,15 @@
 services:
   - type: web
     name: repliqa-worker
-    runtime: node
+    runtime: docker
     plan: free
     rootDir: backend
-    buildCommand: npm install && npx camoufox-js fetch
-    startCommand: npm run start:worker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     healthCheckPath: /
+    # Xvfb+x11vnc(원격 브라우저 세션 캡처)를 쓰려면 Docker 런타임이 필수라 네이티브 Node
+    # 런타임(buildpack, apt 권한 없음)에서 전환했다 — Dockerfile 참고. PORT는 Render가
+    # Docker 런타임 web 서비스에도 자동으로 주입해준다(worker.js가 process.env.PORT를 읽음).
     envVars:
       - key: GEMINI_API_KEY
         sync: false
@@ -21,6 +24,11 @@ services:
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       - key: CREDENTIAL_ENCRYPTION_KEY
+        sync: false
+      # 세션 캡처 라우트(session-capture/*)가 이 워커에서 브라우저로부터 직접 호출되는
+      # 첫 프론트엔드-노출 엔드포인트라 CORS 허용 origin이 필요하다 — API 서버(Vercel)에
+      # 이미 설정된 값과 같은 프로덕션 프론트 도메인을 넣는다.
+      - key: FRONTEND_ORIGIN
         sync: false
       - key: WORKER_CONCURRENCY
         value: "1"

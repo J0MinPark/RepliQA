@@ -1,0 +1,10 @@
+node_modules
+npm-debug.log
+.env
+.git
+.vscode
+.idea
+.DS_Store
+scripts/webarena-bench/.auth
+scripts/webarena-bench/results
+scripts/self-benchmark

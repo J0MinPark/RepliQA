@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { api } from '../lib/api';
+import SessionCaptureModal from './SessionCaptureModal';
 
 // screenshotPath는 저장소 안 전체 경로(tenants/.../checkpoint-0-step-1.jpg)라, 백엔드가
 // 소유권을 확인해줄 수 있게 파일명(label)만 뽑아서 넘긴다 — 실제 서명 URL 발급은 백엔드가 한다
@@ -249,6 +250,7 @@ const RUN_SEVERITY_STYLE = {
 
 export default function TestRunProgress({ tenantId, runId, onReset, onGoToConnect }) {
   const [run, setRun] = useState(null);
+  const [showSessionCapture, setShowSessionCapture] = useState(false);
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'tenants', tenantId, 'testRuns', runId), (snap) => {
@@ -331,18 +333,26 @@ export default function TestRunProgress({ tenantId, runId, onReset, onGoToConnec
           {run.sessionExpired && (
             <div className="p-6 rounded-2xl border bg-amber-50 border-amber-200 flex items-start gap-4">
               <KeyRound className="text-amber-600 flex-shrink-0" size={24} />
-              <div>
+              <div className="flex-1">
                 <h3 className="font-bold text-amber-900 mb-1">캡처된 로그인 세션이 만료된 것으로 보입니다</h3>
                 <p className="text-amber-800 text-sm">
                   사이트 코드 문제가 아닙니다. 소셜 로그인(OAuth)은 자동화로 매번 다시 뚫을 수 없어서
-                  캡처해둔 세션으로 시작하는데, 지금 세션이 만료·무효화된 것으로 확인됐습니다.{' '}
-                  <code className="bg-white px-1.5 py-0.5 rounded border border-amber-200 text-xs">
-                    scripts/capture-session.js
-                  </code>
-                  로 세션을 다시 캡처한 뒤 재실행해주세요.
+                  캡처해둔 세션으로 시작하는데, 지금 세션이 만료·무효화된 것으로 확인됐습니다. 아래
+                  버튼으로 다시 로그인해서 세션을 저장한 뒤 재실행해주세요.
                 </p>
+                {run.registeredUrlId && (
+                  <button
+                    onClick={() => setShowSessionCapture(true)}
+                    className="mt-3 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold px-4 py-2 rounded-xl"
+                  >
+                    다시 로그인해서 세션 저장하기
+                  </button>
+                )}
               </div>
             </div>
+          )}
+          {showSessionCapture && run.registeredUrlId && (
+            <SessionCaptureModal urlId={run.registeredUrlId} onClose={() => setShowSessionCapture(false)} />
           )}
 
           {haltedCheckpoint && !run.sessionExpired && (

@@ -9,12 +9,15 @@
     "start:worker": "node src/worker/worker.js",
     "seed:personas": "node src/personas/seed.js",
     "record:route": "node scripts/recordRoute.js",
+    "webarena:login": "node scripts/webarena-bench/login.js",
+    "webarena:bench": "node scripts/webarena-bench/runBenchmark.js",
     "test": "node --test"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.117.1",
     "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.112.3",
     "camoufox-js": "^0.12.0",
@@ -26,6 +29,7 @@
     "helmet": "^8.0.0",
     "p-limit": "^3.1.0",
     "playwright": "^1.58.2",
+    "ws": "^8.21.3",
     "zod": "^3.24.1"
   }
 }

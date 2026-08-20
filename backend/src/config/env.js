@@ -37,8 +37,17 @@ const env = {
   // 미설정 시 기존처럼 Gemini가 고른 elementIndex를 그대로 쓴다 — 순수 추가 기능이라
   // 키가 없어도 동작은 그대로 유지됨.
   openRouterApiKey: process.env.OPENROUTER_API_KEY || null,
+  // 설정돼 있으면 generateReport(최종 리포트 작성)만 Claude로 돌린다(claudeAdapter.js) —
+  // 체크포인트당 1회만 호출되고 스크린샷도 안 들어가는 순수 텍스트 호출이라 비용 영향은
+  // 작지만, 매 스텝 호출되는 generateNextAction보다 추론 품질이 중요한 지점이라 여기만
+  // 골라 실험한다. 미설정 시 기존처럼 Gemini의 generateReport를 그대로 쓴다(runEngine.js).
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY || null,
   workerConcurrency: parseInt(process.env.WORKER_CONCURRENCY || '2', 10),
   workerPollIntervalMs: parseInt(process.env.WORKER_POLL_INTERVAL_MS || '3000', 10),
+  // 워커의 HTTP(세션 캡처 라우트 + VNC WS 프록시) 포트. Render에서는 PORT가 자동으로
+  // 주입되고, 로컬에서는 API 서버가 이미 PORT(기본 3001)를 쓰고 있어 워커는 별도로
+  // WORKER_PORT를 써야 두 프로세스를 동시에 띄울 수 있다(.env 주석 참고).
+  workerPort: parseInt(process.env.PORT || process.env.WORKER_PORT || '0', 10) || null,
   // 파일럿/고객 조사 단계 전용 우회 스위치. 지금 단계는 기본값을 true(검증 생략)로 둔다 —
   // 아는 사람 대상으로만 테스트하는 동안은 소유권 검증이 오히려 진입 장벽이라 잠시 꺼두고,
   // 외부 사용자에게 여는 시점엔 SKIP_OWNERSHIP_VERIFICATION=false로 반드시 되돌릴 것

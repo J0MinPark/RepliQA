@@ -13,8 +13,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { api } from '../lib/api';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+import SessionCaptureModal from './SessionCaptureModal';
 
 function CredentialsForm({ urlId, onSaved }) {
   const [open, setOpen] = useState(false);
@@ -332,58 +331,23 @@ function VerificationGuide({ fileUrl, fileContent }) {
   );
 }
 
-// 자동화가 Google 등 소셜 로그인 화면을 매번 뚫을 수는 없다 — 이건 우회가 아니라
-// RepliQA의 핵심 가치(자동화)를 위해 반드시 필요한 절차라, "설정 안 깊숙이" 대신
-// URL 등록 화면에서 바로 명령어까지 복사할 수 있게 노출해둔다.
-function SessionCaptureGuide({ url }) {
+// 자동화가 Google 등 소셜 로그인 화면을 매번 뚫을 수는 없다 — 사람이 딱 한 번 로그인하면
+// 그 세션을 저장해뒀다가 재사용한다. 예전엔 터미널에서 스크립트를 실행해야 했는데,
+// 이제는 서버가 대신 띄운 브라우저 화면을 모달 안에서 바로 보여줘서 설치/명령어 없이
+// 마우스로 로그인만 하면 된다(SessionCaptureModal.jsx).
+function SessionCaptureGuide({ url, onSaved }) {
   const [open, setOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const command = `node scripts/capture-session.js "${url.url}" ${url.id} <발급받은_API_키> ${API_BASE_URL}`;
 
-  const copy = () => {
-    navigator.clipboard.writeText(command);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  if (!open) {
-    return (
+  return (
+    <>
       <button
         onClick={() => setOpen(true)}
         className="text-xs text-slate-500 hover:text-brand-600 flex items-center gap-1 mt-2"
       >
-        <LogIn size={12} /> 소셜 로그인(OAuth) 세션 캡처 방법 보기 (선택)
+        <LogIn size={12} /> 소셜 로그인(OAuth)으로 로그인해서 세션 저장하기 (선택)
       </button>
-    );
-  }
-
-  return (
-    <div className="mt-2 bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-600 space-y-2">
-      <p>
-        Google 로그인처럼 자동화가 매번 뚫을 수 없는 로그인은, 사람이 딱 한 번 로그인하면 그
-        세션을 저장해뒀다가 재사용하는 방식으로 자동화합니다.
-      </p>
-      <ol className="list-decimal list-outside pl-4 space-y-1">
-        <li>API 키가 없다면 "Claude Code / Cursor 연동" 카드에서 먼저 발급받으세요.</li>
-        <li>backend 폴더에서 아래 명령을 실행하면 실제 브라우저 창이 뜹니다.</li>
-        <li>그 창에서 직접 로그인한 뒤, 터미널로 돌아와 Enter를 누르면 세션이 저장됩니다.</li>
-      </ol>
-      <div className="flex items-center gap-2">
-        <pre className="flex-1 bg-slate-900 text-slate-100 rounded-lg p-2.5 overflow-x-auto text-[11px]">
-          {command}
-        </pre>
-        <button
-          onClick={copy}
-          className="text-slate-500 hover:text-brand-600 flex-shrink-0 min-w-[32px] min-h-[32px] flex items-center justify-center rounded-lg hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-400"
-          title="복사"
-        >
-          {copied ? <Check size={14} /> : <Copy size={14} />}
-        </button>
-      </div>
-      <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-600">
-        접기
-      </button>
-    </div>
+      {open && <SessionCaptureModal urlId={url.id} onClose={() => setOpen(false)} onSaved={onSaved} />}
+    </>
   );
 }
 
@@ -519,7 +483,7 @@ export default function UrlRegistrationPanel({ urls, onRefresh }) {
                 소셜 로그인 세션이 저장되어 있어 로그인된 상태로 시작합니다.
               </p>
             ) : (
-              <SessionCaptureGuide url={u} />
+              <SessionCaptureGuide url={u} onSaved={onRefresh} />
             )}
           </li>
         ))}

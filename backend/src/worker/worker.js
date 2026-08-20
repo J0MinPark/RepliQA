@@ -1,4 +1,6 @@
 const http = require('http');
+const express = require('express');
+const cors = require('cors');
 const pLimit = require('p-limit');
 const env = require('../config/env');
 const { collections, admin } = require('../db/firestore');
@@ -8,6 +10,8 @@ const { decryptSecret } = require('../security/crypto');
 const { downloadEncryptedSession } = require('../engine/sessionStore');
 const { recordActionUsage } = require('../db/quota');
 const { SsrfViolationError } = require('../security/ssrfGuard');
+const sessionCaptureRoutes = require('./sessionCaptureRoutes');
+const { attachVncProxy } = require('../engine/remoteSessionProxy');
 
 // Kafka/SQS 없이, Firestore 문서 상태(queued→running→done|failed) + 트랜잭션 claim만으로
 // 큐를 구현한다. 이 워커는 stateless라 인스턴스를 여러 개 띄우면 그대로 수평 확장된다.
@@ -149,16 +153,22 @@ async function tick() {
 
 // Render 같은 PaaS의 무료 등급은 "Background Worker" 서비스 타입은 유료라, HTTP에 응답하는
 // "Web Service" 타입으로 띄워야 무료로 상시 실행할 수 있다. 실제 작업은 여전히 아래
-// setInterval 폴링 루프가 하고, 이 서버는 헬스체크·"깨어있는지" 확인용일 뿐이다.
-if (process.env.PORT) {
-  http
-    .createServer((req, res) => {
-      res.writeHead(200, { 'content-type': 'application/json' });
-      res.end(JSON.stringify({ ok: true, processing: processingIds.size }));
-    })
-    .listen(process.env.PORT, () => {
-      console.log(`   헬스체크 서버가 :${process.env.PORT} 에서 응답합니다.`);
-    });
+// setInterval 폴링 루프가 하고, 이 서버는 헬스체크와 원격 브라우저 세션 캡처(소셜 로그인)
+// 라우트를 맡는다 — 후자는 여러 요청에 걸쳐 살아있는 브라우저 프로세스를 들고 있어야 해서
+// Vercel 서버리스 API(src/api/server.js)에는 둘 수 없고, 영속 프로세스인 이 워커에만 둘 수
+// 있다.
+if (env.workerPort) {
+  const app = express();
+  app.use(cors({ origin: env.frontendOrigin, credentials: true }));
+  app.use(express.json({ limit: '1mb' }));
+  app.get('/', (req, res) => res.json({ ok: true, processing: processingIds.size }));
+  app.use(sessionCaptureRoutes);
+
+  const httpServer = http.createServer(app);
+  attachVncProxy(httpServer);
+  httpServer.listen(env.workerPort, () => {
+    console.log(`   워커 HTTP 서버가 :${env.workerPort} 에서 응답합니다(헬스체크 + 세션 캡처).`);
+  });
 }
 
 console.log(`🛠  RepliQA worker 시작 (concurrency=${env.workerConcurrency})`);

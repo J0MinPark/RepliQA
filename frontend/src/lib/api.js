@@ -1,13 +1,18 @@
 import { auth } from './firebase';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+// 세션 캡처(원격 브라우저)는 요청 사이에 브라우저 프로세스를 들고 있어야 해서 Vercel
+// 서버리스 API(BASE_URL)가 아니라 Render의 영속 워커 프로세스가 직접 맡는다 — 그래서
+// 별도 base URL이 필요하다. 로컬 개발은 워커가 API 서버와 다른 포트(WORKER_PORT, 기본
+// 3002)에서 뜬다.
+const WORKER_BASE_URL = import.meta.env.VITE_WORKER_BASE_URL || 'http://localhost:3002';
 
-async function apiFetch(path, { method = 'GET', body, forceRefreshToken = false } = {}) {
+async function doFetch(baseUrl, path, { method = 'GET', body, forceRefreshToken = false } = {}) {
   const user = auth.currentUser;
   if (!user) throw new Error('로그인이 필요합니다.');
   const token = await user.getIdToken(forceRefreshToken);
 
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(`${baseUrl}${path}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
@@ -22,6 +27,9 @@ async function apiFetch(path, { method = 'GET', body, forceRefreshToken = false 
   }
   return data;
 }
+
+const apiFetch = (path, opts) => doFetch(BASE_URL, path, opts);
+const workerFetch = (path, opts) => doFetch(WORKER_BASE_URL, path, opts);
 
 export const api = {
   bootstrapTenant: () => apiFetch('/api/tenants/bootstrap', { method: 'POST' }),
@@ -49,6 +57,12 @@ export const api = {
   getTestRun: (id) => apiFetch(`/api/test-runs/${id}`),
   getScreenshotUrl: (runId, label) => apiFetch(`/api/test-runs/${runId}/screenshots/${label}`),
   getUsageToday: () => apiFetch('/api/usage/today'),
+  startSessionCapture: (registeredUrlId) =>
+    workerFetch('/session-capture/start', { method: 'POST', body: { registeredUrlId } }),
+  finishSessionCapture: (captureId) => workerFetch(`/session-capture/${captureId}/finish`, { method: 'POST' }),
+  cancelSessionCapture: (captureId) => workerFetch(`/session-capture/${captureId}/cancel`, { method: 'POST' }),
+  saveTestSession: (urlId, storageState) =>
+    apiFetch(`/api/urls/${urlId}/test-session`, { method: 'PUT', body: { storageState } }),
 };
 
-export { apiFetch };
+export { apiFetch, workerFetch, WORKER_BASE_URL };
