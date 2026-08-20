@@ -83,23 +83,55 @@ function StepTimeline({ runId, steps }) {
 }
 
 const SEVERITY_STYLE = {
+  error: 'bg-red-50 border-red-200 text-red-800',
   warning: 'bg-amber-50 border-amber-200 text-amber-800',
   info: 'bg-slate-50 border-slate-200 text-slate-600',
 };
+
+const CATEGORY_LABEL = {
+  accessibility: '접근성',
+  layout: '레이아웃',
+  typography: '글자',
+  consistency: '일관성',
+  feedback: '피드백',
+  hierarchy: '시각적 강조',
+};
+
+// source: 'measured'는 실제 화면을 픽셀 단위로 재서 나온 확정된 사실이고, 'ai_judgment'는
+// AI가 스크린샷을 보고 내린 판단이라 상대적으로 덜 확실하다 — 사용자가 "이거 믿어도
+// 되나?"라고 직접 물어본 지점이라, 각 항목에 출처를 명시적으로 붙여서 보여준다.
+function SourceBadge({ source }) {
+  if (source === 'ai_judgment') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500">
+        AI 판단 · 참고용
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700">
+      측정됨
+    </span>
+  );
+}
 
 function UiuxFindings({ findings }) {
   if (!findings || findings.length === 0) return null;
   return (
     <div className="space-y-2">
       <p className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
-        <Eye size={13} /> UI/UX 검토 필요 ({findings.length})
+        <Eye size={13} /> 발견된 것 ({findings.length})
       </p>
       {findings.map((f, idx) => (
         <div
           key={idx}
           className={`text-xs border rounded-lg px-3 py-2 ${SEVERITY_STYLE[f.severity] || SEVERITY_STYLE.info}`}
         >
-          <span className="font-semibold">[{f.category}]</span> {f.detail || f.description}
+          <div className="flex items-center gap-1.5 mb-1">
+            <span className="font-semibold">{CATEGORY_LABEL[f.category] || f.category}</span>
+            <SourceBadge source={f.source} />
+          </div>
+          {f.message || f.detail || f.description}
         </div>
       ))}
     </div>
@@ -154,7 +186,10 @@ function VerifiedByBadge({ verifiedBy }) {
   return null;
 }
 
-function CheckpointSection({ runId, checkpoint }) {
+// showSteps=false로 쓰면 스크린샷·행동 로그(StepTimeline, 기술적) 없이 "무엇을 확인했고
+// 무엇을 찾았는지"만 남긴다 — 완료된 리포트에서 비개발자에게 필요한 만큼만 보여주기 위함.
+// 진행 중(running)에는 계속 showSteps=true로 전체를 보여준다.
+function CheckpointSection({ runId, checkpoint, showSteps = true }) {
   return (
     <div className="border border-slate-100 rounded-2xl p-5 bg-white">
       <div className={`flex items-center gap-2 ${checkpoint.status === 'failed' && checkpoint.failureReason ? 'mb-1' : 'mb-4'}`}>
@@ -170,11 +205,11 @@ function CheckpointSection({ runId, checkpoint }) {
         </p>
       )}
       {checkpoint.uiuxFindings?.length > 0 && (
-        <div className="mb-4">
+        <div className={showSteps ? 'mb-4' : ''}>
           <UiuxFindings findings={checkpoint.uiuxFindings} />
         </div>
       )}
-      <StepTimeline runId={runId} steps={checkpoint.steps} />
+      {showSteps && <StepTimeline runId={runId} steps={checkpoint.steps} />}
     </div>
   );
 }
@@ -350,6 +385,19 @@ export default function TestRunProgress({ tenantId, runId, onReset, onGoToConnec
               </div>
             );
           })()}
+
+          {/* 완료 후에도 체크포인트별로 "무엇을 확인했고 무엇을 찾았는지"가 남아있게 한다 —
+              예전엔 done 상태가 되면 위 요약 문장 1~2개만 남고 체크포인트별 상세가 통째로
+              사라져서, 여정 중간에 어디서 뭘 발견했는지 알 수 없었다. StepTimeline(스크린샷·
+              기술적 액션 로그)은 여전히 뺀다(showSteps=false) — 비개발자에게는 결과만 필요. */}
+          {checkpoints.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="font-bold text-slate-800 text-sm px-1">단계별로 확인한 내용</h3>
+              {checkpoints.map((c) => (
+                <CheckpointSection key={c.index} runId={runId} checkpoint={c} showSteps={false} />
+              ))}
+            </div>
+          )}
 
           {(run.severity || (run.summary?.totalErrors > 0 ? 'critical' : 'pass')) !== 'pass' && (
             <div className="bg-slate-900 rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

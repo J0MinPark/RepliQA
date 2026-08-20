@@ -19,7 +19,7 @@ const PERSONAS = [
   {
     id: 'standard',
     name: '표준 실행',
-    description: '돌발 행동 없이, 지시된 여정을 가장 정확하고 안정적인 경로로 그대로 수행하는 기본 모드',
+    description: '지시된 여정을 정확하고 안정적으로 수행하는 기본 모드',
     maxActions: 12,
     networkChaos: false,
     hidden: false,

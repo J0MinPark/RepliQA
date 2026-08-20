@@ -83,7 +83,9 @@ async function runObjectiveChecks(page) {
           category: 'accessibility',
           rule: 'contrast-ratio',
           severity: ratio < minRatio * 0.7 ? 'error' : 'warning',
-          detail: `명암비 ${ratio.toFixed(2)}:1 (WCAG AA 기준 ${minRatio}:1 미달) — "${text.slice(0, 30)}"`,
+          source: 'measured',
+          detail: `글자색과 배경색이 비슷해서 읽기 어려울 수 있어요 — "${text.slice(0, 30)}"`,
+          technicalDetail: `명암비 ${ratio.toFixed(2)}:1 (WCAG AA 기준 ${minRatio}:1 미달)`,
         });
       }
     }
@@ -99,7 +101,9 @@ async function runObjectiveChecks(page) {
           category: 'accessibility',
           rule: 'tap-target-size',
           severity: 'warning',
-          detail: `터치 타겟 ${Math.round(rect.width)}x${Math.round(rect.height)}px (권장 44x44px 미만) — "${(el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 30)}"`,
+          source: 'measured',
+          detail: `버튼/링크가 너무 작아서 손가락으로 누르기 어려울 수 있어요 — "${(el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 30)}"`,
+          technicalDetail: `터치 타겟 ${Math.round(rect.width)}x${Math.round(rect.height)}px (권장 44x44px 미만)`,
         });
       }
     }
@@ -110,7 +114,9 @@ async function runObjectiveChecks(page) {
         category: 'layout',
         rule: 'horizontal-overflow',
         severity: 'warning',
-        detail: `문서 너비(${document.documentElement.scrollWidth}px)가 뷰포트(${window.innerWidth}px)를 초과함`,
+        source: 'measured',
+        detail: '화면 폭보다 콘텐츠가 넓어서 옆으로 스크롤이 생겨요',
+        technicalDetail: `문서 너비(${document.documentElement.scrollWidth}px)가 뷰포트(${window.innerWidth}px)를 초과함`,
       });
     }
 
@@ -122,7 +128,9 @@ async function runObjectiveChecks(page) {
           category: 'accessibility',
           rule: 'missing-alt',
           severity: 'warning',
-          detail: `alt 속성이 없는 이미지: ${img.src?.slice(0, 60) || '(src 없음)'}`,
+          source: 'measured',
+          detail: '이미지에 설명이 없어서 화면을 못 보는 사용자는 무슨 이미지인지 알 수 없어요',
+          technicalDetail: `alt 속성이 없는 이미지: ${img.src?.slice(0, 60) || '(src 없음)'}`,
         });
       }
     }
@@ -137,7 +145,9 @@ async function runObjectiveChecks(page) {
           category: 'typography',
           rule: 'min-font-size',
           severity: 'info',
-          detail: `폰트 크기 ${fontSize}px (12px 미만) — "${text.slice(0, 30)}"`,
+          source: 'measured',
+          detail: `글자 크기가 너무 작아서 읽기 불편할 수 있어요 — "${text.slice(0, 30)}"`,
+          technicalDetail: `폰트 크기 ${fontSize}px (12px 미만)`,
         });
       }
     }
@@ -156,7 +166,8 @@ async function runObjectiveChecks(page) {
             category: 'accessibility',
             rule: 'focus-style-removed',
             severity: 'info',
-            detail: `키보드 포커스 시 시각적 표시가 없음 — "${(el.textContent || '').trim().slice(0, 30)}"`,
+            source: 'measured',
+            detail: `키보드로 이동했을 때 지금 어디에 있는지 표시가 안 보여요 — "${(el.textContent || '').trim().slice(0, 30)}"`,
           });
         }
         el.blur();

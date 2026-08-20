@@ -207,8 +207,17 @@ async function runCheckpoint({
   });
 
   if (onUiuxFindings) {
+    // 결정론적 체크(uiuxChecks.js, 실제 픽셀/DOM 측정)와 LLM 주관적 판단(evaluateUiUx,
+    // 스크린샷을 보고 내리는 판단)을 구분 없이 합쳐서 내보내면, 사용자가 어느 쪽을
+    // 믿어도 되는지 알 방법이 없다 — 필드명(detail vs description)도 서로 달라 프론트가
+    // 매번 `f.detail || f.description`으로 눈치껏 골라야 했다. 여기서 source를 명시적으로
+    // 붙이고 필드명을 message 하나로 통일해서 내보낸다.
+    const normalizedFindings = [
+      ...objectiveFindings.map((f) => ({ ...f, message: f.detail })),
+      ...(uiuxResult.findings || []).map((f) => ({ ...f, source: 'ai_judgment', message: f.description })),
+    ];
     await onUiuxFindings(checkpoint.index, {
-      findings: [...objectiveFindings, ...(uiuxResult.findings || [])],
+      findings: normalizedFindings,
       screenshotPath: entryScreenshotPath,
     });
   }
