@@ -824,7 +824,15 @@ async function runTest({
       // generateReport가 문맥(예상된 에러인지, 외부 요인인지)까지 판단해서 내리는 심각도다 —
       // "에러 개수가 1개 이상이면 무조건 크리티컬"보다 훨씬 객관적인 신호라 프론트 배너가
       // 이걸 우선 쓰고, 필드가 없을 때만 개수 기반으로 폴백한다.
-      severity: report.severity || (unexpectedErrors.length > 0 ? 'critical' : 'pass'),
+      //
+      // 단, 체크포인트가 막혀서(haltedAtCheckpoint) 여정을 끝까지 완료하지 못했는데
+      // severity만 'pass'로 나오는 모순을 실사이트 QA에서 실제로 확인했다(개별 에러들이
+      // 핵심 기능과 무관해 보인다는 이유로 LLM이 pass로 판단함) — reportPrompt.js에 프롬프트
+      // 지침을 추가했지만, "여정 미완료 = 통과 아님"은 LLM 판단에 맡기기엔 너무 명백한
+      // 논리적 불변식이라 여기서도 강제한다.
+      severity: haltedAtCheckpoint != null
+        ? (report.severity === 'critical' ? 'critical' : 'warning')
+        : report.severity || (unexpectedErrors.length > 0 ? 'critical' : 'pass'),
     };
   } finally {
     await browser.close();

@@ -50,19 +50,50 @@ async function runObjectiveChecks(page) {
       return (lighter + 0.05) / (darker + 0.05);
     }
 
+    // 스크린리더 전용 "본문 바로가기" 같은 스킵링크는 화면 밖(예: left:-9999px)으로
+    // 치워두는 게 정상 패턴이다 — 눈에 보이라고 만든 요소가 아닌데 "글자가 작다/터치하기
+    // 어렵다"고 지적하면 오탐이다. 성균관대 공지사항 페이지 실측에서 실제로 이 패턴이
+    // "버튼이 너무 작다"는 오탐을 냈다.
+    function isVisuallyHidden(rect, style) {
+      if (rect.left < -500 || rect.top < -500) return true;
+      if (style.clip === 'rect(0px, 0px, 0px, 0px)' || style.clipPath === 'inset(50%)') return true;
+      return false;
+    }
+
     function effectiveBackground(el) {
       let node = el;
       while (node) {
-        const bg = parseRgb(window.getComputedStyle(node).backgroundColor);
+        const style = window.getComputedStyle(node);
+        // 배경이 이미지(그라데이션 포함)면 computed backgroundColor만으로는 실제 렌더링된
+        // 배경을 알 수 없다 — 이 상태로 상위 노드의 색을 계속 찾아 올라가면 전혀 무관한
+        // 조상의 색을 "배경"으로 잘못 채택해 명암비를 그릇되게 계산한다(실측: 이미지 헤더
+        // 위 텍스트가 명암비 위반으로 오탐됨). 신뢰성 있게 잴 수 없다는 신호로 null을 반환해
+        // 호출부가 이 요소는 그냥 건너뛰게 한다.
+        if (style.backgroundImage && style.backgroundImage !== 'none') return null;
+        const bg = parseRgb(style.backgroundColor);
         if (bg && bg.a > 0) return bg;
         node = node.parentElement;
       }
       return { r: 255, g: 255, b: 255, a: 1 }; // 못 찾으면 흰 배경 가정
     }
 
+    // <li><a>ENG</a></li>처럼 컨테이너(li/td 등)가 실제 렌더링을 전부 자식 요소(a 등)에
+    // 위임하는 마크업이 흔하다 — 이 경우 li.textContent는 "ENG"지만 실제로 화면에 그
+    // 텍스트를 그리는 건 자식 a고, 둘의 color/fontSize가 다를 수 있다(예: a는 흰색인데
+    // li 자신의 상속 색은 회색). li를 leaf 텍스트처럼 취급해 자기 color로 명암비를 재면
+    // 실제로 아무도 안 보는 값을 잰 오탐이 나온다(실측: 성균관대 상단 "ENG" 링크에서
+    // li=1.3:1 위반 오탐 + 실제 렌더링되는 a=9.7:1 정상, 둘 다 같은 텍스트로 잡혀 중복
+    // 보고됨). 자기 자신의 직계 텍스트 노드가 있는 요소만 "실제로 이 요소가 그 글자를
+    // 그린다"고 보고 검사 대상으로 삼는다.
+    function hasOwnText(el) {
+      return Array.from(el.childNodes).some((n) => n.nodeType === 3 && n.textContent.trim().length > 0);
+    }
+
     // 1) 명암비 (WCAG AA)
     const textSelector = 'p, span, a, button, h1, h2, h3, h4, h5, h6, label, li, td, th';
-    const textEls = Array.from(document.querySelectorAll(textSelector)).slice(0, 80);
+    const textEls = Array.from(document.querySelectorAll(textSelector))
+      .filter(hasOwnText)
+      .slice(0, 80);
     for (const el of textEls) {
       const text = (el.textContent || '').trim();
       if (!text || text.length < 2) continue;
@@ -70,9 +101,11 @@ async function runObjectiveChecks(page) {
       if (rect.width === 0 || rect.height === 0) continue;
 
       const style = window.getComputedStyle(el);
+      if (isVisuallyHidden(rect, style)) continue; // 스킵링크 등 원래 안 보이는 요소는 제외
       const fg = parseRgb(style.color);
       if (!fg) continue;
       const bg = effectiveBackground(el);
+      if (!bg) continue; // 이미지 배경 등 신뢰성 있게 잴 수 없는 경우 건너뜀
       const ratio = contrastRatio(fg, bg);
       const fontSize = parseFloat(style.fontSize);
       const isLarge = fontSize >= 24 || (fontSize >= 18.66 && parseInt(style.fontWeight, 10) >= 700);
@@ -90,23 +123,13 @@ async function runObjectiveChecks(page) {
       }
     }
 
-    // 2) 터치 타겟 크기
+    // 2) 터치 타겟 크기 — WCAG 44x44px은 "손가락으로 터치"하는 모바일 기준인데, RepliQA는
+    // 지금 항상 고정된 데스크톱 뷰포트(1280x800)로만 렌더링해서 테스트한다(마우스 조작
+    // 전제). 성균관대 공지사항 페이지 실측에서 이 기준을 데스크톱 상단 유틸리티 링크
+    // (ENG, 발전기금 등)와 접근성 스킵링크에까지 그대로 적용해 오탐만 냈다 — 나중에
+    // 모바일 뷰포트 테스트 모드가 생기면 그때 다시 켠다.
     const interactiveSelector = 'button, a, input, [role="button"], [role="link"]';
     const interactiveEls = Array.from(document.querySelectorAll(interactiveSelector)).slice(0, 80);
-    for (const el of interactiveEls) {
-      const rect = el.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) continue;
-      if (rect.width < 44 || rect.height < 44) {
-        findings.push({
-          category: 'accessibility',
-          rule: 'tap-target-size',
-          severity: 'warning',
-          source: 'measured',
-          detail: `버튼/링크가 너무 작아서 손가락으로 누르기 어려울 수 있어요 — "${(el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 30)}"`,
-          technicalDetail: `터치 타겟 ${Math.round(rect.width)}x${Math.round(rect.height)}px (권장 44x44px 미만)`,
-        });
-      }
-    }
 
     // 3) 가로 스크롤
     if (document.documentElement.scrollWidth > window.innerWidth + 1) {
@@ -139,7 +162,10 @@ async function runObjectiveChecks(page) {
     for (const el of textEls) {
       const text = (el.textContent || '').trim();
       if (!text) continue;
-      const fontSize = parseFloat(window.getComputedStyle(el).fontSize);
+      const rect = el.getBoundingClientRect();
+      const style = window.getComputedStyle(el);
+      if (isVisuallyHidden(rect, style)) continue; // 스킵링크 등은 원래 안 보이므로 제외
+      const fontSize = parseFloat(style.fontSize);
       if (fontSize < 12) {
         findings.push({
           category: 'typography',

@@ -216,10 +216,12 @@ ${JSON.stringify(objectiveFindings || [])}
 ${JSON.stringify(elements)}
 </interactive_elements>
 
-명백한 문제만 findings로 반환해라. 문제가 없으면 빈 배열을 반환해라. description은 전문
-용어(간격 단위·그리드·타이포그래피 등 개발/디자인 업계 용어) 없이, 비개발자가 한 번 읽고
-바로 이해할 수 있는 평이한 말로 "무엇이 문제고 어디서 봤는지"를 써라 — 예를 들어 "여백이
-그리드에 안 맞음" 대신 "버튼 사이 간격이 화면마다 들쭉날쭉해요"처럼 눈에 보이는 대로 써라.
+명백한 문제만 findings로 반환해라. 실제로는 정상 사이트 대부분이 findings 0~1개가 맞다 —
+6개 카테고리를 다 채우려 하지 마라. 확신이 서지 않으면(이게 진짜 문제인지 스타일 취향인지
+애매하면) 넣지 말고 빈 배열에 가깝게 반환해라. description은 전문 용어(간격 단위·그리드·
+타이포그래피 등 개발/디자인 업계 용어) 없이, 비개발자가 한 번 읽고 바로 이해할 수 있는
+평이한 말로 "무엇이 문제고 어디서 봤는지"를 써라 — 예를 들어 "여백이 그리드에 안 맞음"
+대신 "버튼 사이 간격이 화면마다 들쭉날쭉해요"처럼 눈에 보이는 대로 써라.
 {
   "findings": [
     { "category": "consistency|layout|feedback|typography|hierarchy", "severity": "info" | "warning", "description": "쉬운 말로 쓴 구체적인 문제와 위치" }
