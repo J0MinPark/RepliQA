@@ -56,6 +56,35 @@ function extractInteractiveElements(max) {
   }
   const nodes = [];
   collectDeep(document, nodes);
+
+  // 시맨틱 태그(button/a/input 등)도 role 속성도 없이 CSS와 JS 이벤트 리스너만으로 클릭
+  // 가능하게 만든 div/span/li 같은 "커스텀 클릭 요소"는 위 셀렉터에 전혀 안 걸린다 — 캡처
+  // 대상 목록에 아예 없으니 모델이 그 요소를 가리킬 elementIndex 자체를 낼 수 없다(실측:
+  // freemockinterview.com의 자동완성 추천 항목이 <div class="profile-result-item">라서,
+  // 검색어를 입력하는 것까지는 됐지만 추천 항목을 선택할 방법이 아예 없었다 — "화면에
+  // 보이는데 목록에 없다"는 이전과는 다른 새로운 종류의 실패). cursor:pointer는 "이건
+  // 클릭하라고 만든 요소"라는 사실상 표준 신호라, 이미 잡힌 요소의 조상이나 자손이
+  // 아닌 것만 추가로 주워 담는다 — 안 그러면 같은 클릭 대상이 여러 겹으로 중복돼 더
+  // 헷갈린다.
+  const capturedSet = new Set(nodes);
+  function overlapsCaptured(el) {
+    let p = el.parentElement;
+    while (p) {
+      if (capturedSet.has(p)) return true;
+      p = p.parentElement;
+    }
+    return nodes.some((n) => el.contains(n));
+  }
+  const pointerCandidates = Array.from(document.querySelectorAll('div, span, li, td')).slice(0, 800);
+  for (const el of pointerCandidates) {
+    if (capturedSet.has(el) || nodes.length >= 300) break;
+    if (el.children.length > 3) continue; // 자식이 많은 큰 컨테이너는 클릭 "요소"가 아니라 레이아웃일 가능성이 높음
+    if (overlapsCaptured(el)) continue;
+    if (window.getComputedStyle(el).cursor !== 'pointer') continue;
+    nodes.push(el);
+    capturedSet.add(el);
+  }
+
   const items = [];
   for (const el of nodes) {
     const rect = el.getBoundingClientRect();
