@@ -98,13 +98,25 @@ async function generateNextAction({
   history,
   stepNumber,
   maxActions,
+  startUrl,
+  currentUrl,
 }) {
   const model = getModel();
   const goalBlock = checkpointGoal
     ? `\n너의 현재 목표(체크포인트): "${checkpointGoal}"\n목표와 무관한 행동은 하지 마라. finish로 멈출 때는 반드시 finishReason으로 성공/실패를 구분해라.\n`
     : '';
+  // 사용자는 "주문 300번" 같은 ID나 정확한 버튼 이름을 안 알려주는 게 보통이다(비개발자
+  // 대상 제품이라 애초에 그런 걸 모른다) — 그래서 "시작 지점과 같은 대상인지"를 사용자
+  // 입력이 아니라 엔진이 이미 아는 시작/현재 URL만으로 매 스텝 스스로 점검하게 한다.
+  // WebArena 538번(주문 주소 수정) 실측 재현에서, 그라운딩 실수로 엉뚱한 "재주문" 버튼을
+  // 눌러 새 주문이 만들어졌는데도 원래 대상을 수정했다고 착각한 사례를 직접 확인했다.
+  // "직전 스텝 URL"과 비교하는 버전도 시도했지만 재검증에서 오히려 더 안 좋았다(538
+  // 3회 전부 실패 vs 이 버전 3회 중 1회 성공) — 실측 결과를 따라 이 버전으로 유지한다.
+  const urlBlock = startUrl
+    ? `\n<page_context>\n체크포인트 시작 시점 URL: ${startUrl}\n현재 URL: ${currentUrl}\n</page_context>\n`
+    : '';
   const prompt = `${personaPrompt}
-${goalBlock}
+${goalBlock}${urlBlock}
 너는 지금 이 웹페이지에서 ${stepNumber}/${maxActions} 번째 행동을 결정해야 한다.
 스크린샷과 아래 인터랙티브 요소 목록(좌표 포함)을 보고 판단해라.
 
@@ -126,6 +138,18 @@ result가 "success"인데도(엔진이 클릭/입력 자체는 정상 실행했�
 바뀌지 않는다면(no_change가 연달아 나오면) 예산을 다 쓸 때까지 반복하지 말고, 몇 초 기다려도
 안 바뀌는지 한 번만 wait로 확인한 뒤 finish(blocked)로 멈추고 thought에 "no_change가
 반복됨"을 명확히 남겨라.
+
+목표 지점(특정 게시판/카테고리/메뉴 등)으로 이동해야 할 때는, 검색 기능보다 사이트에 이미
+있는 메뉴·사이드바·카테고리 링크를 먼저 찾아서 써라 — 검색은 결과 페이지에 그 위치 고유의
+기능(정렬·필터 등)이 없는 경우가 많아 오히려 더 헤매게 된다. 직접 링크가 화면에 안 보일
+때만 검색을 마지막 수단으로 써라.
+
+finish로 "목표를 달성했다"고 판단하기 전에, 위 page_context의 현재 URL이 시작 시점 URL과
+같은 대상을 가리키는지 다시 확인해라. 이미 특정 항목(주문/게시물/상품 등)을 보고 있다가
+그걸 수정하는 게 목표였는데, 중간에 (의도치 않게) 새 항목이 만들어지거나 다른 항목으로
+넘어가서 그걸 대신 손댔다면 — 목표가 명시적으로 "새로 만들어달라"는 게 아닌 이상 이건
+실패다. URL의 ID나 경로 조각이 시작 시점과 달라져 있다면 특히 의심하고, 정말 같은
+대상인지 화면 내용으로도 한 번 더 확인해라.
 
 ${ACTION_SCHEMA_HINT}`;
 

@@ -251,6 +251,15 @@ async function runCheckpoint({
   let stepInCheckpoint = 0;
   const history = [];
   const steps = [];
+  // 538번 WebArena 태스크(주문 주소 수정) 실측 재현에서 확인한 문제: 사용자가 대상을
+  // ID로 안 짚어줘도(비개발자 사용자는 원래 그렇게 안 씀) "시작할 때 보던 대상"과
+  // "끝날 때 실제로 손댄 대상"이 슬쩍 달라지는 경우가 있었다(그라운딩 실수로 "재주문"
+  // 버튼을 눌러 새 주문이 만들어졌는데도 성공이라 자기판단). 사용자 입력에 의존하지
+  // 않고 엔진이 이미 아는 정보(시작 시점 URL)만으로 매 스텝 자기 확인을 시킨다.
+  // "직전 스텝 URL"과 비교하는 버전도 시도해봤는데(538 재검증 3회 전부 실패, 시작
+  // URL 버전은 3회 중 1회 성공) 오히려 더 안 좋아서 이 버전으로 되돌렸다 — 재현
+  // 검증 결과, 이 문제는 프롬프트 몇 줄로 안정적으로 고쳐지는 종류가 아니라는 뜻.
+  const checkpointStartUrl = activePage.url();
 
   try {
     while (!done && stepInCheckpoint < maxActionsPerCheckpoint) {
@@ -310,6 +319,8 @@ async function runCheckpoint({
         history,
         stepNumber: stepInCheckpoint,
         maxActions: maxActionsPerCheckpoint,
+        startUrl: checkpointStartUrl,
+        currentUrl: activePage.url(),
       });
 
       await groundActionIfNeeded(activePage, plan.action, state.screenshotBase64, state.elements);
