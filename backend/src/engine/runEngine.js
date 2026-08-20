@@ -369,6 +369,7 @@ async function runCheckpoint({
       }
 
       const activePageBeforeAction = activePage;
+      const urlBeforeAction = activePageBeforeAction.url();
       const pagesCountBeforeAction = context.pages().length;
       const isClickTypeAction = plan.action?.type === 'click' || plan.action?.type === 'rapid_click';
 
@@ -486,6 +487,22 @@ async function runCheckpoint({
         await activePage.waitForTimeout(500);
       } else {
         await activePage.waitForTimeout(300);
+      }
+
+      // automationexercise.com 실사용 검증에서 실제로 재현: 클릭이 정상 실행되고 페이지
+      // URL도 실제로 바뀌었는데(예: /test_cases로 이동), 모델이 다음 스크린샷만 보고
+      // previousActionEffect를 "no_change"로 잘못 판정해 "링크가 안 눌린다"는 오탐을 냈다.
+      // URL 변경 여부는 엔진이 즉시, 100% 확정적으로 알 수 있는 사실이라(스크린샷 비교
+      // 같은 추측이 필요 없음) — 이미 push된 history 항목에 이 사실을 덧붙여서, 모델이
+      // 다음 스텝에서 스스로 "변화 없음"이라고 재추측하기 전에 확정된 근거로 바로잡는다.
+      if (isClickTypeAction && execResult.ok) {
+        const urlAfterAction = activePage.url();
+        if (urlAfterAction !== urlBeforeAction) {
+          const last = history[history.length - 1];
+          if (last) {
+            last.result += ` [엔진 확인: 이 행동 직후 페이지 URL이 실제로 바뀌었습니다(${urlBeforeAction} → ${urlAfterAction}) — 화면이 그대로처럼 보여도 이동이 일어난 게 확실합니다]`;
+          }
+        }
       }
     }
   } finally {
