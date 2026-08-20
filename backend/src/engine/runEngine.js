@@ -482,9 +482,20 @@ async function runCheckpoint({
           activePage = openPages[openPages.length - 1];
         }
       }
+      // saucedemo.com "장바구니 아이콘 클릭" 재현에서 확인한 문제: 새 탭이 아니라 같은 탭
+      // 안에서 URL만 바뀌는 SPA 클라이언트 라우팅(React Router 등)은 위 팝업 감지에도, 아래
+      // "다른 Page 객체로 전환됨" 조건에도 안 걸려서 그냥 300ms만 기다리고 다음 스텝의
+      // 스크린샷(다음 루프의 captureState)을 찍었다 — 전환 렌더링이 아직 안 끝난 화면을
+      // 찍어 모델이 "장바구니 페이지로 안 넘어갔다"고 오판하는 원인이 됐다. domcontentloaded는
+      // SPA 라우팅에서는 애초에 안 뜨는 경우가 많아 짧은 타임아웃만 걸고, 대신 정착
+      // 대기시간을 늘린다.
+      const navigatedSamePage = activePage === activePageBeforeAction && activePage.url() !== urlBeforeAction;
       if (activePage !== activePageBeforeAction) {
         await activePage.waitForLoadState('domcontentloaded', { timeout: 15000 }).catch(() => {});
         await activePage.waitForTimeout(500);
+      } else if (navigatedSamePage) {
+        await activePage.waitForLoadState('domcontentloaded', { timeout: 2000 }).catch(() => {});
+        await activePage.waitForTimeout(700);
       } else {
         await activePage.waitForTimeout(300);
       }

@@ -117,14 +117,49 @@ function SourceBadge({ source }) {
   );
 }
 
+// 같은 종류의 문제가 요소마다(예: 라벨 없는 버튼 3개) 또는 체크포인트마다(모든 페이지에
+// 있는 헤더/푸터) 한 줄씩 따로 찍혀서 거의 똑같은 내용이 반복되는 게 실제 사용자 피드백으로
+// 확인됐다 — "키보드 포커스 표시 없음"이 대상 요소만 다른 채 여러 번, "글자가 작다"가
+// 페이지마다 또 한 번. message는 보통 `설명 — "구체적 텍스트"` 형태라, 뒤의 인용구만 떼어
+// 같은 설명(source+category+rule+base)끼리 묶고 인용구들을 합친다.
+function groupFindings(findings) {
+  if (!findings || findings.length === 0) return [];
+  const groups = new Map();
+  findings.forEach((f) => {
+    const raw = (f.message || f.detail || f.description || '').trim();
+    const m = raw.match(/^(.*?)\s*—\s*"([^"]*)"\s*$/s);
+    const base = m ? m[1].trim() : raw;
+    const quoted = m ? m[2].trim() : '';
+    const key = `${f.source || ''}|${f.category || ''}|${f.rule || ''}|${base}`;
+    if (!groups.has(key)) groups.set(key, { ...f, base, quoted: [], count: 0 });
+    const g = groups.get(key);
+    g.count += 1;
+    if (quoted && !g.quoted.includes(quoted)) g.quoted.push(quoted);
+  });
+  return Array.from(groups.values()).map((g) => {
+    let text = g.base;
+    if (g.quoted.length === 1) {
+      text += ` — "${g.quoted[0]}"`;
+    } else if (g.quoted.length > 1) {
+      const shown = g.quoted.slice(0, 4).map((q) => `"${q}"`).join(', ');
+      const more = g.quoted.length > 4 ? ` 외 ${g.quoted.length - 4}곳` : '';
+      text += ` — ${shown}${more}`;
+    } else if (g.count > 1) {
+      text += ` (${g.count}곳)`;
+    }
+    return { ...g, message: text };
+  });
+}
+
 function UiuxFindings({ findings }) {
-  if (!findings || findings.length === 0) return null;
+  const grouped = groupFindings(findings);
+  if (grouped.length === 0) return null;
   return (
     <div className="space-y-2">
       <p className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
-        <Eye size={13} /> 발견된 것 ({findings.length})
+        <Eye size={13} /> 발견된 것 ({grouped.length})
       </p>
-      {findings.map((f, idx) => (
+      {grouped.map((f, idx) => (
         <div
           key={idx}
           className={`text-xs border rounded-lg px-3 py-2 ${SEVERITY_STYLE[f.severity] || SEVERITY_STYLE.info}`}
@@ -133,7 +168,7 @@ function UiuxFindings({ findings }) {
             <span className="font-semibold">{CATEGORY_LABEL[f.category] || f.category}</span>
             <SourceBadge source={f.source} />
           </div>
-          {f.message || f.detail || f.description}
+          {f.message}
         </div>
       ))}
     </div>
@@ -240,13 +275,18 @@ function PrintableReport({ run, checkpoints }) {
   const confirmedFailures = checkpoints.filter((c) => c.status === 'failed' && isConfirmedCheckpointFailure(c));
   const estimatedFailures = checkpoints.filter((c) => c.status === 'failed' && !isConfirmedCheckpointFailure(c));
 
-  const measuredFindings = [];
-  const aiFindings = [];
+  const rawMeasuredFindings = [];
+  const rawAiFindings = [];
   checkpoints.forEach((c) => {
     (c.uiuxFindings || []).forEach((f) => {
-      (f.source === 'ai_judgment' ? aiFindings : measuredFindings).push({ ...f, checkpoint: c });
+      (f.source === 'ai_judgment' ? rawAiFindings : rawMeasuredFindings).push({ ...f, checkpoint: c });
     });
   });
+  // 같은 문제가 페이지마다(헤더/푸터처럼 모든 체크포인트에 공통으로 있는 요소) 중복
+  // 보고되는 걸 리포트 전체 기준으로 한 번 더 묶는다 — 체크포인트 단위 그룹핑
+  // (UiuxFindings)만으로는 체크포인트 사이의 중복까지는 못 잡는다.
+  const measuredFindings = groupFindings(rawMeasuredFindings);
+  const aiFindings = groupFindings(rawAiFindings);
 
   const hasConfirmedErrorFinding = measuredFindings.some((f) => f.severity === 'error');
   let severity = 'pass';

@@ -57,7 +57,31 @@ async function runObjectiveChecks(page) {
     function isVisuallyHidden(rect, style) {
       if (rect.left < -500 || rect.top < -500) return true;
       if (style.clip === 'rect(0px, 0px, 0px, 0px)' || style.clipPath === 'inset(50%)') return true;
+      if (style.visibility === 'hidden' || parseFloat(style.opacity) === 0) return true;
+      // saucedemo.com 실측: 아이콘 버튼(햄버거 메뉴, 소셜 아이콘)이 font-size:0으로 자기
+      // 텍스트를 렌더링 크기 0으로 만들고 대신 아이콘(SVG/배경이미지)을 보여주는 패턴을
+      // 쓴다 — 요소 자신의 rect(버튼 크기)는 정상이라 위 체크로는 안 잡히지만, 글자는
+      // 렌더링 자체가 안 되므로 "너무 작아서 읽기 불편"이 아니라 애초에 안 보이는 글자다.
+      if (parseFloat(style.fontSize) === 0) return true;
+      // 스크린리더 전용 텍스트의 또 다른 흔한 패턴: width/height를 1px로 줄이고
+      // overflow:hidden으로 가리는 sr-only 기법. rect.left/top은 정상 범위라 위 체크로는
+      // 안 잡힌다.
+      if (style.overflow === 'hidden' && rect.width <= 1 && rect.height <= 1) return true;
+      // 아이콘 교체 기법: text-indent를 크게 음수로 줘서 실제 글자만 박스 밖으로 밀어내고
+      // background-image로 아이콘을 보여주는 패턴(automationexercise.com 소셜 아이콘
+      // "Twitter"/"Facebook"/"LinkedIn"에서 실측: rect 자체는 정상 크기·위치라 위 rect.left
+      // 체크로는 안 걸렸고, "글자가 너무 작다" 오탐으로 이어졌다).
+      if (style.overflow === 'hidden' && parseFloat(style.textIndent) <= -500) return true;
       return false;
+    }
+
+    // focus-style-removed/contrast-ratio/min-font-size 공통: 요소에 실제로 보이는 라벨이
+    // 없으면(아이콘 전용 버튼 등) el.textContent가 빈 문자열이라 `— ""`처럼 의미 없는
+    // 꼬리가 붙는다. aria-label을 우선 쓰고, 그마저 없으면 라벨 자체를 생략한다.
+    function labelFor(el) {
+      const aria = (el.getAttribute && el.getAttribute('aria-label')) || '';
+      const text = (el.textContent || '').trim();
+      return (aria || text).trim();
     }
 
     function effectiveBackground(el) {
@@ -188,12 +212,15 @@ async function runObjectiveChecks(page) {
         const noOutline = style.outlineStyle === 'none' || style.outlineWidth === '0px';
         const noBoxShadow = style.boxShadow === 'none';
         if (document.activeElement === el && noOutline && noBoxShadow) {
+          const label = labelFor(el).slice(0, 30);
           findings.push({
             category: 'accessibility',
             rule: 'focus-style-removed',
             severity: 'info',
             source: 'measured',
-            detail: `키보드로 이동했을 때 지금 어디에 있는지 표시가 안 보여요 — "${(el.textContent || '').trim().slice(0, 30)}"`,
+            detail: label
+              ? `키보드로 이동했을 때 지금 어디에 있는지 표시가 안 보여요 — "${label}"`
+              : '키보드로 이동했을 때 지금 어디에 있는지 표시가 안 보여요',
           });
         }
         el.blur();
