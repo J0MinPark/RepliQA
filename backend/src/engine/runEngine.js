@@ -214,9 +214,13 @@ async function runCheckpoint({
     // 믿어도 되는지 알 방법이 없다 — 필드명(detail vs description)도 서로 달라 프론트가
     // 매번 `f.detail || f.description`으로 눈치껏 골라야 했다. 여기서 source를 명시적으로
     // 붙이고 필드명을 message 하나로 통일해서 내보낸다.
+    // AI 판단(evaluateUiUx)은 스크린샷만 보고 판단해서 자기가 어느 URL을 보고 있는지
+    // 모른다 — measured 쪽처럼 "어느 페이지에서 발견됐는지"가 리포트에 안 남으면 비개발자는
+    // 뭘 고쳐야 할지 알 방법이 없다는 피드백에 따라, 엔진이 이미 아는 진입 시점 URL을
+    // 여기서 붙여준다.
     const normalizedFindings = [
       ...objectiveFindings.map((f) => ({ ...f, message: f.detail })),
-      ...(uiuxResult.findings || []).map((f) => ({ ...f, source: 'ai_judgment', message: f.description })),
+      ...(uiuxResult.findings || []).map((f) => ({ ...f, source: 'ai_judgment', message: f.description, url: entryState.url })),
     ];
     await onUiuxFindings(checkpoint.index, {
       findings: normalizedFindings,

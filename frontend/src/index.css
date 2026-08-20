@@ -146,6 +146,7 @@
   vertical-align: top;
 }
 .print-report table.print-table td.col-source { white-space: nowrap; color: #6b6b7d; }
+.print-report table.print-table td.col-location { color: #6b6b7d; font-size: 10.5px; max-width: 220px; word-break: break-word; }
 .print-report .print-empty {
   font-size: 12px;
   color: #9a9aac;

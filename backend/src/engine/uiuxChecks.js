@@ -38,7 +38,15 @@ async function runObjectiveChecks(page) {
     function labelFor(el) {
       const aria = (el.getAttribute && el.getAttribute('aria-label')) || '';
       const text = (el.textContent || '').trim();
-      return (aria || text).trim();
+      if (aria || text) return (aria || text).trim();
+      // 아이콘만 있고 접근성 이름도 텍스트도 없는 버튼/링크(예: 순수 SVG 햄버거 메뉴
+      // 버튼)는 라벨이 완전히 비어서, 같은 규칙 위반이 여러 개면 전부 구분 불가능한
+      // "빈 라벨"로만 잡혔다 — href나 title 등 남은 단서로라도 최소한의 구분자를 만든다.
+      const title = (el.getAttribute && el.getAttribute('title')) || '';
+      if (title) return title.trim();
+      const href = el.tagName === 'A' ? el.getAttribute('href') : '';
+      if (href && href !== '#') return `링크(${href.slice(0, 30)})`;
+      return '';
     }
 
     // <li><a>ENG</a></li>처럼 컨테이너(li/td 등)가 실제 렌더링을 전부 자식 요소(a 등)에
@@ -51,6 +59,26 @@ async function runObjectiveChecks(page) {
     // 그린다"고 보고 검사 대상으로 삼는다.
     function hasOwnText(el) {
       return Array.from(el.childNodes).some((n) => n.nodeType === 3 && n.textContent.trim().length > 0);
+    }
+
+    // 사용자 피드백: "외 N곳"처럼 개수로 뭉뚱그리면 비개발자는 실제로 어디가 문제인지
+    // 알 방법이 없다 — 리포트가 존재하는 이유 자체가 "뭘 고쳐야 하는지 알려주는 것"인데,
+    // 개수만 남기고 위치를 숨기면 그 목적을 못 한다. 모든 finding에 "지금 이 화면의 URL"을
+    // 붙여서, 프론트가 같은 종류의 문제를 묶어 보여줄 때도 페이지별·요소별로 전부 나열할
+    // 수 있게 한다.
+    const pageUrl = window.location.href;
+
+    // 이미지에는 focus-style-removed처럼 화면에 보이는 텍스트 라벨이 없어서, 여러 개의
+    // alt 누락 이미지가 있으면 전부 "이미지에 설명이 없어요"라는 동일한 문장으로만 잡혀
+    // 서로 구분이 안 됐다 — 파일명을 라벨 삼아 최소한의 구분자로 쓴다.
+    function imageLabel(img) {
+      try {
+        const src = img.currentSrc || img.src || '';
+        const clean = decodeURIComponent(src.split('?')[0].split('/').pop() || '');
+        return clean ? clean.slice(0, 40) : '이미지';
+      } catch {
+        return '이미지';
+      }
     }
 
     // 명암비(contrast-ratio) 체크는 의도적으로 제거했다 — samsung.com 등 실제 대기업
@@ -78,6 +106,7 @@ async function runObjectiveChecks(page) {
         rule: 'horizontal-overflow',
         severity: 'warning',
         source: 'measured',
+        url: pageUrl,
         detail: '화면 폭보다 콘텐츠가 넓어서 옆으로 스크롤이 생겨요',
         technicalDetail: `문서 너비(${document.documentElement.scrollWidth}px)가 뷰포트(${window.innerWidth}px)를 초과함`,
       });
@@ -92,7 +121,8 @@ async function runObjectiveChecks(page) {
           rule: 'missing-alt',
           severity: 'warning',
           source: 'measured',
-          detail: '이미지에 설명이 없어서 화면을 못 보는 사용자는 무슨 이미지인지 알 수 없어요',
+          url: pageUrl,
+          detail: `이미지에 설명이 없어서 화면을 못 보는 사용자는 무슨 이미지인지 알 수 없어요 — "${imageLabel(img)}"`,
           technicalDetail: `alt 속성이 없는 이미지: ${img.src?.slice(0, 60) || '(src 없음)'}`,
         });
       }
@@ -112,6 +142,7 @@ async function runObjectiveChecks(page) {
           rule: 'min-font-size',
           severity: 'info',
           source: 'measured',
+          url: pageUrl,
           detail: `글자 크기가 너무 작아서 읽기 불편할 수 있어요 — "${text.slice(0, 30)}"`,
           technicalDetail: `폰트 크기 ${fontSize}px (12px 미만)`,
         });
@@ -121,6 +152,11 @@ async function runObjectiveChecks(page) {
     // 6) 포커스 스타일 제거 — 브라우저 기본 포커스 링은 :focus 상태에서만 나타나므로,
     // 실제로 focus()를 호출해서 그 순간의 computed style을 봐야 한다(안 그러면 모든
     // 버튼이 "포커스 스타일 없음"으로 오탐된다).
+    // href="#"만 있고 텍스트도 없는 아이콘 버튼이 한 페이지에 여러 개(햄버거 메뉴, 검색
+    // 아이콘 등)면 labelFor()가 전부 똑같이 빈 라벨이나 "링크(#)"를 돌려줘서, 서로 다른
+    // 요소인데도 그룹핑 단계에서 하나로 뭉쳐 보였다 — 같은 라벨이 이미 나온 요소를
+    // 만나면 몇 번째 등장인지를 덧붙여서라도 구분할 수 있게 한다.
+    const seenFocusLabels = new Map();
     for (const el of interactiveEls.slice(0, 30)) {
       try {
         el.focus({ preventScroll: true });
@@ -128,12 +164,18 @@ async function runObjectiveChecks(page) {
         const noOutline = style.outlineStyle === 'none' || style.outlineWidth === '0px';
         const noBoxShadow = style.boxShadow === 'none';
         if (document.activeElement === el && noOutline && noBoxShadow) {
-          const label = labelFor(el).slice(0, 30);
+          let label = labelFor(el).slice(0, 30);
+          const seenCount = seenFocusLabels.get(label || '(empty)') || 0;
+          seenFocusLabels.set(label || '(empty)', seenCount + 1);
+          if (seenCount > 0) {
+            label = label ? `${label} #${seenCount + 1}` : `${el.tagName.toLowerCase()} 버튼 #${seenCount + 1}`;
+          }
           findings.push({
             category: 'accessibility',
             rule: 'focus-style-removed',
             severity: 'info',
             source: 'measured',
+            url: pageUrl,
             detail: label
               ? `키보드로 이동했을 때 지금 어디에 있는지 표시가 안 보여요 — "${label}"`
               : '키보드로 이동했을 때 지금 어디에 있는지 표시가 안 보여요',

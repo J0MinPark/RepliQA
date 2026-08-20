@@ -117,11 +117,27 @@ function SourceBadge({ source }) {
   );
 }
 
+// 리포트를 보는 이유 자체가 "뭘 고쳐야 하는지" 알기 위해서인데, "외 3곳"/"(4곳)"처럼
+// 개수로만 뭉뚱그리면 비개발자는 정작 어디를 고쳐야 하는지 알 방법이 없다는 실사용자
+// 피드백에 따라, 요약 대신 페이지·요소를 전부 나열하는 방식으로 바꿨다. URL은 항상 같은
+// 대상 사이트 도메인이라 매번 전체 주소를 반복하면 오히려 못 읽으니 경로만 짧게 보여준다.
+function shortPage(url) {
+  if (!url) return '';
+  try {
+    const u = new URL(url);
+    const path = (u.pathname || '/') + (u.search || '');
+    return path.length > 1 ? path : u.hostname;
+  } catch {
+    return url;
+  }
+}
+
 // 같은 종류의 문제가 요소마다(예: 라벨 없는 버튼 3개) 또는 체크포인트마다(모든 페이지에
-// 있는 헤더/푸터) 한 줄씩 따로 찍혀서 거의 똑같은 내용이 반복되는 게 실제 사용자 피드백으로
-// 확인됐다 — "키보드 포커스 표시 없음"이 대상 요소만 다른 채 여러 번, "글자가 작다"가
-// 페이지마다 또 한 번. message는 보통 `설명 — "구체적 텍스트"` 형태라, 뒤의 인용구만 떼어
-// 같은 설명(source+category+rule+base)끼리 묶고 인용구들을 합친다.
+// 있는 헤더/푸터) 한 줄씩 따로 찍혀서 거의 똑같은 설명 문장이 반복되는 게 실제 사용자
+// 피드백으로 확인됐다 — 설명 문장(base)은 한 번만 쓰고, 실제 발생 위치(페이지+요소)는
+// instances로 전부 모아서 하나도 빠짐없이 나열한다. message는 보통
+// `설명 — "구체적 텍스트"` 형태라, 뒤의 인용구만 떼어 같은 설명(source+category+rule+base)
+// 끼리로 묶는다.
 function groupFindings(findings) {
   if (!findings || findings.length === 0) return [];
   const groups = new Map();
@@ -131,24 +147,27 @@ function groupFindings(findings) {
     const base = m ? m[1].trim() : raw;
     const quoted = m ? m[2].trim() : '';
     const key = `${f.source || ''}|${f.category || ''}|${f.rule || ''}|${base}`;
-    if (!groups.has(key)) groups.set(key, { ...f, base, quoted: [], count: 0 });
+    if (!groups.has(key)) groups.set(key, { ...f, base, message: base, instances: [] });
     const g = groups.get(key);
-    g.count += 1;
-    if (quoted && !g.quoted.includes(quoted)) g.quoted.push(quoted);
-  });
-  return Array.from(groups.values()).map((g) => {
-    let text = g.base;
-    if (g.quoted.length === 1) {
-      text += ` — "${g.quoted[0]}"`;
-    } else if (g.quoted.length > 1) {
-      const shown = g.quoted.slice(0, 4).map((q) => `"${q}"`).join(', ');
-      const more = g.quoted.length > 4 ? ` 외 ${g.quoted.length - 4}곳` : '';
-      text += ` — ${shown}${more}`;
-    } else if (g.count > 1) {
-      text += ` (${g.count}곳)`;
+    const instKey = `${f.url || ''}|${quoted}`;
+    if (!g.instances.some((inst) => inst.key === instKey)) {
+      g.instances.push({ key: instKey, page: shortPage(f.url), quoted });
     }
-    return { ...g, message: text };
   });
+  return Array.from(groups.values());
+}
+
+// instances를 사람이 읽을 문장으로 — "요소" (페이지 경로) 형태를 쉼표로 나열. quoted가
+// 없으면(예: 카테고리형 finding) 페이지만 보여준다.
+function instancesText(instances) {
+  return (instances || [])
+    .map((inst) => {
+      if (inst.quoted && inst.page) return `"${inst.quoted}" (${inst.page})`;
+      if (inst.quoted) return `"${inst.quoted}"`;
+      return inst.page;
+    })
+    .filter(Boolean)
+    .join(', ');
 }
 
 function UiuxFindings({ findings }) {
@@ -168,7 +187,10 @@ function UiuxFindings({ findings }) {
             <span className="font-semibold">{CATEGORY_LABEL[f.category] || '기타'}</span>
             <SourceBadge source={f.source} />
           </div>
-          {f.message}
+          <p>{f.message}</p>
+          {f.instances?.length > 0 && (
+            <p className="mt-1 opacity-75">발생 위치: {instancesText(f.instances)}</p>
+          )}
         </div>
       ))}
     </div>
@@ -340,6 +362,7 @@ function PrintableReport({ run, checkpoints }) {
                   <tr>
                     <th>분류</th>
                     <th>내용</th>
+                    <th>발생 위치</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -347,6 +370,7 @@ function PrintableReport({ run, checkpoints }) {
                     <tr key={i}>
                       <td className="col-source">{CATEGORY_LABEL[f.category] || '기타'}</td>
                       <td>{f.message || f.detail || f.description}</td>
+                      <td className="col-location">{instancesText(f.instances)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -377,6 +401,7 @@ function PrintableReport({ run, checkpoints }) {
                 <tr>
                   <th>분류</th>
                   <th>내용</th>
+                  <th>발생 위치</th>
                 </tr>
               </thead>
               <tbody>
@@ -384,6 +409,7 @@ function PrintableReport({ run, checkpoints }) {
                   <tr key={i}>
                     <td className="col-source">{CATEGORY_LABEL[f.category] || '기타'}</td>
                     <td>{f.message || f.detail || f.description}</td>
+                    <td className="col-location">{instancesText(f.instances)}</td>
                   </tr>
                 ))}
               </tbody>
