@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   KeyRound,
   RefreshCw,
+  FileDown,
 } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { api } from '../lib/api';
@@ -215,6 +216,92 @@ function CheckpointSection({ runId, checkpoint, showSteps = true }) {
   );
 }
 
+const SEVERITY_LABEL = { critical: '크리티컬', warning: '참고 필요', pass: '통과' };
+
+// PDF는 별도 라이브러리(html2canvas 등) 없이 브라우저 자체 인쇄 엔진(window.print())을 쓴다.
+// 화면에 이미 나와 있는 배지·아이콘투성이 카드 UI를 그대로 인쇄하면 "로그 캡처"처럼
+// 보이니, 인쇄 전용으로 목차·표 형식의 별도 문서 레이아웃을 만든다 — index.css의
+// .print-only/.no-print 규칙이 화면에서는 숨기고 인쇄할 때만 이 블록으로 바꿔치기한다.
+function PrintableReport({ run, checkpoints, haltedCheckpoint }) {
+  const severity = run.severity || (run.summary?.totalErrors > 0 ? 'critical' : 'pass');
+  return (
+    <div className="print-only print-report">
+      <div className="print-header">
+        <span className="print-logo">RepliQA</span>
+        <span className="print-generated">생성일시 {new Date().toLocaleString('ko-KR')}</span>
+      </div>
+      <h1>QA 시뮬레이션 리포트</h1>
+      <dl className="print-facts">
+        <div>
+          <dt>대상 URL</dt>
+          <dd>{run.targetUrl}</dd>
+        </div>
+        <div>
+          <dt>시나리오</dt>
+          <dd>
+            {run.personaName}
+            {run.routeName ? ` · ${run.routeName}` : ''}
+          </dd>
+        </div>
+        <div>
+          <dt>종합 판정</dt>
+          <dd className={`sev-${severity}`}>{SEVERITY_LABEL[severity] || severity}</dd>
+        </div>
+      </dl>
+
+      <section className="print-section">
+        <h2>요약</h2>
+        <p>{run.plainSummary || '요약 정보가 없습니다.'}</p>
+        {haltedCheckpoint && (
+          <p className="print-note">
+            "{haltedCheckpoint.goal || '자유 탐색'}" 단계에서 여정이 중단되어 이후 단계는 진행되지 않았습니다.
+          </p>
+        )}
+      </section>
+
+      <section className="print-section">
+        <h2>단계별 발견 내용</h2>
+        {checkpoints.map((c) => (
+          <div className="print-checkpoint" key={c.index}>
+            <h3>
+              {c.index + 1}. {c.goal || '자유 탐색'}
+            </h3>
+            {c.status === 'failed' && c.failureReason && <p className="print-fail">{c.failureReason}</p>}
+            {c.uiuxFindings?.length > 0 ? (
+              <table className="print-table">
+                <thead>
+                  <tr>
+                    <th>분류</th>
+                    <th>출처</th>
+                    <th>내용</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {c.uiuxFindings.map((f, i) => (
+                    <tr key={i}>
+                      <td>{CATEGORY_LABEL[f.category] || f.category}</td>
+                      <td className="col-source">{f.source === 'ai_judgment' ? 'AI 판단' : '측정됨'}</td>
+                      <td>{f.message || f.detail || f.description}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="print-empty">발견된 항목이 없습니다.</p>
+            )}
+          </div>
+        ))}
+      </section>
+
+      <div className="print-footer">
+        "측정됨"은 화면을 실제로(픽셀·DOM 단위) 측정해서 나온 결과이고, "AI 판단"은 AI가
+        스크린샷을 보고 내린 참고용 판단입니다. 체크포인트 실패 사유는 자동화 엔진 자체의
+        오차(그라운딩 오류 등)일 수 있어, 확정하기 전 직접 재현 확인을 권장합니다.
+      </div>
+    </div>
+  );
+}
+
 const STATUS_LABEL = { queued: '대기 중', running: '실행 중', done: '완료', failed: '실패' };
 
 // "에러가 1건이라도 있으면 무조건 빨간 배너"는 실제로 과장 표시로 이어졌다(외부 분석
@@ -273,7 +360,8 @@ export default function TestRunProgress({ tenantId, runId, onReset, onGoToConnec
     run.haltedAtCheckpoint != null ? checkpoints.find((c) => c.index === run.haltedAtCheckpoint) : null;
 
   return (
-    <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+    <>
+    <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500 no-print">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
         <div className="min-w-0 flex-1 w-full">
           <div className="flex items-center gap-2 mb-2">
@@ -290,12 +378,22 @@ export default function TestRunProgress({ tenantId, runId, onReset, onGoToConnec
             <span className="font-semibold text-slate-700">Target:</span> {run.targetUrl}
           </p>
         </div>
-        <button
-          onClick={onReset}
-          className="flex-shrink-0 w-full sm:w-auto bg-slate-900 text-white hover:bg-slate-800 transition px-6 py-3 rounded-xl font-bold text-sm shadow-md"
-        >
-          + 새로운 테스트 시작
-        </button>
+        <div className="flex flex-col-reverse sm:flex-row gap-2 flex-shrink-0 w-full sm:w-auto">
+          {run.status === 'done' && !run.sessionExpired && (
+            <button
+              onClick={() => window.print()}
+              className="flex items-center justify-center gap-2 w-full sm:w-auto bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition px-5 py-3 rounded-xl font-bold text-sm"
+            >
+              <FileDown size={16} /> PDF로 저장
+            </button>
+          )}
+          <button
+            onClick={onReset}
+            className="flex-shrink-0 w-full sm:w-auto bg-slate-900 text-white hover:bg-slate-800 transition px-6 py-3 rounded-xl font-bold text-sm shadow-md"
+          >
+            + 새로운 테스트 시작
+          </button>
+        </div>
       </div>
 
       {inProgress && (
@@ -428,5 +526,9 @@ export default function TestRunProgress({ tenantId, runId, onReset, onGoToConnec
         </>
       )}
     </div>
+    {run.status === 'done' && !run.sessionExpired && (
+      <PrintableReport run={run} checkpoints={checkpoints} haltedCheckpoint={haltedCheckpoint} />
+    )}
+    </>
   );
 }
