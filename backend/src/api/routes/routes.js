@@ -78,10 +78,16 @@ function parseMockArgs(type, argsRaw) {
   return null;
 }
 
+// 원래 10개로 고정돼 있었는데, 실사용 검증(회원가입→검색→리뷰 확인→뒤로가기→옵션
+// 선택→장바구니 담기/빼기→다른 카테고리 탐색처럼 여러 화면을 오가는 긴 한 흐름짜리
+// 여정)에서 정확히 이 상한에 막혀 저장 자체가 조용히 실패했다 — 프론트는 에러 문구를
+// 보여주지만 별도로 안내하는 스크립트 등에서는 놓치기 쉽다. 특별히 이 값을 낮게
+// 둬야 할 비용/아키텍처적 이유가 없어서(체크포인트 수만큼 요금이 더 드는 것도
+// 아니고, 엔진 자체는 몇 개든 순서대로 처리할 수 있음) 30으로 올렸다.
 const createSchema = z.object({
   name: z.string().min(1),
   registeredUrlId: z.string().min(1),
-  checkpoints: z.array(z.string().min(1)).min(1).max(10),
+  checkpoints: z.array(z.string().min(1)).min(1).max(30),
 });
 
 function parseCheckpoint(raw, order) {
@@ -120,7 +126,7 @@ function parseCheckpoint(raw, order) {
 router.post('/', async (req, res) => {
   const parseResult = createSchema.safeParse(req.body);
   if (!parseResult.success) {
-    return res.status(400).json({ error: 'name, registeredUrlId, checkpoints(1~10개)가 필요합니다.' });
+    return res.status(400).json({ error: 'name, registeredUrlId, checkpoints(1~30개)가 필요합니다.' });
   }
   const { name, registeredUrlId, checkpoints } = parseResult.data;
 
