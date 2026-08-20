@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "repliqa-dev"
+    "default": "repliqa-dev",
+    "production": "repliqa-jm"
   }
 }

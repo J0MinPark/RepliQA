@@ -28,3 +28,5 @@ public/repliqa-mcp.bundle.mjs
 *.njsproj
 *.sln
 *.sw?
+.vercel
+.env*
