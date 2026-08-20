@@ -165,7 +165,7 @@ function UiuxFindings({ findings }) {
           className={`text-xs border rounded-lg px-3 py-2 ${SEVERITY_STYLE[f.severity] || SEVERITY_STYLE.info}`}
         >
           <div className="flex items-center gap-1.5 mb-1">
-            <span className="font-semibold">{CATEGORY_LABEL[f.category] || f.category}</span>
+            <span className="font-semibold">{CATEGORY_LABEL[f.category] || '기타'}</span>
             <SourceBadge source={f.source} />
           </div>
           {f.message}
@@ -345,7 +345,7 @@ function PrintableReport({ run, checkpoints }) {
                 <tbody>
                   {measuredFindings.map((f, i) => (
                     <tr key={i}>
-                      <td className="col-source">{CATEGORY_LABEL[f.category] || f.category}</td>
+                      <td className="col-source">{CATEGORY_LABEL[f.category] || '기타'}</td>
                       <td>{f.message || f.detail || f.description}</td>
                     </tr>
                   ))}
@@ -382,7 +382,7 @@ function PrintableReport({ run, checkpoints }) {
               <tbody>
                 {aiFindings.map((f, i) => (
                   <tr key={i}>
-                    <td className="col-source">{CATEGORY_LABEL[f.category] || f.category}</td>
+                    <td className="col-source">{CATEGORY_LABEL[f.category] || '기타'}</td>
                     <td>{f.message || f.detail || f.description}</td>
                   </tr>
                 ))}
