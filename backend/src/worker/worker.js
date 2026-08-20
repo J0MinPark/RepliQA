@@ -130,11 +130,20 @@ async function processRun(doc) {
     await recordActionUsage(tenantId, result.summary.totalActions);
   } catch (err) {
     console.error(`[worker] 실행 실패 (${tenantId}/${runId}):`, err);
-    await ref.update({
-      status: 'failed',
-      error: err instanceof SsrfViolationError ? err.message : '테스트 실행 중 오류가 발생했습니다.',
-      finishedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    // AI 모의면접 QA(freemockinterview.com) 실측 재현에서 실제로 발생: 이 catch 블록
+    // 자체의 ref.update() 호출이 실패하면(Firestore 순간적인 오류 등) 그 reject가
+    // 어디서도 안 잡혀서 unhandledRejection으로 프로세스 전체가 죽었다 — 동시에 처리
+    // 중이던 다른(전혀 무관한) 테넌트의 실행까지 전부 끊겼다. "실패를 기록하는 것" 자체가
+    // 다시 실패할 수 있다는 걸 감안해서 이 쓰기도 별도로 보호한다.
+    await ref
+      .update({
+        status: 'failed',
+        error: err instanceof SsrfViolationError ? err.message : '테스트 실행 중 오류가 발생했습니다.',
+        finishedAt: admin.firestore.FieldValue.serverTimestamp(),
+      })
+      .catch((updateErr) => {
+        console.error(`[worker] 실패 상태 기록도 실패함 (${tenantId}/${runId}):`, updateErr);
+      });
   }
 }
 
@@ -170,6 +179,19 @@ if (env.workerPort) {
     console.log(`   워커 HTTP 서버가 :${env.workerPort} 에서 응답합니다(헬스체크 + 세션 캡처).`);
   });
 }
+
+// 이 워커는 동시에 여러 테넌트의 실행을 처리한다(concurrency>1) — 그중 한 건에서 어디선가
+// await 없이 놓친 reject 하나만 나와도 unhandledRejection이 프로세스 전체를 죽여서, 완전히
+// 무관한 다른 실행들까지 전부 끊긴다(실측: freemockinterview.com QA 중 Firestore 쓰기 실패
+// 하나가 동시에 진행 중이던 다른 테스트까지 전부 중단시킴). 개별 실행의 에러는 processRun의
+// try/catch가 이미 처리하니, 여기서는 "그래도 놓친 게 있으면 프로세스는 살려둔다"는
+// 최후의 방어선만 둔다.
+process.on('unhandledRejection', (err) => {
+  console.error('[worker] 처리되지 않은 Promise 거부(프로세스는 계속 실행):', err);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[worker] 처리되지 않은 예외(프로세스는 계속 실행):', err);
+});
 
 console.log(`🛠  RepliQA worker 시작 (concurrency=${env.workerConcurrency})`);
 setInterval(() => {
