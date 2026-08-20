@@ -5,7 +5,6 @@ const { isPaymentSubmitElement } = require('./paymentSafety');
 const { looksLoggedOut } = require('./sessionValidity');
 const { launchBrowser } = require('./browserEngines');
 const geminiAdapter = require('./llm/geminiAdapter');
-const claudeAdapter = require('./llm/claudeAdapter');
 const uiTarsAdapter = require('./llm/uiTarsAdapter');
 const screenshotStore = require('./screenshotStore');
 const { assertHttpUrl, resolveSafeIp, resolveIpUnchecked } = require('../security/ssrfGuard');
@@ -859,14 +858,7 @@ async function runTest({
       }
     }
 
-    // generateReport는 체크포인트당 1회만 호출되고 스크린샷도 안 들어가는 순수 텍스트
-    // 호출이라, 매 스텝 호출되는 generateNextAction보다 비용 부담 없이 더 강한 모델을
-    // 써볼 수 있는 지점이다 — ANTHROPIC_API_KEY가 설정돼 있으면 Claude로, 아니면 기존
-    // Gemini로 리포트를 작성한다(claudeAdapter.js/geminiAdapter.js는 같은 프롬프트를
-    // reportPrompt.js에서 공유해서 판단 기준 자체는 동일하다).
-    // TODO: 아직 실제 API 키로 라이브 검증 못 함 — 검증 전까진 커밋하지 않는다.
-    const reportAdapter = env.anthropicApiKey ? claudeAdapter : geminiAdapter;
-    const report = await reportAdapter.generateReport({ errors: collectedErrors, steps: allSteps, haltedInfo });
+    const report = await geminiAdapter.generateReport({ errors: collectedErrors, steps: allSteps, haltedInfo });
 
     // 오프라인 시뮬레이션 중 발생한(태그가 붙은) 에러는 "예상된 결과"라 실제 버그 집계에서
     // 뺀다 — totalErrors는 항상 "설명이 필요한" 에러 개수를 뜻하게 유지한다.
