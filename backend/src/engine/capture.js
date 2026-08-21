@@ -123,6 +123,18 @@ function extractInteractiveElements(max) {
       selectorHint: computeSelectorHint(el, el.tagName.toLowerCase(), el.getAttribute('type') || '', text),
     };
 
+    // 화면 대부분(뷰포트 절반 이상)을 덮는 요소는 진짜 콘텐츠보다는 모달 백드롭/로딩
+    // 오버레이/스크림일 가능성이 높다 — yureka.co.kr 실측: aria-label이 "팝업 닫기"인
+    // 뷰포트 전체 크기 배경 버튼과 모달 안의 작은 실제 "닫기" 버튼이 함께 캡처되자 비전
+    // 모델이 "어느 쪽인지 모르겠다"며 포기한 사례가 있었다. 모델이 width/height 숫자를
+    // 직접 비교해서 계산하게 두는 대신, 여기서 비율을 미리 계산해 명시적 플래그로 붙여준다
+    // — 판단을 프롬프트 추론이 아니라 결정론적 계산으로 옮기는 것. 작은 요소가 대부분이라
+    // 플래그가 안 붙는 게 정상 케이스라, 필드는 해당될 때만 붙여서 페이로드를 늘리지 않는다.
+    const viewportArea = window.innerWidth * window.innerHeight;
+    if (viewportArea > 0 && (rect.width * rect.height) / viewportArea >= 0.5) {
+      item.coversMostOfScreen = true;
+    }
+
     // 네이티브 <select>는 헤드리스 브라우저에서 옵션 목록이 스크린샷에 안 보이므로
     // 텍스트로 옵션을 같이 넘겨줘야 LLM이 뭘 고를 수 있는지 알 수 있다.
     if (el.tagName.toLowerCase() === 'select') {
@@ -186,13 +198,43 @@ async function evaluateElements(page) {
   }
 }
 
+// 체크포인트 목표 문장에서 "의미 있어 보이는" 토큰만 뽑는다 — 형태소 분석기 없이
+// 조사까지 정확히 떼낼 순 없지만(완벽한 한국어 NLP는 여기 목적에 비해 과하다), 부분
+// 문자열 포함 매칭이라 "학습 관리 방식"의 "학습"이 "학습 데이터" 같은 요소 텍스트에도
+// 걸린다 — 대기업 대형 페이지에서 순위를 조금이라도 목표 쪽으로 기울이는 용도로는
+// 이 정도 근사치로 충분하다.
+function extractGoalTokens(goalText) {
+  if (!goalText) return [];
+  return goalText
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((t) => t.length >= 2);
+}
+
+function goalRelevanceScore(text, goalTokens) {
+  if (!text || goalTokens.length === 0) return 0;
+  const lower = text.toLowerCase();
+  let score = 0;
+  for (const token of goalTokens) {
+    if (lower.includes(token)) score += 1;
+  }
+  return score;
+}
+
 // 40은 원래 "비전 모델 토큰 비용을 아끼자"는 취지로 고른 값이었는데, 실제 포털형 사이트에서
 // 상단 메뉴/로그인/쇼핑 바로가기/광고 배너 같은 chrome 요소만으로 40개가 꽉 차서 정작 목표
 // 콘텐츠(뉴스 헤드라인·검색 결과 도서 링크)가 통째로 잘려나가는 걸 실제로 확인했다(다음
 // 메인페이지: 목표 헤드라인이 정렬 후 48번째, 예스24 검색결과: 도서 링크가 81번째). Gemini
 // Flash 기준 요소 60~80개 추가는 토큰 비용이 미미해서, 누락 비용(체크포인트 전체 실패) 대비
 // 이 상한을 넉넉히 올리는 쪽이 명백히 이득이다.
-async function captureState(page, { maxElements = 100 } = {}) {
+//
+// 하지만 대기업 페이지처럼 그 상한마저 넘는 경우가 있다 — 그땐 여전히 "화면 위치"만으로
+// 잘라내서, 목표와 관련된 콘텐츠가 화면 아래쪽/뷰포트 밖에 있으면 통째로 잘려나갈 수 있다.
+// goalText를 넘기면(체크포인트 목표 문장) 뷰포트 우선순위는 그대로 유지한 채, 같은
+// 우선순위 안에서 목표 문장과 겹치는 단어가 있는 요소를 앞으로 당겨서 잘림 순서 자체를
+// 목표 인식형으로 만든다. goalText가 없으면(로그인/결제 필드 탐지 등) 기존과 완전히 동일하게
+// 동작한다 — 순수 추가 기능이라 기존 호출부는 전혀 영향받지 않는다.
+async function captureState(page, { maxElements = 100, goalText = null } = {}) {
   let pageElements = await evaluateElements(page);
   if (pageElements.length === 0) {
     // evaluate 자체는 에러 없이 성공했는데 요소가 0개인 경우 — 옛 문서가 헐리고 새 문서가
@@ -221,12 +263,18 @@ async function captureState(page, { maxElements = 100 } = {}) {
 
   const frameElements = await extractFromFrames(page, RAW_ELEMENT_CAP);
 
-  // 뷰포트 안에 있는 요소를 우선하고, 그 안에서는 위→아래, 왼→오른쪽 순서로 정렬한다.
-  // 순수 DOM 순서에만 의존하면(이전 버전) 내비게이션/필터가 본문보다 먼저 나오는
-  // 페이지에서 핵심 콘텐츠가 뒤로 밀려 잘려나갔다(github.com 검색 결과에서 실제 확인함).
+  // 뷰포트 안에 있는 요소를 우선하고, 그 다음은(있다면) 목표 문장과 겹치는 요소를 우선하고,
+  // 마지막으로 위→아래, 왼→오른쪽 순서로 정렬한다. 순수 DOM 순서에만 의존하면(이전 버전)
+  // 내비게이션/필터가 본문보다 먼저 나오는 페이지에서 핵심 콘텐츠가 뒤로 밀려
+  // 잘려나갔다(github.com 검색 결과에서 실제 확인함).
+  const goalTokens = extractGoalTokens(goalText);
   const merged = [...pageElements, ...frameElements].sort((a, b) => {
     const viewportDiff = Number(b.inViewport) - Number(a.inViewport);
     if (viewportDiff !== 0) return viewportDiff;
+    if (goalTokens.length > 0) {
+      const goalDiff = goalRelevanceScore(b.text, goalTokens) - goalRelevanceScore(a.text, goalTokens);
+      if (goalDiff !== 0) return goalDiff;
+    }
     return a.box.y - b.box.y || a.box.x - b.box.x;
   });
   const indexed = merged.slice(0, maxElements).map((el, index) => ({ index, ...el }));

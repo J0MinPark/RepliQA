@@ -134,13 +134,14 @@ async function attemptPaymentFill(page, paymentInfo) {
 }
 
 function toPromptElements(elements) {
-  return elements.map(({ index, tag, role, text, box, options }) => ({
+  return elements.map(({ index, tag, role, text, box, options, coversMostOfScreen }) => ({
     index,
     tag,
     role,
     text,
     box,
     ...(options ? { options } : {}),
+    ...(coversMostOfScreen ? { coversMostOfScreen } : {}),
   }));
 }
 
@@ -181,7 +182,7 @@ async function runCheckpoint({
     fastPathActive = Boolean(stepCacheData);
   }
 
-  const entryState = await captureState(page);
+  const entryState = await captureState(page, { goalText: checkpoint.goal });
   const objectiveResult = await runObjectiveChecks(page).catch((err) => {
     collectedErrors.push(`[UIUX Objective Check Error] ${err.message}`);
     return { findings: [], viewportClippedLabels: [] };
@@ -327,7 +328,10 @@ async function runCheckpoint({
         // 유지한 채 이번 스텝만 아래 일반 경로로 흘려보낸다.
       }
 
-      const state = stepInCheckpoint === 1 && activePage === page ? entryState : await captureState(activePage);
+      const state =
+        stepInCheckpoint === 1 && activePage === page
+          ? entryState
+          : await captureState(activePage, { goalText: checkpoint.goal });
       const plan = await geminiAdapter.generateNextAction({
         screenshotBase64: state.screenshotBase64,
         elements: toPromptElements(state.elements),
