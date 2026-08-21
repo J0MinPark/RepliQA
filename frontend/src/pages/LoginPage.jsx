@@ -55,8 +55,8 @@ function GoogleIcon({ size = 18 }) {
 const FEATURES = [
   {
     icon: Bot,
-    title: 'Vision 기반 다중 페르소나',
-    desc: '스크린샷+좌표 기반으로 화면을 인지해, 프레임워크에 상관없이 엣지 케이스를 재현합니다.',
+    title: 'Vision 기반 자동 탐색',
+    desc: '스크린샷+좌표 기반으로 화면을 인지해, 지시한 시나리오를 프레임워크에 상관없이 그대로 재현합니다.',
   },
   {
     icon: Zap,
