@@ -9,6 +9,7 @@ const uiTarsAdapter = require('./llm/uiTarsAdapter');
 const screenshotStore = require('./screenshotStore');
 const { assertHttpUrl, resolveSafeIp, resolveIpUnchecked } = require('../security/ssrfGuard');
 const { isFastPathEligible, tryFastPathAction, loadStepCache, saveStepCache } = require('./stepCache');
+const { dismissObviousPopups } = require('./popupDismissal');
 const env = require('../config/env');
 
 // Gemini가 고른 elementIndex가 화면이 복잡할 때(요소가 많거나 비슷한 텍스트) 틀릴 수 있다
@@ -806,6 +807,13 @@ async function runTest({
         collectedErrors.push(`[Login Error] ${err.message}`);
       });
     }
+
+    // 체크포인트 루프(비전 LLM) 진입 전에, 흔한 "닫기" 패턴의 팝업/모달은 결정론적으로
+    // 먼저 정리한다 — popupDismissal.js 주석 참고: 화면 전체를 덮는 배경 닫기 버튼과
+    // 모달 안의 작은 닫기 버튼이 함께 있을 때 비전 모델이 헷갈려 포기하는 사례가 실제로
+    // 반복 확인됐다. 여기서 못 지운 팝업(다단계 동의처럼 "닫기"로 안 불리는 것 등)은 그대로
+    // 남겨 이후 체크포인트/AI 판단에 맡긴다 — 실패해도 조용히 넘어가고 런 자체를 막지 않는다.
+    await dismissObviousPopups(page, { log: console.log }).catch(() => {});
 
     let lastFinalUrl = null;
     for (const checkpoint of checkpoints) {
