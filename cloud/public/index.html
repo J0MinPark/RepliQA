@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>RepliQA · 클라우드 검사</title><link rel="stylesheet" href="/style.css"></head>
+<body><main>
+  <header><a href="/" class="brand">RepliQA<span>Cloud Pilot</span></a><p>공통 기본 점검 또는 직접 정한 여정을 실제 브라우저로 확인하세요.</p></header>
+  <section id="login"><h1>테스트를 시작하세요</h1><p>초대받은 고객을 위한 소규모 무료 서비스입니다.</p><form id="login-form"><label>초대 키<input id="token" type="password" required autocomplete="off" spellcheck="false"></label><button>접속</button></form></section>
+  <section id="workspace" hidden>
+    <div class="row"><h1>새 검사</h1><button id="logout" class="secondary">로그아웃</button></div>
+    <p id="limits"></p><p><a href="/demo" target="_blank" rel="noopener">처음이라면 장바구니 예제로 검사 순서를 확인하세요.</a> · <a href="/beta.html">베타 이용·개인정보 안내</a></p><p class="note">결제·영구 변경으로 인식되는 동작을 차단하지만 모든 업무를 식별하지는 못합니다. 테스트 권한이 있는 스테이징과 합성 데이터를 사용하세요. 가려진 영역과 직접 지정하지 않은 결과는 검사 범위에 포함되지 않습니다.</p>
+    <div class="row"><button id="save-plan" type="button" class="secondary">계획 파일 저장</button><label>계획 파일 불러오기<input id="load-plan" type="file" accept="application/json,.json"></label></div>
+    <p class="note">계획은 내려받은 파일에 저장됩니다. 입력값·입력값 검증값은 제외하며, 불러온 뒤 다시 입력하세요. 추가 마스킹 설정과 파일 내용도 검토하세요. 불러오기만으로 검사를 실행하지 않습니다.</p>
+    <form id="job-form">
+      <label>검사 방식<select id="inspection-mode" name="inspectionMode"><option value="journey">여정 검사 — 동작과 정상 결과 지정</option><option value="basic">자동 기본 점검 — 여정 입력 없이 현재 페이지 점검</option></select></label>
+      <p id="mode-note" class="note">여정의 동작과 최종 결과를 직접 지정합니다. 사이트의 전체 기능을 자동 탐색하는 검사는 아닙니다.</p>
+      <label>검사 이름<input name="title" maxlength="150" placeholder="로그인 후 상품 검색" required></label>
+      <label>검사 사이트<select name="origin" id="origins"></select></label>
+      <div class="row"><label>시작 경로<input name="path" value="/" required></label><label data-journey>최종 도착 경로<input name="expectedPath" value="/" required></label></div>
+      <label data-journey>기대하는 동작과 화면<textarea name="requirement" maxlength="3000" placeholder="검색 버튼을 누르면 검색 결과가 보여야 합니다." required></textarea></label>
+      <fieldset data-journey><legend>실행 순서 · 최대 12단계</legend><div id="steps"></div><button type="button" id="add-step" class="secondary">+ 동작 추가</button><p class="note">중간 결과도 검증 단계로 추가할 수 있습니다. 검증 대상은 CSS 선택자로 지정하고, 체크·활성 상태는 true / false를 입력하세요. 숨김 검증은 존재하는 요소가 숨겨졌는지 확인합니다. 요소 삭제는 개수 0으로 검증하세요. 불일치나 확인 불가가 발생하면 다음 동작을 중단합니다.</p></fieldset>
+      <label data-journey>최종 화면에서 확인할 문구 · 보이는 한 줄과 정확히 비교<textarea name="expectedTexts" required placeholder="검색 결과"></textarea></label>
+      <details data-journey><summary>결과를 더 정확히 확인하기</summary><label>결과 영역의 CSS 선택자<input name="resultSelector" maxlength="200" placeholder="#cart-result"></label><p class="note">영역을 지정하면 그 영역의 전체 문구와 비교합니다. 안내문 등 다른 위치에 있는 같은 문구로 통과하지 않도록 하세요.</p><label class="check"><input type="checkbox" name="requireResultChange">동작 후 이 영역의 표시 상태 또는 문구가 실제로 변경되어야 합니다.</label></details>
+      <details><summary>추가로 가릴 정보</summary><label>가릴 문구 · 한 줄에 하나<textarea name="redactValues" placeholder="테스트 고객명 등"></textarea></label><label>가릴 영역의 CSS 선택자 · 한 줄에 하나<textarea name="maskSelectors" placeholder="[data-repliqa-private]"></textarea></label></details>
+      <label class="check"><input name="cloudAiConsent" id="ai-consent" type="checkbox">마스킹한 화면과 문구를 Cloudflare AI로 보내 화면 차이 후보도 검토합니다.</label>
+      <p id="ai-note" class="note">현재 클라우드 AI는 비활성화 상태입니다. 기본 점검과 지정 조건 검사는 AI 없이 실행합니다.</p>
+      <label class="check"><input name="reviewed" type="checkbox" required>순서와 최종 결과를 검토했으며, 등록된 사이트에서 이 테스트를 실행할 권한이 있습니다.</label>
+      <div class="row"><button id="submit">검사 실행</button><button type="button" id="cancel" class="secondary" hidden>실행 취소</button></div>
+    </form>
+  </section>
+  <section><h2>공통 QA 체크리스트</h2><p class="note">자동 기본 점검은 현재 페이지를 검사합니다. 업무 여정은 대상·테스트 데이터·정상 결과가 필요합니다. 아래 목록은 모델 학습 여부나 전체 사이트 검사 완료를 의미하지 않습니다.</p><details><summary>점검 범위와 필요한 설정 보기</summary><div id="catalog"></div></details></section>
+  <p id="message" role="status" aria-live="polite"></p>
+  <section id="history" hidden><div class="row"><h2>검사 내역</h2><button id="refresh" class="secondary">새로 고침</button></div><p class="note">화면과 결과는 7일 보관 후 삭제합니다. 직접 삭제할 수도 있습니다.</p><div id="runs"></div></section>
+  <footer>무료 범위 내 실행 · 결제 전환 없음 · 운영자 GPU 서버 전원과 무관하게 실행<br><a href="/beta.html">베타 이용·개인정보 안내</a> · <a href="mailto:jeneric873@gmail.com">Jeongmin에게 문의</a> · <a href="/third-party-notices.txt">오픈소스 고지</a></footer>
+</main><script type="module" src="/app.js"></script></body></html>

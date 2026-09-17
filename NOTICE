@@ -1,0 +1,13 @@
+RepliQA
+Copyright 2026 Jeongmin
+
+Original RepliQA source is licensed under Apache-2.0. This does not relicense
+third-party software, copied reference materials, model weights, or browser binaries.
+
+The cloud accessibility engine includes unmodified axe-core 4.13.0 browser source
+under MPL-2.0. See cloud/public/third-party-notices.txt for the full license,
+upstream notices, and source location. The generated cloud/src/axe-source.mjs
+contains this third-party source. Do not remove its upstream notices.
+
+External QA skill documents were research references, not runtime services.
+Research archives and operational/customer data are excluded from the public export.

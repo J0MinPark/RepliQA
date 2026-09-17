@@ -1,0 +1,16 @@
+{
+  "recordedAt": "2026-09-17T15:57:49.795Z",
+  "hardware": "NVIDIA RTX 4060 8188 MiB",
+  "cloudVersion": "0.2.4",
+  "cloudTests": 18,
+  "cloudTestsPassed": 18,
+  "publicCleanInstallPassed": true,
+  "publicExportTestsPassed": 18,
+  "publicExport": "public-release/repliqa-cloud-0-2-4-public",
+  "licenseInventory": 104,
+  "missingLicenseDeclarations": 0,
+  "externalAiCalls": 0,
+  "paidServicesAdded": 0,
+  "liveBrowserRetest": "Pending daily quota reset at 2026-09-18T00:00:00Z",
+  "independentThirdPartyEvaluation": false
+}

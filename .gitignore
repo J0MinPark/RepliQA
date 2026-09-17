@@ -1,0 +1,50 @@
+# Claude Code session files
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Firebase local emulator artifacts
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Local environment files (examples stay versioned)
+.env
+.env.*
+!.env.example
+
+# Generated QA reports, screenshots, and benchmark outputs
+artifacts/
+backend/artifacts/
+backend/scripts/performance-results/
+backend/scripts/repliqa-bench/results/
+backend/scripts/self-benchmark/results/
+
+# One-off local probes and batch inputs
+backend/scripts/*.tmp.js
+backend/scripts/batch-tasks*.json
+
+# Test coverage
+coverage/
+
+# Desktop build outputs and bundled browser runtimes
+desktop/node_modules/
+desktop/generated/
+desktop/vendor/
+desktop/release/
+
+# All package installs, local auth, and private invitations
+**/node_modules/
+**/.wrangler/
+**/*.private
+**/*.private.sql
+cloud/dist/
+evaluation/results/
+public-release/

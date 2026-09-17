@@ -1,0 +1,14 @@
+{
+  "name": "repliqa-evidence",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "benchmark": "node run.mjs",
+    "test": "node --test metrics.test.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.58.2"
+  },
+  "license": "Apache-2.0"
+}

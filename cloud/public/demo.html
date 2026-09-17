@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>RepliQA · 장바구니 테스트 예제</title><link rel="stylesheet" href="/style.css"></head>
+<body><main><header><a class="brand" href="/">RepliQA<span>테스트 예제</span></a></header>
+<section><h1>테스트 노트</h1><p>연습용 상품입니다. 주문이나 결제는 발생하지 않습니다.</p><p>가격: 12,000원</p>
+<label for="quantity">수량</label><select id="quantity"><option>1</option><option>2</option><option>3</option></select>
+<button id="add-cart">장바구니 담기</button><p id="cart-result" role="status" aria-live="polite">장바구니가 비어 있습니다.</p>
+</section><section><h2>이 예제로 첫 검사하기</h2><p>시작·최종 경로를 <code>/demo</code>로 지정하고 아래 동작을 순서대로 추가하세요.</p>
+<ol><li>선택: 대상 <strong>수량</strong>, 값 <strong>2</strong></li><li>클릭: 대상 <strong>장바구니 담기</strong></li></ol>
+<p>버튼을 누른 뒤 위에 표시되는 장바구니 결과를 최종 확인 문구로 사용하세요. 수량 2개의 올바른 합계는 24,000원입니다.</p></section></main><script src="/demo.js"></script></body></html>
