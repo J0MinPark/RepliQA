@@ -2,7 +2,9 @@
 
 2026-09-18. 검토자 모집 전이다. 기존 55개 개발 사례와 20개 보완 사례를 재사용하지 않고, 새 조합 여정 28개(정상 12, 결함 12, 확인 불가 4)를 준비했다. **작성자는 구현자와 같으므로 독립적인 블라인드 평가라고 부르지 않는다.** 별도 사람이 계약과 제안 정답을 확인한 뒤에만 측정한다.
 
-고정 자료: `evaluation/review-packs/20260918-v1/`. 사례별 HTML·계약, 제안 정답·근거, 빈 검토 양식과 엔진/자료 SHA-256을 포함한다. 측정 결과는 아직 없다. 반복 실행은 새로운 사례로 세지 않는다.
+고정 자료: `evaluation/review-packs/20260918-v4/`. 사례별 HTML·계약, 제안 정답·근거, 빈 검토 양식과 엔진/자료 SHA-256을 포함한다. 측정 결과는 아직 없다. 반복 실행은 새로운 사례로 세지 않는다.
+
+0.2.6 후보의 소스 변경에 맞춰 같은 28개 제안을 v4에 다시 고정했다. v1~v3는 보존된 이전 소스 기록이며 새로운 독립 표본이 아니다.
 
 ## 검토자 조건
 
@@ -10,13 +12,13 @@ RepliQA 구현·이번 사례 작성에 참여하지 않은 웹 QA 경험자를 
 
 ## 검토 순서
 
-1. 저장소 루트에서 `node evaluation/review/verify.mjs evaluation/review-packs/20260918-v1`을 실행하여 자료가 고정 이후 변하지 않았는지 확인한다.
-2. `node evaluation/review/serve.mjs evaluation/review-packs/20260918-v1`을 실행하고 출력된 localhost 주소를 브라우저로 연다. 외부 서비스나 API를 호출하지 않는 합성 화면이다.
+1. 저장소 루트에서 `node evaluation/review/verify.mjs evaluation/review-packs/20260918-v4`을 실행하여 자료가 고정 이후 변하지 않았는지 확인한다.
+2. `node evaluation/review/serve.mjs evaluation/review-packs/20260918-v4`을 실행하고 출력된 localhost 주소를 브라우저로 연다. 외부 서비스나 API를 호출하지 않는 합성 화면이다.
 3. 먼저 `cases.json`의 요구사항과 단계대로 직접 조작한다. 성공·결함·판정 불가를 먼저 기록한 다음 `proposed-oracle.json`의 제안과 대조한다. 제안 정답을 그대로 옮기지 않는다.
 4. `review-template.json`을 고정 폴더 밖의 `review.json`으로 복사한다. 각 ID에 승인 여부, expected(`passed`/`failed`/`inconclusive`), 구체적인 관측 증거와 이견을 기록한다. 스크린샷 파일명이나 재현 절차를 근거에 포함한다.
 5. 이견이 하나라도 있으면 실행하지 않는다. 원본을 덮어쓰지 말고 수정한 새 자료를 새 라벨로 고정한 뒤 다시 검토한다. 첫 측정 후 사례를 수정하거나 엔진을 튜닝했다면 그 사례는 회귀 세트로 전환한다.
-6. 모든 정답에 동의하고 근거가 갖춰졌을 때 `node evaluation/review/verify.mjs evaluation/review-packs/20260918-v1 review.json`으로 검토 파일을 확인한다. 이 검사는 형식·완결성 검사이며 실제 사람의 신원이나 독립성을 인증하지는 않는다.
-7. GPU 서버에서 `node evaluation/review/run.mjs evaluation/review-packs/20260918-v1 review.json external-review-first`로 고정 엔진을 측정한다. 결과 라벨은 새 이름이어야 한다. 검토 누락·해시 변경 시 브라우저를 띄우기 전에 중단한다.
+6. 모든 정답에 동의하고 근거가 갖춰졌을 때 `node evaluation/review/verify.mjs evaluation/review-packs/20260918-v4 review.json`으로 검토 파일을 확인한다. 이 검사는 형식·완결성 검사이며 실제 사람의 신원이나 독립성을 인증하지는 않는다.
+7. GPU 서버에서 `node evaluation/review/run.mjs evaluation/review-packs/20260918-v4 review.json external-review-first`로 고정 엔진을 측정한다. 결과 라벨은 새 이름이어야 한다. 검토 누락·해시 변경 시 브라우저를 띄우기 전에 중단한다.
 
 ## 보고 원칙
 

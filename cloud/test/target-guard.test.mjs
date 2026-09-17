@@ -17,6 +17,31 @@ async function harness(fetchImpl){
   }};
 }
 const dns=addresses=>async()=>Response.json({Status:0,Answer:addresses.map(data=>({type:data.includes(':')?28:1,data}))});
+test('guard distinguishes active transport failure, policy blocks and intentional shutdown',async()=>{
+  async function pending(){
+    let handler,rejectFetch,started;const ready=new Promise(resolve=>{started=resolve;});
+    const state=await installGuard({route:async(_,fn)=>{handler=fn;},routeWebSocket:async()=>{}},tenant,dns(['1.1.1.1']));
+    const makeRoute=url=>({request:()=>({url:()=>url,isNavigationRequest:()=>false,resourceType:()=> 'fetch'}),
+      fetch:()=>new Promise((_,reject)=>{rejectFetch=reject;started();}),fulfill:async()=>{},abort:async()=>{}});
+    const task=handler(makeRoute('https://example.com/pending'));await ready;
+    return {state,task,reject:()=>rejectFetch(Error('Target closed')),block:()=>handler(makeRoute('https://unregistered.invalid/private'))};
+  }
+  const active=await pending();active.reject();await active.task;
+  assert.equal(active.state.failedRequests,1);assert.equal(active.state.blockedRequests,0);
+  assert.equal(active.state.events[0].kind,'transport');
+  const closing=await pending();closing.state.finish();closing.reject();await closing.task;
+  assert.equal(closing.state.failedRequests,0);assert.equal(closing.state.blockedRequests,0);assert.equal(closing.state.cancelledAtShutdown,1);
+  const blocked=await pending();await blocked.block();blocked.state.finish();blocked.reject();await blocked.task;
+  assert.equal(blocked.state.blockedRequests,1,'shutdown must not erase an earlier policy violation');
+});
+
+test('shutdown during DNS cannot start an upstream request',async()=>{
+  let handler,release;const deferred=new Promise(resolve=>release=resolve);let upstream=0;
+  const state=await installGuard({route:async(_,fn)=>{handler=fn;},routeWebSocket:async()=>{}},tenant,async()=>{await deferred;return dns(['1.1.1.1'])();});
+  const task=handler({request:()=>({url:()=> 'https://example.com',isNavigationRequest:()=>false}),fetch:async()=>{upstream++;throw Error('must not fetch');},abort:async()=>{}});
+  state.finish();release();await task;
+  assert.equal(upstream,0);assert.equal(state.cancelledAtShutdown,1);
+});
 test('guard denies private/mixed/empty/error DNS and hostile URL variants',async()=>{
   for(const addresses of [['127.0.0.1'],['1.1.1.1','10.0.0.1'],['::ffff:127.0.0.1'],['169.254.169.254'],[]]){
     const h=await harness(dns(addresses));assert.equal(await h.request('https://example.com',true),'blocked');
@@ -30,6 +55,15 @@ test('guard rechecks DNS after a previously public hostname changes',async()=>{
   let address='1.1.1.1';const h=await harness(async()=>dns([address])());
   assert.equal(await h.request('https://example.com/first'),'allowed');
   address='127.0.0.1';assert.equal(await h.request('https://example.com/second'),'blocked');
+});
+test('concurrent assets share only in-flight DNS work, never a resolved allow decision',async()=>{
+  let queries=0,release,address='1.1.1.1';const pending=new Promise(resolve=>release=resolve);
+  const h=await harness(async()=>{queries++;await pending;return dns([address])();});
+  const results=Array.from({length:40},(_,i)=>h.request(`https://example.com/asset-${i}.js`));
+  await new Promise(resolve=>setTimeout(resolve,40));assert.equal(queries,2,'one A and one AAAA lookup for the concurrent wave');
+  release();assert.ok((await Promise.all(results)).every(r=>r==='allowed'));
+  address='127.0.0.1';assert.equal(await h.request('https://example.com/after-rebinding'),'blocked');
+  assert.equal(queries,4,'later requests must recheck DNS');
 });
 test('WebSockets cannot bypass the HTTP target guard',async()=>{
   const h=await harness(dns(['1.1.1.1']));assert.equal(typeof h.websocket,'function');
@@ -71,13 +105,13 @@ test('blocked dependencies cannot produce a confirmed defect or execute subseque
   const require=createRequire(new URL('../../desktop/package.json',import.meta.url));
   process.env.PLAYWRIGHT_BROWSERS_PATH=fileURLToPath(new URL('../../desktop/vendor/browsers',import.meta.url));
   const {chromium}=require('playwright');const browser=await chromium.launch();t.after(()=>browser.close());
-  for(const steps of [[],[{action:'click',target:'Save draft'}]]){
+  for(const guardState of [{blockedRequests:1},{blockedRequests:0,failedRequests:1}])for(const steps of [[],[{action:'click',target:'Save draft'}]]){
     let context,writes=0;
     const job=jobSchema.parse({url:'https://example.com/',title:'Dependency isolation',requirement:'Save draft',steps,expectedPath:'/',expectedTexts:['Saved'],resultSelector:'#result',reviewed:true});
     const result=await runBrowser(job,{launch:async()=>({newContext:async options=>context=await browser.newContext(options),close:async()=>context?.close()}),guard:async ctx=>{
       await ctx.exposeFunction('writeFixture',()=>{writes++;});
       await ctx.route('**/*',r=>r.fulfill({contentType:'text/html',body:'<title>Fixture</title><button onclick="writeFixture()">Save draft</button><p id="result">Waiting</p>'}));
-      return {blockedRequests:1};
+      return guardState;
     }});
     assert.equal(result.report.status,'inconclusive');assert.equal(result.report.coverage.deterministic,false);assert.equal(writes,0);
     assert.ok(result.report.checks.every(c=>c.status!=='failed'));

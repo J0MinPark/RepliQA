@@ -18,24 +18,53 @@ async function publicHost(host, fetchImpl) {
 }
 export async function installGuard(context, tenant, fetchImpl = fetch) {
   const origins = JSON.parse(tenant.origins); const hosts = new Set([...origins.map((origin) => new URL(origin).hostname), ...JSON.parse(tenant.resource_hosts)]);
-  const state = { blockedRequests: 0 };
+  let stopping=false;
+  // Coalesce only concurrent lookups. Do not retain resolved DNS answers:
+  // a later request must observe rebinding instead of a stale positive cache.
+  const dnsInFlight=new Map();
+  const checkHost=host=>{
+    if(!dnsInFlight.has(host))dnsInFlight.set(host,(async()=>{
+      // A short collection window groups near-simultaneous browser asset
+      // events even when the DNS provider responds faster than those events.
+      await new Promise(resolve=>setTimeout(resolve,25));
+      return publicHost(host,fetchImpl);
+    })().finally(()=>dnsInFlight.delete(host)));
+    return dnsInFlight.get(host);
+  };
+  const state = { blockedRequests: 0, failedRequests: 0, cancelledAtShutdown: 0, events: [], finish:()=>{stopping=true;} };
+  const record=(kind,request)=>{
+    if(state.events.length>=20)return;
+    let origin;try{origin=new URL(request?.url()).origin;}catch{}
+    state.events.push({kind,origin,resourceType:request?.resourceType?.()});
+  };
   // WebSocket journeys are unsupported; never connect upstream.
-  await context.routeWebSocket('**/*', socket => { state.blockedRequests++; return socket.close(); });
+  await context.routeWebSocket('**/*', socket => { if(!stopping){state.blockedRequests++;record('websocket');} return socket.close(); });
   await context.route('**/*', async (route) => {
+    let stage='policy';const request=route.request();
     try {
-      const request = route.request(); const url = new URL(request.url());
+      if(stopping){state.cancelledAtShutdown++;await route.abort('blockedbyclient').catch(()=>{});return;}
+      const url = new URL(request.url());
       if (url.protocol !== 'https:' || url.username || url.password || (url.port && url.port !== '443') || !hosts.has(url.hostname)) throw new Error('허용하지 않은 요청');
       if (request.isNavigationRequest()) validateUrl(url.href, origins);
       // Recheck each request. This is preflight, not transport-level IP pinning.
-      if (!await publicHost(url.hostname, fetchImpl)) throw new Error('비공개 네트워크');
+      stage='dns';
+      const isPublic=await checkHost(url.hostname);
+      if(stopping){state.cancelledAtShutdown++;await route.abort('blockedbyclient').catch(()=>{});return;}
+      stage='policy';if (!isPublic) throw new Error('비공개 네트워크');
       // Chromium may follow HTTP redirects without another route callback.
       // Fail closed rather than allowing an unchecked redirect destination.
-      const response = await route.fetch({ maxRedirects: 0, maxRetries: 0, timeout: 10000 });
+      stage='transport';const response = await route.fetch({ maxRedirects: 0, maxRetries: 0, timeout: 10000 });
       try {
+        stage='redirect';
         if (response.status() >= 300 && response.status() < 400 && response.status() !== 304) throw new Error('HTTP 리디렉션은 현재 지원하지 않습니다. 최종 HTTPS 주소를 등록하세요.');
+        stage='transport';
         await route.fulfill({ response });
       } finally { await response.dispose(); }
-    } catch { state.blockedRequests++; await route.abort('blockedbyclient'); }
+    } catch {
+      if(stopping)state.cancelledAtShutdown++;
+      else {if(['policy','redirect'].includes(stage))state.blockedRequests++;else state.failedRequests++;record(stage,request);}
+      await route.abort('blockedbyclient').catch(()=>{});
+    }
   });
   return state;
 }

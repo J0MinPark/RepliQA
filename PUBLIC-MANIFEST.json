@@ -1,5 +1,5 @@
 {
-  "createdAt": "2026-09-17T17:31:18.702Z",
+  "createdAt": "2026-09-17T18:42:24.248Z",
   "files": [
     {
       "file": "LICENSE",
@@ -33,8 +33,8 @@
     },
     {
       "file": "cloud/src/actions.mjs",
-      "bytes": 3792,
-      "sha256": "bd0e2b999c7484709a1e3e9e6537c6c7d9858ab4cae825022651b86c540eda74"
+      "bytes": 4381,
+      "sha256": "10d566d93fbd70fa3450213dc83a36c7632374cf9152fa923a08875a485c648d"
     },
     {
       "file": "cloud/src/ai.mjs",
@@ -43,8 +43,8 @@
     },
     {
       "file": "cloud/src/assertions.mjs",
-      "bytes": 4776,
-      "sha256": "e2e3d3396cb149a67d716f3ebb4d6fd5fcfb6fd93caa4b0d70843ad3921a2d6a"
+      "bytes": 4918,
+      "sha256": "4a789c47fb6a2908a017c012f07bcd70d9c8c074aeaf9d6787a9e82b97d10a7c"
     },
     {
       "file": "cloud/src/axe-source.mjs",
@@ -58,8 +58,8 @@
     },
     {
       "file": "cloud/src/outcomes.mjs",
-      "bytes": 4055,
-      "sha256": "48a588ad7935b33a288b608b032acabbd665076306088a0c0a5b17a84c1e166c"
+      "bytes": 4743,
+      "sha256": "befeb1f9ad5c287a47eb6c270a58025ccebd4fd511b645283229c74a288b36ba"
     },
     {
       "file": "cloud/src/report.mjs",
@@ -78,8 +78,8 @@
     },
     {
       "file": "cloud/src/runner.mjs",
-      "bytes": 8207,
-      "sha256": "200b0431a61818405a6d654ff34956623d6ec15666c57a0df8815f5eb6a5b384"
+      "bytes": 8689,
+      "sha256": "b395613f0576c84f6d073434d37a246fa51d483e92b6c9b63ea81e3e22e05937"
     },
     {
       "file": "cloud/src/schema.mjs",
@@ -88,13 +88,13 @@
     },
     {
       "file": "cloud/src/target-guard.mjs",
-      "bytes": 3373,
-      "sha256": "bc3907562245571dd206d96194dc23647d1f66c61eabf31d943fe3723bf9759f"
+      "bytes": 4881,
+      "sha256": "847284972a1bbcb39304acb6a72e2f04d4632c079e8d91497128d144b45439bc"
     },
     {
       "file": "cloud/src/worker.mjs",
-      "bytes": 9361,
-      "sha256": "03e425683d4c9873d57a908f7f35eca779daed41d969697bc12738d4d36930fe"
+      "bytes": 9463,
+      "sha256": "53e299cd5e1146dbfd34574f46461fbeb1e35808e4f533c86c4689bf3950f684"
     },
     {
       "file": "cloud/public/app.js",
@@ -167,6 +167,11 @@
       "sha256": "6ffada75d02c32482b7ce6008c50a7b2c55eb780e4f7405edcdf6e76d0e56575"
     },
     {
+      "file": "cloud/test/live-site-adaptation.test.mjs",
+      "bytes": 4767,
+      "sha256": "f8aeae2c045102689444a5c9300423dcebf1da3c20de034fbef4e9a0ddcc2502"
+    },
+    {
       "file": "cloud/test/local-fixture.sql",
       "bytes": 177,
       "sha256": "b41d3f66fa900abf385c6240178518451dcd97a83e3deb33d5022ca59655348e"
@@ -208,8 +213,8 @@
     },
     {
       "file": "cloud/test/target-guard.test.mjs",
-      "bytes": 6556,
-      "sha256": "fcd83246cb41c67f766b35182d429196c92e5ff6d09b2e6393d138356f4f4f19"
+      "bytes": 9456,
+      "sha256": "18397869cb1e832b7c5eeb0e841b298f0d3d8d76ca4dd3e5f78ceca39f79f545"
     },
     {
       "file": "cloud/test/visibility-regression.test.mjs",
@@ -223,13 +228,13 @@
     },
     {
       "file": "cloud/package.json",
-      "bytes": 774,
-      "sha256": "208e5e1e51ebff35754234a57a28ffba70d3e8836a4c15a4b9b4d084575c52ef"
+      "bytes": 802,
+      "sha256": "6323069416b748ebefcdd080bc3b152399e0c4d02d6dc7a68af88e12c3ac673f"
     },
     {
       "file": "cloud/package-lock.json",
-      "bytes": 51210,
-      "sha256": "533f864eb711e334b1b754b449d1e211e15b8e1c038cd883400eccaf09ad4cd0"
+      "bytes": 52803,
+      "sha256": "b7082d385e434644102630d3a053b79b0e17ba4683cec066595fc342b46c4273"
     },
     {
       "file": "desktop/src/browser-flow.cjs",
@@ -278,8 +283,8 @@
     },
     {
       "file": "evaluation/run.mjs",
-      "bytes": 12573,
-      "sha256": "270c1de7b6a1ad0c4271e0583c27e5af0336752947ce6402af214e6daf7e5c65"
+      "bytes": 12635,
+      "sha256": "4a2535a2ca667f164627e2df156d2f955f6c632e68e516db31011d3b3f3f8c94"
     },
     {
       "file": "evaluation/gate.mjs",
@@ -337,9 +342,14 @@
       "sha256": "a97b992d14f0821b19e05c50c3c0f9c628b41002fc0b69b5342a754a057516c5"
     },
     {
+      "file": ".gitattributes",
+      "bytes": 168,
+      "sha256": "fbfa0e9c887b5a0eb3da0659433968a5730872a5cf11f4eba4ee10aded5da9ad"
+    },
+    {
       "file": "README.md",
-      "bytes": 3723,
-      "sha256": "ca9c00e1e630301017800ace72c0c82131674ab659c1b362a74ed7379ac4548a"
+      "bytes": 4134,
+      "sha256": "48f5dc8f3371dd3c54cd40c11f2eb24e719846042680ccbe9d8fba5bd0ecc4da"
     },
     {
       "file": "evaluation/review/cases.mjs",
@@ -348,8 +358,8 @@
     },
     {
       "file": "evaluation/review/freeze.mjs",
-      "bytes": 2714,
-      "sha256": "e245dbd72a21c25299213ba181539896e08ecc602d0db341e76f2fe0a83754de"
+      "bytes": 2808,
+      "sha256": "e17d2c9d7c90b6c9a032196a94f35d5180742b88799ca0b39a15b691dd89540e"
     },
     {
       "file": "evaluation/review/run.mjs",
@@ -393,8 +403,8 @@
     },
     {
       "file": "docs/EXTERNAL-REVIEW-PACK.md",
-      "bytes": 3801,
-      "sha256": "ff74bad1c4f36a0ce0c102d97f5286f327292884cfca7397338569b16a8742af"
+      "bytes": 4003,
+      "sha256": "9d899a12ffe87cf636dd2d7e18c052292f01edf129295a2d6f0f827e2ce1b449"
     },
     {
       "file": "docs/evidence/security-operations/summary.json",
@@ -422,14 +432,29 @@
       "sha256": "dd515c3215000788f4be9eaa569fe9b41cb1ca05194f07c65ea5b0166cf17cdb"
     },
     {
+      "file": "evaluation/real-sites/audit-reference-verdict.py",
+      "bytes": 3701,
+      "sha256": "d93072ace2f17ea5c338f17a4c26a68b573a9964a50d8808fa3937c942c2e32d"
+    },
+    {
+      "file": "evaluation/real-sites/compare-adaptation.mjs",
+      "bytes": 5747,
+      "sha256": "e16bd975fc39167db2a7b353e82b11fec72db70950ceeaf85ddd4a6042960588"
+    },
+    {
+      "file": "evaluation/real-sites/diagnose.mjs",
+      "bytes": 3638,
+      "sha256": "7a74793c2c3dd04bf830f4d2a50fc112741180fcfd88f5b6f372d3eb7ef098bb"
+    },
+    {
       "file": "evaluation/real-sites/render.mjs",
       "bytes": 6004,
       "sha256": "e2e2e2b875a1bb0b1b7bfadb73d014a7530f473f027575c90ab047969d0153e6"
     },
     {
       "file": "evaluation/real-sites/run.mjs",
-      "bytes": 4956,
-      "sha256": "e0f906f3f7c5f040ac7b0e15703257201fcfcb52c919add70aaebb4060689136"
+      "bytes": 5175,
+      "sha256": "245b0be1a9b1eb5be43d90c141d3ebc5ad45d396e95fbe95c685faaccf2ed63a"
     },
     {
       "file": "docs/REPLIQA-USAGE.md",
@@ -445,6 +470,221 @@
       "file": "docs/ENTERPRISE-QA-REPORT-20260918.html",
       "bytes": 634220,
       "sha256": "d096892ac286e8dab21f400f2a150e62f7513ba540cf1050e022e5e5e16bcbc5"
+    },
+    {
+      "file": "evaluation/review-packs/20260918-v4/cases.json",
+      "bytes": 44251,
+      "sha256": "9123d2e3df6d32802ad9c2bbc75e9548b8d2475e8ff25a7131fa0455d993afcd"
+    },
+    {
+      "file": "evaluation/review-packs/20260918-v4/manifest.json",
+      "bytes": 3234,
+      "sha256": "892583195edca0f87389cc80e6193056cefbf3a78caffd8e034b5f4b8a107d85"
+    },
+    {
+      "file": "evaluation/review-packs/20260918-v4/proposed-oracle.json",
+      "bytes": 5246,
+      "sha256": "ef13b3289035c77729d67fb34bc90e636fa910d6f1d7905f6a7871e3df335c11"
+    },
+    {
+      "file": "evaluation/review-packs/20260918-v4/review-template.json",
+      "bytes": 3857,
+      "sha256": "09fffedd02d0fd3237f57b329afdc652bae298bf1b63a3614cb6438fc1e5a1bb"
+    },
+    {
+      "file": "docs/LIVE-QA-ADAPTATION.md",
+      "bytes": 7286,
+      "sha256": "0bc5a7ca6b353115f7d6a1e17d57b97eb5b05a87b212345ad392652416e566db"
+    },
+    {
+      "file": "docs/LIVE-QA-ADAPTATION-REPORT.html",
+      "bytes": 1624249,
+      "sha256": "c13d5877f568f61d01d8033d188146e17ed56d0412fb6c8bb45dc1af2e5cd62e"
+    },
+    {
+      "file": "docs/evidence/live-adaptation/cleanup.json",
+      "bytes": 284,
+      "sha256": "c287f0fb6bbdf3410dfc995a9c7fc5cb41cf1833b28a299de806e724f9a28e51"
+    },
+    {
+      "file": "docs/evidence/live-adaptation/cloud-browser-before-history-fix.json",
+      "bytes": 34566,
+      "sha256": "c1d25171ebf36e1bf03694d12c98b54fd8204ba00b535228b4906bf04a1a095d"
+    },
+    {
+      "file": "docs/evidence/live-adaptation/cloud-browser-final-vercel.json",
+      "bytes": 15291,
+      "sha256": "649dca11cbf4615af9dfec02ba04c7be886dc40966e485da6f1e2eebf24b3a3a"
+    },
+    {
+      "file": "docs/evidence/live-adaptation/cloud-browser.json",
+      "bytes": 19201,
+      "sha256": "3e81c691abcec8f831a955d12e32cdbe429738acbaf65520811bae95752d86c2"
+    },
+    {
+      "file": "docs/evidence/live-adaptation/cloud-worker-final-both.json",
+      "bytes": 30362,
+      "sha256": "d5919b8f7ec84bb0d309edab8200f13999609cac3aacfd684540970b9be301eb"
+    },
+    {
+      "file": "docs/evidence/live-adaptation/cloud-worker-final-github.json",
+      "bytes": 17403,
+      "sha256": "f92216ce772812df6690489d0fc6fbc07da06ecc62e40fbea6a1ffa3b7e98598"
+    },
+    {
+      "file": "docs/evidence/live-adaptation/cloud-worker-first.json",
+      "bytes": 30362,
+      "sha256": "d5919b8f7ec84bb0d309edab8200f13999609cac3aacfd684540970b9be301eb"
+    },
+    {
+      "file": "docs/evidence/live-adaptation/cloud-worker-subrequest-limit.json",
+      "bytes": 20091,
+      "sha256": "c46be01e9aa3a4af7f78e6947bf35b09267b7386f86680fe6b9fccd06ea8a197"
+    },
+    {
+      "file": "docs/evidence/live-adaptation/gate.json",
+      "bytes": 201,
+      "sha256": "521fd3aabcf03015ac62fb21123dc4057c5c5b116017b7694f45e70278476876"
+    },
+    {
+      "file": "docs/evidence/live-adaptation/local-validation.json",
+      "bytes": 2085,
+      "sha256": "10f7e86913b87347569e59224d09e67b7d101e2074d36fdc14dbc7da896dcbf4"
+    },
+    {
+      "file": "docs/evidence/live-adaptation/real-sites.json",
+      "bytes": 6568,
+      "sha256": "3c6c3a739ddc2f8c61195e7f145a133b6a5fd5edc95120e381584d9a385df045"
+    },
+    {
+      "file": "docs/evidence/live-adaptation/regression.json",
+      "bytes": 1418196,
+      "sha256": "906c4f1657955a2e35162f6fc02c370ec6b408652843caeafb55c5089936e8b9"
+    },
+    {
+      "file": "docs/evidence/qa-reference-audit/jimmytoan-verdict.json",
+      "bytes": 1016,
+      "sha256": "51f4d4d532b676dc8e0d291025380bc2649c8c0937eab374132fe4def6323dda"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-adaptation-verified-20260918-r1/manifest.json",
+      "bytes": 9876,
+      "sha256": "6d60165230eae09adca3781490f8fca52b73ec1a271f851198eb3ab99771fce3"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-adaptation-verified-20260918-r1/result.json",
+      "bytes": 111022,
+      "sha256": "affde1c57d022c0a4ddcbf9565cb064da25b43858881287e40fb4c2e8ba067e4"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-adaptation-verified-20260918-r1/github-basic.json",
+      "bytes": 16330,
+      "sha256": "09ccd4b7e461a11e30aff6c7c4942ca65521f18682a9d3829615eb36cf19755d"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-adaptation-verified-20260918-r1/github-journey.json",
+      "bytes": 16021,
+      "sha256": "c6eceb38a4558cff08d61cea861f79ccb6887782f987f9a9f1b0c039fd0d6141"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-adaptation-verified-20260918-r1/cloudflare-basic.json",
+      "bytes": 17850,
+      "sha256": "4d2d2d6d06d42186f6d98732b1a117ecd0f4fbadcd42c9f836d4ea83985c874e"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-adaptation-verified-20260918-r1/cloudflare-journey.json",
+      "bytes": 13671,
+      "sha256": "d5d994c804e24ae0746ffa9f83afc9b53f49997e402c07af539eaecd629bc54b"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-adaptation-verified-20260918-r1/vercel-basic.json",
+      "bytes": 17045,
+      "sha256": "72914d0d67c0c6f7e0297a3069e6cd6ee066923eed402d490526d1799d89777e"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-adaptation-verified-20260918-r1/vercel-journey.json",
+      "bytes": 17738,
+      "sha256": "a800a646eda19cd322226c08a451bf697d872e74c0916b6e9742ff773c681db4"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-adaptation-verified-20260918-r2/manifest.json",
+      "bytes": 9876,
+      "sha256": "16598153e5338573264b30ccd08071cb6b51c29445634452ad65d02e55500739"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-adaptation-verified-20260918-r2/result.json",
+      "bytes": 111037,
+      "sha256": "825f588289a859f2039eb8d5180f2279f96a6f0af5f44d9fb475c793bc0a48fa"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-adaptation-verified-20260918-r2/github-basic.json",
+      "bytes": 16330,
+      "sha256": "2f85c6e25e4831f3e7699b5148fd3978f69c37075423959de871e7c2f168ea58"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-adaptation-verified-20260918-r2/github-journey.json",
+      "bytes": 16022,
+      "sha256": "504634d9fce5ccc98651786cbc8d1f473f7ad0bf63b958943e34a445c78f3556"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-adaptation-verified-20260918-r2/cloudflare-basic.json",
+      "bytes": 17850,
+      "sha256": "791e26e64fb15825d249e72f8b95887d64b48f6c564271f732c499d9215b9b29"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-adaptation-verified-20260918-r2/cloudflare-journey.json",
+      "bytes": 13525,
+      "sha256": "b8de291a4905948779b8c6a8e599cc11e74d420e9c6342bd33c96629741fbb3f"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-adaptation-verified-20260918-r2/vercel-basic.json",
+      "bytes": 17045,
+      "sha256": "0184aca98630714776d202ae9f26bcd29a76b26969da3903b9d3f607a0126c71"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-adaptation-verified-20260918-r2/vercel-journey.json",
+      "bytes": 17898,
+      "sha256": "d8d41d14c3e44862edffa745aface2419040e1c35f7619851134e63079a8d880"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-adaptation-verified-20260918-r3/manifest.json",
+      "bytes": 9876,
+      "sha256": "8bf69b01e4db0b05568f8296f4081a951f25107322eaf849b6f7c29fd0404abb"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-adaptation-verified-20260918-r3/result.json",
+      "bytes": 111037,
+      "sha256": "19bcc31a4130fe1e814aff589f299e2b5b47142280de1afe4425a92d9f69040d"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-adaptation-verified-20260918-r3/github-basic.json",
+      "bytes": 16330,
+      "sha256": "ffdd5af24704283a2bc72f3a9a344c72f6fb061ae218a8283afc55181c1b63db"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-adaptation-verified-20260918-r3/github-journey.json",
+      "bytes": 16022,
+      "sha256": "e7c116800daeeef26d4c340dae5817b698536eb72c01e6f52057f315bbe036fe"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-adaptation-verified-20260918-r3/cloudflare-basic.json",
+      "bytes": 17850,
+      "sha256": "e6e9ee9a6644ea4e069d840a39d37e9c1824f3d72d1f0e3f3ddbbc6dd060a63d"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-adaptation-verified-20260918-r3/cloudflare-journey.json",
+      "bytes": 13525,
+      "sha256": "82784617443f0b835329d594589cab44a9cc712b039a9fc36f0787be30e53347"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-adaptation-verified-20260918-r3/vercel-basic.json",
+      "bytes": 17045,
+      "sha256": "438fef1e8b951d2f0f215369fb5ea6e9eb43d759f5ab33ba75d8cac63483f0c8"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-adaptation-verified-20260918-r3/vercel-journey.json",
+      "bytes": 17898,
+      "sha256": "7b594915b19cded2864e9d1d481237544fa87b5bedda7f0b2b47b67dbb2d7da0"
     },
     {
       "file": "docs/evidence/cloud-operations/summary.json",

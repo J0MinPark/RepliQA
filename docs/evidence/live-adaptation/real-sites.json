@@ -1,0 +1,257 @@
+{
+  "engineVersion": "0.2.6",
+  "baselineEngine": "0.2.5",
+  "repeats": 3,
+  "contractsUnchanged": true,
+  "rows": [
+    {
+      "site": "GitHub",
+      "mode": "basic",
+      "before": {
+        "status": "inconclusive",
+        "completedSteps": 0
+      },
+      "after": [
+        {
+          "status": "inconclusive",
+          "completedSteps": 0,
+          "wallMs": 2900,
+          "network": {
+            "blockedRequests": 0,
+            "failedRequests": 0,
+            "cancelledAtShutdown": 0
+          }
+        },
+        {
+          "status": "inconclusive",
+          "completedSteps": 0,
+          "wallMs": 2125,
+          "network": {
+            "blockedRequests": 0,
+            "failedRequests": 0,
+            "cancelledAtShutdown": 0
+          }
+        },
+        {
+          "status": "inconclusive",
+          "completedSteps": 0,
+          "wallMs": 2306,
+          "network": {
+            "blockedRequests": 0,
+            "failedRequests": 0,
+            "cancelledAtShutdown": 0
+          }
+        }
+      ],
+      "reason": "접근성 검토 후보·미완료 항목이 남아 확인 불가. 정상 사이트 인증이 아님."
+    },
+    {
+      "site": "GitHub",
+      "mode": "journey",
+      "before": {
+        "status": "passed",
+        "completedSteps": 9
+      },
+      "after": [
+        {
+          "status": "passed",
+          "completedSteps": 9,
+          "wallMs": 3127,
+          "network": {
+            "blockedRequests": 0,
+            "failedRequests": 0,
+            "cancelledAtShutdown": 0
+          }
+        },
+        {
+          "status": "passed",
+          "completedSteps": 9,
+          "wallMs": 3345,
+          "network": {
+            "blockedRequests": 0,
+            "failedRequests": 0,
+            "cancelledAtShutdown": 0
+          }
+        },
+        {
+          "status": "passed",
+          "completedSteps": 9,
+          "wallMs": 3175,
+          "network": {
+            "blockedRequests": 0,
+            "failedRequests": 0,
+            "cancelledAtShutdown": 0
+          }
+        }
+      ],
+      "reason": "같은 9단계 계약을 반복 완료."
+    },
+    {
+      "site": "Cloudflare",
+      "mode": "basic",
+      "before": {
+        "status": "inconclusive",
+        "completedSteps": 0
+      },
+      "after": [
+        {
+          "status": "inconclusive",
+          "completedSteps": 0,
+          "wallMs": 2455,
+          "network": {
+            "blockedRequests": 0,
+            "failedRequests": 0,
+            "cancelledAtShutdown": 0
+          }
+        },
+        {
+          "status": "inconclusive",
+          "completedSteps": 0,
+          "wallMs": 2449,
+          "network": {
+            "blockedRequests": 0,
+            "failedRequests": 0,
+            "cancelledAtShutdown": 0
+          }
+        },
+        {
+          "status": "inconclusive",
+          "completedSteps": 0,
+          "wallMs": 2435,
+          "network": {
+            "blockedRequests": 0,
+            "failedRequests": 0,
+            "cancelledAtShutdown": 0
+          }
+        }
+      ],
+      "reason": "접근성 검토 후보·미완료 항목이 남아 확인 불가. 정상 사이트 인증이 아님."
+    },
+    {
+      "site": "Cloudflare",
+      "mode": "journey",
+      "before": {
+        "status": "inconclusive",
+        "completedSteps": 2
+      },
+      "after": [
+        {
+          "status": "inconclusive",
+          "completedSteps": 2,
+          "wallMs": 4082,
+          "network": {
+            "blockedRequests": 1,
+            "failedRequests": 0,
+            "cancelledAtShutdown": 0
+          }
+        },
+        {
+          "status": "inconclusive",
+          "completedSteps": 2,
+          "wallMs": 1317,
+          "network": {
+            "blockedRequests": 1,
+            "failedRequests": 0,
+            "cancelledAtShutdown": 1
+          }
+        },
+        {
+          "status": "inconclusive",
+          "completedSteps": 2,
+          "wallMs": 1300,
+          "network": {
+            "blockedRequests": 1,
+            "failedRequests": 0,
+            "cancelledAtShutdown": 1
+          }
+        }
+      ],
+      "reason": "등록되지 않은 privacyportal.onetrust.com 요청 차단. 미해결."
+    },
+    {
+      "site": "Vercel / Next.js",
+      "mode": "basic",
+      "before": {
+        "status": "inconclusive",
+        "completedSteps": 0
+      },
+      "after": [
+        {
+          "status": "inconclusive",
+          "completedSteps": 0,
+          "wallMs": 2662,
+          "network": {
+            "blockedRequests": 0,
+            "failedRequests": 0,
+            "cancelledAtShutdown": 0
+          }
+        },
+        {
+          "status": "inconclusive",
+          "completedSteps": 0,
+          "wallMs": 2765,
+          "network": {
+            "blockedRequests": 0,
+            "failedRequests": 0,
+            "cancelledAtShutdown": 0
+          }
+        },
+        {
+          "status": "inconclusive",
+          "completedSteps": 0,
+          "wallMs": 2600,
+          "network": {
+            "blockedRequests": 0,
+            "failedRequests": 0,
+            "cancelledAtShutdown": 0
+          }
+        }
+      ],
+      "reason": "접근성 검토 후보·미완료 항목이 남아 확인 불가. 정상 사이트 인증이 아님."
+    },
+    {
+      "site": "Vercel / Next.js",
+      "mode": "journey",
+      "before": {
+        "status": "inconclusive",
+        "completedSteps": 8
+      },
+      "after": [
+        {
+          "status": "passed",
+          "completedSteps": 9,
+          "wallMs": 3834,
+          "network": {
+            "blockedRequests": 0,
+            "failedRequests": 0,
+            "cancelledAtShutdown": 0
+          }
+        },
+        {
+          "status": "passed",
+          "completedSteps": 9,
+          "wallMs": 3666,
+          "network": {
+            "blockedRequests": 0,
+            "failedRequests": 0,
+            "cancelledAtShutdown": 2
+          }
+        },
+        {
+          "status": "passed",
+          "completedSteps": 9,
+          "wallMs": 3601,
+          "network": {
+            "blockedRequests": 0,
+            "failedRequests": 0,
+            "cancelledAtShutdown": 1
+          }
+        }
+      ],
+      "reason": "숨은 이전 페이지 제목을 제외하고 현재 화면의 유일한 제목 검증."
+    }
+  ],
+  "externalAiCalls": 0,
+  "localRuns": 18,
+  "scope": "Same read-only contracts on live public sites; no independent defect oracle. Not a competitor accuracy benchmark. Baseline is a prior observation, not a simultaneous controlled trial."
+}

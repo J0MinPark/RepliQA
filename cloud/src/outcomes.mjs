@@ -2,12 +2,13 @@
 export async function readResult(page, selector) {
   return page.evaluate((selector)=>{
     const elements=selector ? [...document.querySelectorAll(selector)] : [document.body];
-    if(elements.length!==1) return {available:false,ambiguous:elements.length>1,reason:elements.length?'결과 영역이 여러 개입니다.':'결과 영역을 찾지 못했습니다.'};
-    const root=elements[0];
+    if(!elements.length)return {available:false,matchedCandidates:0,visibleCandidates:0,reason:'결과 영역을 찾지 못했습니다.'};
+    if(elements.length>100)return {available:false,ambiguous:true,truncated:true,matchedCandidates:elements.length,reason:'결과 후보 수집 한도를 넘었습니다.'};
     // Visibility can be overridden by a child; display:none and opacity:0 cannot.
     // The hidden attribute is a CSS default, not proof that a rendered node is hidden.
     const traversable=el=>{for(let e=el;e;e=e.parentElement){const s=getComputedStyle(e);if(s.display==='none'||Number(s.opacity)===0||e.getAttribute('aria-hidden')==='true')return false;}return true;};
     const visible=el=>{const s=getComputedStyle(el);return traversable(el)&&!['hidden','collapse'].includes(s.visibility)&&(s.display==='contents'||el.getClientRects().length>0);};
+    const observe=root=>{
     if(!traversable(root))return {available:false,reason:'결과 영역이 보이지 않습니다.'};
     // A bounded walk excludes hidden descendants, including opacity:0 text.
     let text='';let count=0;let truncated=false;
@@ -15,6 +16,14 @@ export async function readResult(page, selector) {
     walk(root);const normal=v=>v.normalize('NFKC').replace(/\s+/g,' ').trim();
     if(!visible(root)&&!normal(text)&&!truncated)return {available:false,reason:'결과 영역이 보이지 않습니다.'};
     return {available:true,text:normal(text),lines:text.split('\n').map(normal).filter(Boolean),truncated};
+    };
+    // SPA history and responsive layouts can retain hidden copies. Resolve from
+    // the current rendered state, never from the expected assertion text.
+    const observations=elements.map(observe);
+    const candidates=observations.filter(item=>item.available);
+    const evidence={matchedCandidates:elements.length,visibleCandidates:candidates.length};
+    if(candidates.length>1)return {available:false,ambiguous:true,...evidence,reason:'보이는 결과 영역이 여러 개입니다.'};
+    return {...(candidates[0]||observations[0]),...evidence};
   },selector||null);
 }
 

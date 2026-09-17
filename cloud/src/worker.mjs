@@ -20,7 +20,7 @@ export async function handle(request, env, runtime = {}) {
     for (const [key, value] of Object.entries(headers)) secured.headers.set(key, value);
     return secured;
   }
-  if (url.pathname === '/api/health') return json({ service: 'RepliQA Cloud Pilot', version:'0.2.5', ready: env.FREE_PLAN_CONFIRMED === 'true', localGpuRequired: false, aiEnabled: env.CLOUD_AI_ENABLED === 'true',inspectionModes:['basic','journey'] });
+  if (url.pathname === '/api/health') return json({ service: 'RepliQA Cloud Pilot', version:'0.2.6', ready: env.FREE_PLAN_CONFIRMED === 'true', localGpuRequired: false, aiEnabled: env.CLOUD_AI_ENABLED === 'true',inspectionModes:['basic','journey'] });
   if (env.FREE_PLAN_CONFIRMED !== 'true') return json({ error: '무료 요금제 확인 후 서비스를 열 수 있습니다.' }, 503);
   if (request.headers.get('origin') && request.headers.get('origin') !== url.origin) return json({ error: '허용하지 않은 출처입니다.' }, 403);
   const tenant = await authenticate(env.DB, request.headers.get('authorization'));

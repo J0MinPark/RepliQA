@@ -1,0 +1,32 @@
+{
+  "repository": "https://github.com/jimmytoan/qa-agent",
+  "reviewedCommit": "5be0169a6bbebd334c59fda068bf8025cd2c18bc",
+  "sourceSha256": "5679f5af3f114e5f2238fa929aae93029f5a4d6a4b06f85bb9873a1471ee7899",
+  "function": "run_browser_use_task",
+  "scope": "Extracted source function with stubbed agent, storage, artifacts and model. Not a full product evaluation.",
+  "externalAiCalls": 0,
+  "browserCalls": 0,
+  "cases": [
+    {
+      "agentSuccess": true,
+      "transportException": false,
+      "storedStatus": "passed",
+      "result": "Expected result confirmed",
+      "error": null
+    },
+    {
+      "agentSuccess": false,
+      "transportException": false,
+      "storedStatus": "passed",
+      "result": "Task unsuccessful: expected result was not observed",
+      "error": null
+    },
+    {
+      "agentSuccess": null,
+      "transportException": true,
+      "storedStatus": "failed",
+      "result": null,
+      "error": "Simulated model transport timeout"
+    }
+  ]
+}

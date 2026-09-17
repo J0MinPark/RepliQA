@@ -19,7 +19,8 @@ await write('cases.json',cases.map(({id,name,requirement,html,job})=>({id,name,r
 await write('proposed-oracle.json',cases.map(({id,truth,expected,proof})=>({id,truth,expected,proof})));
 await write('review-template.json',{pack:label,reviewer:{name:'',role:'',reviewedAt:'',independentOfImplementation:false},cases:cases.map(({id})=>({id,approved:false,expected:'',evidence:'',notes:''}))});
 const sources={};
+const engineVersion=JSON.parse(await fs.readFile(new URL('cloud/package.json',root),'utf8')).version;
 async function track(relative){const location=new URL(relative,root);if((await fs.stat(location)).isDirectory()){for(const file of await fs.readdir(location))await track(relative+'/'+file);}else sources[relative]=hash(await fs.readFile(location));}
 for(const source of ['cloud/src','cloud/public/qa-catalog.js','desktop/src/browser-flow.cjs','desktop/src/privacy.cjs','desktop/src/scroll.cjs','backend/src/design/actions.js','backend/src/engine/paymentSafety.js','evaluation/review'])await track(source);
-await fs.writeFile(new URL('manifest.json',out),JSON.stringify({label,frozenAt:new Date().toISOString(),engineVersion:'0.2.5',uniqueCases:cases.length,counts:{normal:12,defect:12,unresolved:4},artifacts,sources,reviewStatus:'pending',engineMeasured:false,independence:'Author-generated proposals, no external reviewer yet. External truth review is required; this is not a blind independent corpus.'},null,2));
+await fs.writeFile(new URL('manifest.json',out),JSON.stringify({label,frozenAt:new Date().toISOString(),engineVersion,uniqueCases:cases.length,counts:{normal:12,defect:12,unresolved:4},artifacts,sources,reviewStatus:'pending',engineMeasured:false,independence:'Author-generated proposals, no external reviewer yet. External truth review is required; this is not a blind independent corpus.'},null,2));
 console.log(JSON.stringify({label,cases:cases.length,reviewStatus:'pending',engineMeasured:false}));

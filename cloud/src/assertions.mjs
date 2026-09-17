@@ -10,7 +10,7 @@ async function sample(page, step) {
   }
   if (step.action === 'assertText') {
     const result = await readResult(page, step.target);
-    return { available: result.available && !result.truncated, value: result.text, reason: result.reason || '텍스트 수집이 불완전합니다.' };
+    return { available: result.available && !result.truncated, value: result.text, reason: result.reason || '텍스트 수집이 불완전합니다.', candidates:{matched:result.matchedCandidates,visible:result.visibleCandidates} };
   }
   if (['assertVisible','assertHidden'].includes(step.action)) {
     // Playwright handles computed visibility, child overrides and the hidden
@@ -61,5 +61,5 @@ export async function checkStep(page, step, signal) {
   const status = !observed.available ? 'inconclusive' : stable >= 3 ? 'passed' : observed.value === expected ? 'inconclusive' : 'failed';
   return { id: 'step-assertion', catalogId: 'assertions', title: `${step.action}: ${step.target}`, status,
     message: !observed.available ? observed.reason : '명시한 조건을 연속 3회 관측합니다. 요소 부재·중복은 확인 불가이며, 개수 검증은 지정한 CSS 범위의 개수만 의미합니다.',
-    evidence: { assertion: step.action, target: step.target, expected, observed: observed.value ?? null, stableSamples: stable } };
+    evidence: { assertion: step.action, target: step.target, expected, observed: observed.value ?? null, stableSamples: stable, ...(observed.candidates?{candidates:observed.candidates}:{}) } };
 }
