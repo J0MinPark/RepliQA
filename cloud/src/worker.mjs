@@ -1,7 +1,6 @@
-import { launch } from '@cloudflare/playwright';
 import { jobSchema, LIMITS } from './schema.mjs';
 import { authenticate, hash, reserve, recover, ownedRun, finish } from './repository.mjs';
-import { installGuard, validateUrl } from './target-guard.mjs';
+import { installGuard, validateUrl, sessionGuardrails } from './target-guard.mjs';
 import { runBrowser } from './runner.mjs';
 import { reviewScreen } from './ai.mjs';
 
@@ -14,14 +13,14 @@ async function body(request) {
   for (;;) { const { value, done } = await reader.read(); if (done) break; size += value.byteLength; if (size > 20000) { await reader.cancel(); throw new Error('요청은 20KB 이하여야 합니다.'); } chunks.push(Buffer.from(value)); }
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }
-export async function handle(request, env) {
+export async function handle(request, env, runtime = {}) {
   const url = new URL(request.url);
   if (!url.pathname.startsWith('/api/')) {
     const result = await env.ASSETS.fetch(request); const secured = new Response(result.body, result);
     for (const [key, value] of Object.entries(headers)) secured.headers.set(key, value);
     return secured;
   }
-  if (url.pathname === '/api/health') return json({ service: 'RepliQA Cloud Pilot', version:'0.2.4', ready: env.FREE_PLAN_CONFIRMED === 'true', localGpuRequired: false, aiEnabled: env.CLOUD_AI_ENABLED === 'true',inspectionModes:['basic','journey'] });
+  if (url.pathname === '/api/health') return json({ service: 'RepliQA Cloud Pilot', version:'0.2.5', ready: env.FREE_PLAN_CONFIRMED === 'true', localGpuRequired: false, aiEnabled: env.CLOUD_AI_ENABLED === 'true',inspectionModes:['basic','journey'] });
   if (env.FREE_PLAN_CONFIRMED !== 'true') return json({ error: '무료 요금제 확인 후 서비스를 열 수 있습니다.' }, 503);
   if (request.headers.get('origin') && request.headers.get('origin') !== url.origin) return json({ error: '허용하지 않은 출처입니다.' }, 403);
   const tenant = await authenticate(env.DB, request.headers.get('authorization'));
@@ -67,26 +66,30 @@ export async function handle(request, env) {
     const job = jobSchema.parse(await body(request)); validateUrl(job.url, JSON.parse(tenant.origins));
     if (job.cloudAiConsent && env.CLOUD_AI_ENABLED !== 'true') return json({ error: '클라우드 AI가 비활성화되어 요청을 실행하지 않았습니다.' }, 503);
     if (await hash(JSON.stringify(job)) !== run.fingerprint) return json({ error: '검토한 검사 내용과 다릅니다.' }, 409);
+    if (request.signal.aborted) return json({ id, error: '실행 전에 연결이 중단되었습니다.' }, 503);
     const now = Date.now();
     const claim = await env.DB.prepare("UPDATE runs SET status = 'running', started_at = ? WHERE tenant_id = ? AND id = ? AND status = 'ready' AND created_at > ? AND cancel_requested = 0").bind(now, tenant.id, id, now - 60000).run();
     if (claim.meta.changes !== 1) return json({ error: '이미 실행했거나 만료된 요청입니다. 중복 실행하지 않았습니다.' }, 409);
     const controller = new AbortController(); const deadline = setTimeout(() => controller.abort(), LIMITS.totalMs);
     const disconnected = () => controller.abort(); request.signal.addEventListener('abort', disconnected, { once: true });
+    if (request.signal.aborted) controller.abort();
     let polling = false;
     const poll = setInterval(async () => {
       if (polling) return; polling = true;
-      try { const state = await ownedRun(env.DB, tenant.id, id); if (!state || state.cancel_requested || state.status !== 'running') controller.abort(); }
+      try { const state = await ownedRun(env.DB, tenant.id, id); const active = await authenticate(env.DB, request.headers.get('authorization')); if (!active || !state || state.cancel_requested || state.status !== 'running') controller.abort(); }
       catch { controller.abort(); } finally { polling = false; }
     }, 2000);
     try {
-      const execution = runBrowser(job, { launch: () => launch(env.BROWSER), guard: (context) => installGuard(context, tenant), signal: controller.signal,
+      controller.signal.throwIfAborted();
+      const execution = (runtime.runBrowser || runBrowser)(job, { launch: async () => (await import('@cloudflare/playwright')).launch(env.BROWSER, { guardrails: sessionGuardrails(tenant) }), guard: (context) => installGuard(context, tenant), signal: controller.signal,
         review: env.CLOUD_AI_ENABLED === 'true' ? (data, screenshot) => reviewScreen(env.AI, data, screenshot) : null });
       const aborted = new Promise((_, reject) => { const stop = () => reject(new Error('검사가 중단되었습니다.')); if (controller.signal.aborted) stop(); else controller.signal.addEventListener('abort', stop, { once: true }); });
       const { report, screenshot } = await Promise.race([execution, aborted]);
       const saved = await finish(env.DB, tenant.id, id, report, screenshot);
       return saved.meta.changes ? json({ id, report }) : json({ id, error: '검사가 취소되어 결과를 저장하지 않았습니다.' }, 409);
     } catch {
-      await finish(env.DB, tenant.id, id, { status: 'inconclusive', error: '실행이 중단되었습니다. 대상 상태를 확인하세요.' }, null, 'interrupted');
+      // If persistence is down, leave the lease for recovery; never report a client 400.
+      try { await finish(env.DB, tenant.id, id, { status: 'inconclusive', error: '실행이 중단되었습니다. 대상 상태를 확인하세요.' }, null, 'interrupted'); } catch {}
       return json({ id, error: '검사가 중단되었습니다. 실행 내역에서 상태를 확인하세요.' }, 503);
     } finally { clearTimeout(deadline); clearInterval(poll); request.signal.removeEventListener('abort', disconnected); }
   }

@@ -1,0 +1,12 @@
+{
+  "at": "2026-09-17T16:57:43.974Z",
+  "uniqueCases": 28,
+  "packManifestSha256": "d807c020401180dd0bc30e77f174eb26460308f163a79d5cf11ce5e64da3c20e",
+  "integrityPassed": true,
+  "tamperRejected": true,
+  "missingReviewRejectedBeforeBrowser": true,
+  "reviewer": null,
+  "engineMeasured": false,
+  "cloudBrowserCalls": 0,
+  "externalAiCalls": 0
+}

@@ -10,9 +10,9 @@ import { redactReport } from './report.mjs';
 import { assertionActions, checkStep } from './assertions.mjs';
 
 export async function runBrowser(job, { launch, guard, signal, onStep = async () => {}, review }) {
-  const started = Date.now(); let browser; let timer; let page;
+  const started = Date.now(); let browser; let timer; let page; let networkGuard;
   const secrets = [...job.redactValues, ...job.steps.filter((step) => ['fill','assertValue'].includes(step.action) || step.sensitive).map((step) => step.value).filter(Boolean)];
-  const report = { title: job.title, status: 'inconclusive', checks: [], steps: [], ai: null, coverage: { browser: false, deterministic: false, ai: false }, mode: job.inspectionMode==='basic'?'automatic-basic':job.cloudAiConsent ? 'cloud-ai' : 'browser-contracts',engineVersion:'0.2.4' };
+  const report = { title: job.title, status: 'inconclusive', checks: [], steps: [], ai: null, coverage: { browser: false, deterministic: false, ai: false }, mode: job.inspectionMode==='basic'?'automatic-basic':job.cloudAiConsent ? 'cloud-ai' : 'browser-contracts',engineVersion:'0.2.5' };
   report.contract = { url: job.url, requirement: job.requirement, expectedPath: job.expectedPath, expectedTexts: job.expectedTexts, resultSelector: job.resultSelector, requireResultChange: job.requireResultChange, steps: job.steps.map(step => ({...step})) };
   let screenshot;
   const stop = () => { void browser?.close().catch(() => {}); };
@@ -23,7 +23,7 @@ export async function runBrowser(job, { launch, guard, signal, onStep = async ()
     browser = await launch(); signal?.throwIfAborted();
     timer = setTimeout(stop, LIMITS.browserMs - (Date.now() - started));
     const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'block', acceptDownloads: false });
-    await guard(context);
+    networkGuard = await guard(context);
     page = await context.newPage(); page.setDefaultTimeout(5000); page.setDefaultNavigationTimeout(15000);
     const errors = [];
     const watch = (p) => p.on('pageerror', (error) => errors.push(error.message.slice(0, 400)));
@@ -35,6 +35,7 @@ export async function runBrowser(job, { launch, guard, signal, onStep = async ()
     secrets.push(...await privacy.selectorValues(page, job.maskSelectors));
     const executeStep = async (current, step) => {
       page = current;
+      if (networkGuard?.blockedRequests) throw new Error('네트워크 제한으로 다음 동작을 중단했습니다.');
       if (!assertionActions.includes(step.action)) return performStep(current,step);
       const check = await checkStep(current,step,signal); check.id = `assertion-${report.steps.length}`;
       report.checks.push(check);
@@ -78,6 +79,13 @@ export async function runBrowser(job, { launch, guard, signal, onStep = async ()
     }
   } finally {
     clearTimeout(timer); signal?.removeEventListener('abort', stop); await browser?.close().catch(() => {});
+  }
+  if (networkGuard?.blockedRequests) {
+    // A restricted dependency can cause a false functional mismatch.
+    // Preserve the observations, but never label that run as a verified defect or pass.
+    for (const item of [...report.checks, ...report.steps]) if (item.status === 'failed') { item.observedStatus = 'failed'; item.status = 'inconclusive'; }
+    report.checks.push({id:'network-policy',catalogId:'runtime',title:'네트워크 제한',status:'inconclusive',evidence:{blockedRequests:networkGuard.blockedRequests},message:'네트워크 요청이 제한되었습니다. HTTP 리디렉션·WebSocket 및 등록하지 않은 호스트는 지원하지 않으므로 기능 결함으로 확정하지 않습니다.'});
+    report.status = 'inconclusive'; report.coverage.deterministic = false;
   }
   const completed=report.steps.length;
   const stoppedAtAssertion=report.steps.some(step=>step.status!=='passed');

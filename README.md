@@ -1,5 +1,7 @@
 # RepliQA — evidence-based web QA (alpha)
 
+0.2.5 is a security review candidate, not the live deployment. See the [security and operations review](docs/SECURITY-OPERATIONS-REVIEW.md) and [external reviewer instructions](docs/EXTERNAL-REVIEW-PACK.md). Live cloud validation of this candidate and external truth review are pending.
+
 Live Cloudflare 0.2.4 browser revalidation passed: [results and scope](docs/CLOUDFLARE-REVALIDATION.md). See also [free hosting options](docs/FREE-HOSTING-OPTIONS.md).
 
 RepliQA runs explicit browser journeys and page checks using Playwright. Reports

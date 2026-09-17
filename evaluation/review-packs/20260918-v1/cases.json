@@ -1,0 +1,1099 @@
+[
+  {
+    "id": "3489b1b966693070",
+    "name": "Units round trip",
+    "requirement": "Converting 100 centimeters to meters and back must restore 100 centimeters.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Units round trip</h1><label>Length<input id=\"input\" value=\"100\"></label><button id=\"go\">To meters</button><button id=\"back\">To centimeters</button><p id=\"stable\">Fixture ready</p></main><script>const input=document.getElementById('input');const go=document.getElementById('go');const back=document.getElementById('back');go.onclick=()=>input.value=Number(input.value)/100;back.onclick=()=>input.value=Number(input.value)*100</script></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/3489b1b966693070",
+      "title": "Units round trip",
+      "requirement": "Converting 100 centimeters to meters and back must restore 100 centimeters.",
+      "steps": [
+        {
+          "action": "click",
+          "target": "To meters"
+        },
+        {
+          "action": "assertValue",
+          "target": "#input",
+          "value": "1"
+        },
+        {
+          "action": "click",
+          "target": "To centimeters"
+        },
+        {
+          "action": "assertValue",
+          "target": "#input",
+          "value": "100"
+        }
+      ],
+      "expectedPath": "/case/3489b1b966693070",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "4a2873f77fa244e8",
+    "name": "Decimal preview calculation",
+    "requirement": "Preview must calculate 2.5 times 4 as 10.00.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Decimal preview calculation</h1><label>Rate<input id=\"input\"></label><label>Units<input id=\"units\"></label><button id=\"go\">Calculate preview</button><p id=\"out\">Waiting</p><p id=\"stable\">Fixture ready</p></main><script>const input=document.getElementById('input');const units=document.getElementById('units');const go=document.getElementById('go');const out=document.getElementById('out');go.onclick=()=>out.textContent=(parseInt(input.value,10)*Number(units.value)).toFixed(2)</script></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/4a2873f77fa244e8",
+      "title": "Decimal preview calculation",
+      "requirement": "Preview must calculate 2.5 times 4 as 10.00.",
+      "steps": [
+        {
+          "action": "fill",
+          "target": "Rate",
+          "value": "2.5"
+        },
+        {
+          "action": "fill",
+          "target": "Units",
+          "value": "4"
+        },
+        {
+          "action": "click",
+          "target": "Calculate preview"
+        },
+        {
+          "action": "assertText",
+          "target": "#out",
+          "value": "10.00"
+        }
+      ],
+      "expectedPath": "/case/4a2873f77fa244e8",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "4c4b4b0023d3a79c",
+    "name": "Reset two independent fields",
+    "requirement": "Reset restores title Original and turns off the Optional setting.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Reset two independent fields</h1><label>Title<input id=\"input\" value=\"Original\"></label><label>Optional<input id=\"option\" type=\"checkbox\"></label><button id=\"go\">Reset form</button><p id=\"stable\">Fixture ready</p></main><script>const input=document.getElementById('input');const option=document.getElementById('option');const go=document.getElementById('go');go.onclick=()=>{input.value='Original';}</script></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/4c4b4b0023d3a79c",
+      "title": "Reset two independent fields",
+      "requirement": "Reset restores title Original and turns off the Optional setting.",
+      "steps": [
+        {
+          "action": "fill",
+          "target": "Title",
+          "value": "Changed"
+        },
+        {
+          "action": "check",
+          "target": "Optional"
+        },
+        {
+          "action": "click",
+          "target": "Reset form"
+        },
+        {
+          "action": "assertValue",
+          "target": "#input",
+          "value": "Original"
+        },
+        {
+          "action": "assertChecked",
+          "target": "#option",
+          "value": "false"
+        }
+      ],
+      "expectedPath": "/case/4c4b4b0023d3a79c",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "5adecdacdb300d3b",
+    "name": "Combined selection summary",
+    "requirement": "Checking both Email notices and SMS notices must produce Selected: 2.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Combined selection summary</h1><label>Email notices<input id=\"first\" type=\"checkbox\"></label><label>SMS notices<input id=\"second\" type=\"checkbox\"></label><button id=\"go\">Preview selection</button><p id=\"out\">Waiting</p><p id=\"stable\">Fixture ready</p></main><script>const first=document.getElementById('first');const second=document.getElementById('second');const go=document.getElementById('go');const out=document.getElementById('out');go.onclick=()=>out.textContent='Selected: '+(Number(first.checked)+Number(second.checked))</script></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/5adecdacdb300d3b",
+      "title": "Combined selection summary",
+      "requirement": "Checking both Email notices and SMS notices must produce Selected: 2.",
+      "steps": [
+        {
+          "action": "check",
+          "target": "Email notices"
+        },
+        {
+          "action": "check",
+          "target": "SMS notices"
+        },
+        {
+          "action": "click",
+          "target": "Preview selection"
+        },
+        {
+          "action": "assertText",
+          "target": "#out",
+          "value": "Selected: 2"
+        }
+      ],
+      "expectedPath": "/case/5adecdacdb300d3b",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "72c6ce855475c362",
+    "name": "Duplicate action labels",
+    "requirement": "Two equally named buttons make the requested action ambiguous. No write may be guessed.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Duplicate action labels</h1><button>Open preview</button><button>Open preview</button><p id=\"stable\">Fixture ready</p></main></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/72c6ce855475c362",
+      "title": "Duplicate action labels",
+      "requirement": "Two equally named buttons make the requested action ambiguous. No write may be guessed.",
+      "steps": [
+        {
+          "action": "click",
+          "target": "Open preview"
+        }
+      ],
+      "expectedPath": "/case/72c6ce855475c362",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "77e0d86524a23539",
+    "name": "Literal markup preview",
+    "requirement": "Preview must display the literal text <b>draft</b> without interpreting it as HTML.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Literal markup preview</h1><label>Preview source<input id=\"input\"></label><button id=\"go\">Show preview</button><p id=\"out\">Waiting</p><p id=\"stable\">Fixture ready</p></main><script>const input=document.getElementById('input');const go=document.getElementById('go');const out=document.getElementById('out');go.onclick=()=>out.innerHTML=input.value</script></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/77e0d86524a23539",
+      "title": "Literal markup preview",
+      "requirement": "Preview must display the literal text <b>draft</b> without interpreting it as HTML.",
+      "steps": [
+        {
+          "action": "fill",
+          "target": "Preview source",
+          "value": "<b>draft</b>"
+        },
+        {
+          "action": "click",
+          "target": "Show preview"
+        },
+        {
+          "action": "assertText",
+          "target": "#out",
+          "value": "<b>draft</b>"
+        }
+      ],
+      "expectedPath": "/case/77e0d86524a23539",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "7e9ce50c6b2c0ffa",
+    "name": "Bounded counter",
+    "requirement": "The displayed counter must stay at the maximum of 5 after two increments from 4.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Bounded counter</h1><p id=\"out\">4</p><button id=\"go\">Increase count</button><p id=\"stable\">Fixture ready</p></main><script>const out=document.getElementById('out');const go=document.getElementById('go');go.onclick=()=>out.textContent=+out.textContent+1</script></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/7e9ce50c6b2c0ffa",
+      "title": "Bounded counter",
+      "requirement": "The displayed counter must stay at the maximum of 5 after two increments from 4.",
+      "steps": [
+        {
+          "action": "click",
+          "target": "Increase count"
+        },
+        {
+          "action": "click",
+          "target": "Increase count"
+        },
+        {
+          "action": "assertText",
+          "target": "#out",
+          "value": "5"
+        }
+      ],
+      "expectedPath": "/case/7e9ce50c6b2c0ffa",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "8bd0195a6bdc7f7b",
+    "name": "Trim a draft title",
+    "requirement": "Saving trims leading and trailing spaces from the draft title.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Trim a draft title</h1><label>Draft title<input id=\"input\"></label><button id=\"go\">Save draft</button><p id=\"out\">Waiting</p><p id=\"stable\">Fixture ready</p></main><script>const input=document.getElementById('input');const go=document.getElementById('go');const out=document.getElementById('out');go.onclick=()=>out.textContent=input.value+\" extra\"</script></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/8bd0195a6bdc7f7b",
+      "title": "Trim a draft title",
+      "requirement": "Saving trims leading and trailing spaces from the draft title.",
+      "steps": [
+        {
+          "action": "fill",
+          "target": "Draft title",
+          "value": "  Alpha  "
+        },
+        {
+          "action": "click",
+          "target": "Save draft"
+        },
+        {
+          "action": "assertText",
+          "target": "#out",
+          "value": "Alpha"
+        }
+      ],
+      "expectedPath": "/case/8bd0195a6bdc7f7b",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "8f2427d84e70f9e2",
+    "name": "Undo a local draft change",
+    "requirement": "After Change preview then Undo preview, both text and input value must return to Original.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Undo a local draft change</h1><input id=\"input\" aria-label=\"Draft\" value=\"Original\"><p id=\"out\">Original</p><button id=\"go\">Change preview</button><button id=\"undo\">Undo preview</button><p id=\"stable\">Fixture ready</p></main><script>const input=document.getElementById('input');const out=document.getElementById('out');const go=document.getElementById('go');const undo=document.getElementById('undo');go.onclick=()=>{input.value='Changed';out.textContent='Changed'};undo.onclick=()=>{out.textContent='Original';}</script></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/8f2427d84e70f9e2",
+      "title": "Undo a local draft change",
+      "requirement": "After Change preview then Undo preview, both text and input value must return to Original.",
+      "steps": [
+        {
+          "action": "click",
+          "target": "Change preview"
+        },
+        {
+          "action": "click",
+          "target": "Undo preview"
+        },
+        {
+          "action": "assertText",
+          "target": "#out",
+          "value": "Original"
+        },
+        {
+          "action": "assertValue",
+          "target": "#input",
+          "value": "Original"
+        }
+      ],
+      "expectedPath": "/case/8f2427d84e70f9e2",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "9d0665ba423f4134",
+    "name": "Zero value preservation",
+    "requirement": "Saving the numeric value 0 must retain 0 rather than substitute the default 10.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Zero value preservation</h1><label>Limit<input id=\"input\"></label><button id=\"go\">Save limit</button><p id=\"out\">Waiting</p><p id=\"stable\">Fixture ready</p></main><script>const input=document.getElementById('input');const go=document.getElementById('go');const out=document.getElementById('out');go.onclick=()=>out.textContent=String(Number(input.value)||10)</script></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/9d0665ba423f4134",
+      "title": "Zero value preservation",
+      "requirement": "Saving the numeric value 0 must retain 0 rather than substitute the default 10.",
+      "steps": [
+        {
+          "action": "fill",
+          "target": "Limit",
+          "value": "0"
+        },
+        {
+          "action": "click",
+          "target": "Save limit"
+        },
+        {
+          "action": "assertText",
+          "target": "#out",
+          "value": "0"
+        }
+      ],
+      "expectedPath": "/case/9d0665ba423f4134",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "9d94869927bc6174",
+    "name": "Literal markup preview",
+    "requirement": "Preview must display the literal text <b>draft</b> without interpreting it as HTML.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Literal markup preview</h1><label>Preview source<input id=\"input\"></label><button id=\"go\">Show preview</button><p id=\"out\">Waiting</p><p id=\"stable\">Fixture ready</p></main><script>const input=document.getElementById('input');const go=document.getElementById('go');const out=document.getElementById('out');go.onclick=()=>out.textContent=input.value</script></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/9d94869927bc6174",
+      "title": "Literal markup preview",
+      "requirement": "Preview must display the literal text <b>draft</b> without interpreting it as HTML.",
+      "steps": [
+        {
+          "action": "fill",
+          "target": "Preview source",
+          "value": "<b>draft</b>"
+        },
+        {
+          "action": "click",
+          "target": "Show preview"
+        },
+        {
+          "action": "assertText",
+          "target": "#out",
+          "value": "<b>draft</b>"
+        }
+      ],
+      "expectedPath": "/case/9d94869927bc6174",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "a39b8ffae4a6d5b4",
+    "name": "Decimal preview calculation",
+    "requirement": "Preview must calculate 2.5 times 4 as 10.00.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Decimal preview calculation</h1><label>Rate<input id=\"input\"></label><label>Units<input id=\"units\"></label><button id=\"go\">Calculate preview</button><p id=\"out\">Waiting</p><p id=\"stable\">Fixture ready</p></main><script>const input=document.getElementById('input');const units=document.getElementById('units');const go=document.getElementById('go');const out=document.getElementById('out');go.onclick=()=>out.textContent=(Number(input.value)*Number(units.value)).toFixed(2)</script></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/a39b8ffae4a6d5b4",
+      "title": "Decimal preview calculation",
+      "requirement": "Preview must calculate 2.5 times 4 as 10.00.",
+      "steps": [
+        {
+          "action": "fill",
+          "target": "Rate",
+          "value": "2.5"
+        },
+        {
+          "action": "fill",
+          "target": "Units",
+          "value": "4"
+        },
+        {
+          "action": "click",
+          "target": "Calculate preview"
+        },
+        {
+          "action": "assertText",
+          "target": "#out",
+          "value": "10.00"
+        }
+      ],
+      "expectedPath": "/case/a39b8ffae4a6d5b4",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "a3b0977ced25dfa0",
+    "name": "Stable alphabetical ordering",
+    "requirement": "Sort ascending must display Amber, Birch, Cedar in that exact order.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Stable alphabetical ordering</h1><button id=\"go\">Sort ascending</button><ol id=\"items\"><li>Cedar</li><li>Amber</li><li>Birch</li></ol><p id=\"stable\">Fixture ready</p></main><script>const go=document.getElementById('go');const items=document.getElementById('items');go.onclick=()=>items.innerHTML=\"<li>Amber</li><li>Cedar</li><li>Birch</li>\"</script></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/a3b0977ced25dfa0",
+      "title": "Stable alphabetical ordering",
+      "requirement": "Sort ascending must display Amber, Birch, Cedar in that exact order.",
+      "steps": [
+        {
+          "action": "click",
+          "target": "Sort ascending"
+        },
+        {
+          "action": "assertText",
+          "target": "#items li:nth-child(1)",
+          "value": "Amber"
+        },
+        {
+          "action": "assertText",
+          "target": "#items li:nth-child(2)",
+          "value": "Birch"
+        },
+        {
+          "action": "assertText",
+          "target": "#items li:nth-child(3)",
+          "value": "Cedar"
+        }
+      ],
+      "expectedPath": "/case/a3b0977ced25dfa0",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "a6ca6a2359758f8d",
+    "name": "Trim a draft title",
+    "requirement": "Saving trims leading and trailing spaces from the draft title.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Trim a draft title</h1><label>Draft title<input id=\"input\"></label><button id=\"go\">Save draft</button><p id=\"out\">Waiting</p><p id=\"stable\">Fixture ready</p></main><script>const input=document.getElementById('input');const go=document.getElementById('go');const out=document.getElementById('out');go.onclick=()=>out.textContent=input.value.trim()</script></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/a6ca6a2359758f8d",
+      "title": "Trim a draft title",
+      "requirement": "Saving trims leading and trailing spaces from the draft title.",
+      "steps": [
+        {
+          "action": "fill",
+          "target": "Draft title",
+          "value": "  Alpha  "
+        },
+        {
+          "action": "click",
+          "target": "Save draft"
+        },
+        {
+          "action": "assertText",
+          "target": "#out",
+          "value": "Alpha"
+        }
+      ],
+      "expectedPath": "/case/a6ca6a2359758f8d",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "a8bddab158f1c34c",
+    "name": "Stable alphabetical ordering",
+    "requirement": "Sort ascending must display Amber, Birch, Cedar in that exact order.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Stable alphabetical ordering</h1><button id=\"go\">Sort ascending</button><ol id=\"items\"><li>Cedar</li><li>Amber</li><li>Birch</li></ol><p id=\"stable\">Fixture ready</p></main><script>const go=document.getElementById('go');const items=document.getElementById('items');go.onclick=()=>items.innerHTML=\"<li>Amber</li><li>Birch</li><li>Cedar</li>\"</script></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/a8bddab158f1c34c",
+      "title": "Stable alphabetical ordering",
+      "requirement": "Sort ascending must display Amber, Birch, Cedar in that exact order.",
+      "steps": [
+        {
+          "action": "click",
+          "target": "Sort ascending"
+        },
+        {
+          "action": "assertText",
+          "target": "#items li:nth-child(1)",
+          "value": "Amber"
+        },
+        {
+          "action": "assertText",
+          "target": "#items li:nth-child(2)",
+          "value": "Birch"
+        },
+        {
+          "action": "assertText",
+          "target": "#items li:nth-child(3)",
+          "value": "Cedar"
+        }
+      ],
+      "expectedPath": "/case/a8bddab158f1c34c",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "ac575b2fb965d21c",
+    "name": "Zero value preservation",
+    "requirement": "Saving the numeric value 0 must retain 0 rather than substitute the default 10.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Zero value preservation</h1><label>Limit<input id=\"input\"></label><button id=\"go\">Save limit</button><p id=\"out\">Waiting</p><p id=\"stable\">Fixture ready</p></main><script>const input=document.getElementById('input');const go=document.getElementById('go');const out=document.getElementById('out');go.onclick=()=>out.textContent=String(Number(input.value))</script></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/ac575b2fb965d21c",
+      "title": "Zero value preservation",
+      "requirement": "Saving the numeric value 0 must retain 0 rather than substitute the default 10.",
+      "steps": [
+        {
+          "action": "fill",
+          "target": "Limit",
+          "value": "0"
+        },
+        {
+          "action": "click",
+          "target": "Save limit"
+        },
+        {
+          "action": "assertText",
+          "target": "#out",
+          "value": "0"
+        }
+      ],
+      "expectedPath": "/case/ac575b2fb965d21c",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "ad9dc73db6b1f50b",
+    "name": "Empty input validation",
+    "requirement": "Validating an empty display name must show Name required and preserve the empty input.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Empty input validation</h1><label>Display name<input id=\"input\"></label><button id=\"go\">Validate preview</button><p id=\"out\">Waiting</p><p id=\"stable\">Fixture ready</p></main><script>const input=document.getElementById('input');const go=document.getElementById('go');const out=document.getElementById('out');go.onclick=()=>out.textContent='Accepted'</script></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/ad9dc73db6b1f50b",
+      "title": "Empty input validation",
+      "requirement": "Validating an empty display name must show Name required and preserve the empty input.",
+      "steps": [
+        {
+          "action": "click",
+          "target": "Validate preview"
+        },
+        {
+          "action": "assertText",
+          "target": "#out",
+          "value": "Name required"
+        },
+        {
+          "action": "assertValue",
+          "target": "#input",
+          "value": ""
+        }
+      ],
+      "expectedPath": "/case/ad9dc73db6b1f50b",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "ba731093c45ef3a6",
+    "name": "Nonunique result binding",
+    "requirement": "Two result elements share the selector. Do not pick the first and report success.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Nonunique result binding</h1><p id=\"stable\">Fixture ready</p><p id=\"stable\">Fixture ready</p></main></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/ba731093c45ef3a6",
+      "title": "Nonunique result binding",
+      "requirement": "Two result elements share the selector. Do not pick the first and report success.",
+      "steps": [],
+      "expectedPath": "/case/ba731093c45ef3a6",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "bb309caa80e99eab",
+    "name": "Bounded counter",
+    "requirement": "The displayed counter must stay at the maximum of 5 after two increments from 4.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Bounded counter</h1><p id=\"out\">4</p><button id=\"go\">Increase count</button><p id=\"stable\">Fixture ready</p></main><script>const out=document.getElementById('out');const go=document.getElementById('go');go.onclick=()=>out.textContent=Math.min(5,+out.textContent+1)</script></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/bb309caa80e99eab",
+      "title": "Bounded counter",
+      "requirement": "The displayed counter must stay at the maximum of 5 after two increments from 4.",
+      "steps": [
+        {
+          "action": "click",
+          "target": "Increase count"
+        },
+        {
+          "action": "click",
+          "target": "Increase count"
+        },
+        {
+          "action": "assertText",
+          "target": "#out",
+          "value": "5"
+        }
+      ],
+      "expectedPath": "/case/bb309caa80e99eab",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "bf02fb977af3b2bc",
+    "name": "Missing action target",
+    "requirement": "The named control is absent. The contract cannot be executed; this alone does not prove a site defect.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Missing action target</h1><p>No preview control</p><p id=\"stable\">Fixture ready</p></main></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/bf02fb977af3b2bc",
+      "title": "Missing action target",
+      "requirement": "The named control is absent. The contract cannot be executed; this alone does not prove a site defect.",
+      "steps": [
+        {
+          "action": "click",
+          "target": "Open preview"
+        }
+      ],
+      "expectedPath": "/case/bf02fb977af3b2bc",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "c08c74b4ed128138",
+    "name": "Empty input validation",
+    "requirement": "Validating an empty display name must show Name required and preserve the empty input.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Empty input validation</h1><label>Display name<input id=\"input\"></label><button id=\"go\">Validate preview</button><p id=\"out\">Waiting</p><p id=\"stable\">Fixture ready</p></main><script>const input=document.getElementById('input');const go=document.getElementById('go');const out=document.getElementById('out');go.onclick=()=>out.textContent='Name required'</script></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/c08c74b4ed128138",
+      "title": "Empty input validation",
+      "requirement": "Validating an empty display name must show Name required and preserve the empty input.",
+      "steps": [
+        {
+          "action": "click",
+          "target": "Validate preview"
+        },
+        {
+          "action": "assertText",
+          "target": "#out",
+          "value": "Name required"
+        },
+        {
+          "action": "assertValue",
+          "target": "#input",
+          "value": ""
+        }
+      ],
+      "expectedPath": "/case/c08c74b4ed128138",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "c53c797c40d5437f",
+    "name": "Units round trip",
+    "requirement": "Converting 100 centimeters to meters and back must restore 100 centimeters.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Units round trip</h1><label>Length<input id=\"input\" value=\"100\"></label><button id=\"go\">To meters</button><button id=\"back\">To centimeters</button><p id=\"stable\">Fixture ready</p></main><script>const input=document.getElementById('input');const go=document.getElementById('go');const back=document.getElementById('back');go.onclick=()=>input.value=Number(input.value)/100;back.onclick=()=>input.value=Number(input.value)*10</script></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/c53c797c40d5437f",
+      "title": "Units round trip",
+      "requirement": "Converting 100 centimeters to meters and back must restore 100 centimeters.",
+      "steps": [
+        {
+          "action": "click",
+          "target": "To meters"
+        },
+        {
+          "action": "assertValue",
+          "target": "#input",
+          "value": "1"
+        },
+        {
+          "action": "click",
+          "target": "To centimeters"
+        },
+        {
+          "action": "assertValue",
+          "target": "#input",
+          "value": "100"
+        }
+      ],
+      "expectedPath": "/case/c53c797c40d5437f",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "c72d2572eb94f506",
+    "name": "Undo a local draft change",
+    "requirement": "After Change preview then Undo preview, both text and input value must return to Original.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Undo a local draft change</h1><input id=\"input\" aria-label=\"Draft\" value=\"Original\"><p id=\"out\">Original</p><button id=\"go\">Change preview</button><button id=\"undo\">Undo preview</button><p id=\"stable\">Fixture ready</p></main><script>const input=document.getElementById('input');const out=document.getElementById('out');const go=document.getElementById('go');const undo=document.getElementById('undo');go.onclick=()=>{input.value='Changed';out.textContent='Changed'};undo.onclick=()=>{out.textContent='Original';input.value=\"Original\";}</script></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/c72d2572eb94f506",
+      "title": "Undo a local draft change",
+      "requirement": "After Change preview then Undo preview, both text and input value must return to Original.",
+      "steps": [
+        {
+          "action": "click",
+          "target": "Change preview"
+        },
+        {
+          "action": "click",
+          "target": "Undo preview"
+        },
+        {
+          "action": "assertText",
+          "target": "#out",
+          "value": "Original"
+        },
+        {
+          "action": "assertValue",
+          "target": "#input",
+          "value": "Original"
+        }
+      ],
+      "expectedPath": "/case/c72d2572eb94f506",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "cd91c310fee1ab24",
+    "name": "Disabled action target",
+    "requirement": "The control is disabled; the test has no contract saying it must be enabled. Report inconclusive.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Disabled action target</h1><button disabled>Open preview</button><p id=\"stable\">Fixture ready</p></main></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/cd91c310fee1ab24",
+      "title": "Disabled action target",
+      "requirement": "The control is disabled; the test has no contract saying it must be enabled. Report inconclusive.",
+      "steps": [
+        {
+          "action": "click",
+          "target": "Open preview"
+        }
+      ],
+      "expectedPath": "/case/cd91c310fee1ab24",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "d2045dcfeecbc2a0",
+    "name": "Dependent location options",
+    "requirement": "Selecting West and Refresh choices must offer exactly two cities, named Cedar and Delta.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Dependent location options</h1><label>Region<select id=\"region\"><option>East</option><option>West</option></select></label><button id=\"go\">Refresh choices</button><select id=\"cities\" aria-label=\"City\"><option>Birch</option></select><p id=\"stable\">Fixture ready</p></main><script>const region=document.getElementById('region');const go=document.getElementById('go');const cities=document.getElementById('cities');go.onclick=()=>cities.innerHTML=\"<option>Cedar</option><option>Delta</option>\"</script></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/d2045dcfeecbc2a0",
+      "title": "Dependent location options",
+      "requirement": "Selecting West and Refresh choices must offer exactly two cities, named Cedar and Delta.",
+      "steps": [
+        {
+          "action": "select",
+          "target": "Region",
+          "value": "West"
+        },
+        {
+          "action": "click",
+          "target": "Refresh choices"
+        },
+        {
+          "action": "assertCount",
+          "target": "#cities option",
+          "value": "2"
+        },
+        {
+          "action": "assertText",
+          "target": "#cities option:first-child",
+          "value": "Cedar"
+        },
+        {
+          "action": "assertText",
+          "target": "#cities option:last-child",
+          "value": "Delta"
+        }
+      ],
+      "expectedPath": "/case/d2045dcfeecbc2a0",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "e17dc6c90e2da879",
+    "name": "Combined selection summary",
+    "requirement": "Checking both Email notices and SMS notices must produce Selected: 2.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Combined selection summary</h1><label>Email notices<input id=\"first\" type=\"checkbox\"></label><label>SMS notices<input id=\"second\" type=\"checkbox\"></label><button id=\"go\">Preview selection</button><p id=\"out\">Waiting</p><p id=\"stable\">Fixture ready</p></main><script>const first=document.getElementById('first');const second=document.getElementById('second');const go=document.getElementById('go');const out=document.getElementById('out');go.onclick=()=>out.textContent='Selected: '+(Number(first.checked))</script></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/e17dc6c90e2da879",
+      "title": "Combined selection summary",
+      "requirement": "Checking both Email notices and SMS notices must produce Selected: 2.",
+      "steps": [
+        {
+          "action": "check",
+          "target": "Email notices"
+        },
+        {
+          "action": "check",
+          "target": "SMS notices"
+        },
+        {
+          "action": "click",
+          "target": "Preview selection"
+        },
+        {
+          "action": "assertText",
+          "target": "#out",
+          "value": "Selected: 2"
+        }
+      ],
+      "expectedPath": "/case/e17dc6c90e2da879",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "e831044c6e193d8b",
+    "name": "Reset two independent fields",
+    "requirement": "Reset restores title Original and turns off the Optional setting.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Reset two independent fields</h1><label>Title<input id=\"input\" value=\"Original\"></label><label>Optional<input id=\"option\" type=\"checkbox\"></label><button id=\"go\">Reset form</button><p id=\"stable\">Fixture ready</p></main><script>const input=document.getElementById('input');const option=document.getElementById('option');const go=document.getElementById('go');go.onclick=()=>{input.value='Original';option.checked=false;}</script></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/e831044c6e193d8b",
+      "title": "Reset two independent fields",
+      "requirement": "Reset restores title Original and turns off the Optional setting.",
+      "steps": [
+        {
+          "action": "fill",
+          "target": "Title",
+          "value": "Changed"
+        },
+        {
+          "action": "check",
+          "target": "Optional"
+        },
+        {
+          "action": "click",
+          "target": "Reset form"
+        },
+        {
+          "action": "assertValue",
+          "target": "#input",
+          "value": "Original"
+        },
+        {
+          "action": "assertChecked",
+          "target": "#option",
+          "value": "false"
+        }
+      ],
+      "expectedPath": "/case/e831044c6e193d8b",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  },
+  {
+    "id": "ef56b5d0f5f7636d",
+    "name": "Dependent location options",
+    "requirement": "Selecting West and Refresh choices must offer exactly two cities, named Cedar and Delta.",
+    "html": "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Review fixture</title><main><h1>Dependent location options</h1><label>Region<select id=\"region\"><option>East</option><option>West</option></select></label><button id=\"go\">Refresh choices</button><select id=\"cities\" aria-label=\"City\"><option>Birch</option></select><p id=\"stable\">Fixture ready</p></main><script>const region=document.getElementById('region');const go=document.getElementById('go');const cities=document.getElementById('cities');go.onclick=()=>cities.innerHTML=\"<option>Cedar</option>\"</script></html>",
+    "job": {
+      "inspectionMode": "journey",
+      "url": "http://fixture.invalid/case/ef56b5d0f5f7636d",
+      "title": "Dependent location options",
+      "requirement": "Selecting West and Refresh choices must offer exactly two cities, named Cedar and Delta.",
+      "steps": [
+        {
+          "action": "select",
+          "target": "Region",
+          "value": "West"
+        },
+        {
+          "action": "click",
+          "target": "Refresh choices"
+        },
+        {
+          "action": "assertCount",
+          "target": "#cities option",
+          "value": "2"
+        },
+        {
+          "action": "assertText",
+          "target": "#cities option:first-child",
+          "value": "Cedar"
+        },
+        {
+          "action": "assertText",
+          "target": "#cities option:last-child",
+          "value": "Delta"
+        }
+      ],
+      "expectedPath": "/case/ef56b5d0f5f7636d",
+      "expectedTexts": [
+        "Fixture ready"
+      ],
+      "resultSelector": "#stable",
+      "requireResultChange": false,
+      "maskSelectors": [],
+      "redactValues": [],
+      "cloudAiConsent": false,
+      "reviewed": true
+    }
+  }
+]

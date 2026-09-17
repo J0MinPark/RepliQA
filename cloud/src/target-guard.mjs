@@ -18,15 +18,29 @@ async function publicHost(host, fetchImpl) {
 }
 export async function installGuard(context, tenant, fetchImpl = fetch) {
   const origins = JSON.parse(tenant.origins); const hosts = new Set([...origins.map((origin) => new URL(origin).hostname), ...JSON.parse(tenant.resource_hosts)]);
-  const checked = new Map();
+  const state = { blockedRequests: 0 };
+  // WebSocket journeys are unsupported; never connect upstream.
+  await context.routeWebSocket('**/*', socket => { state.blockedRequests++; return socket.close(); });
   await context.route('**/*', async (route) => {
     try {
       const request = route.request(); const url = new URL(request.url());
       if (url.protocol !== 'https:' || url.username || url.password || (url.port && url.port !== '443') || !hosts.has(url.hostname)) throw new Error('허용하지 않은 요청');
       if (request.isNavigationRequest()) validateUrl(url.href, origins);
-      if (!checked.has(url.hostname)) checked.set(url.hostname, publicHost(url.hostname, fetchImpl));
-      if (!await checked.get(url.hostname)) throw new Error('비공개 네트워크');
-      await route.continue();
-    } catch { await route.abort('blockedbyclient'); }
+      // Recheck each request. This is preflight, not transport-level IP pinning.
+      if (!await publicHost(url.hostname, fetchImpl)) throw new Error('비공개 네트워크');
+      // Chromium may follow HTTP redirects without another route callback.
+      // Fail closed rather than allowing an unchecked redirect destination.
+      const response = await route.fetch({ maxRedirects: 0, maxRetries: 0, timeout: 10000 });
+      try {
+        if (response.status() >= 300 && response.status() < 400 && response.status() !== 304) throw new Error('HTTP 리디렉션은 현재 지원하지 않습니다. 최종 HTTPS 주소를 등록하세요.');
+        await route.fulfill({ response });
+      } finally { await response.dispose(); }
+    } catch { state.blockedRequests++; await route.abort('blockedbyclient'); }
   });
+  return state;
+}
+export function sessionGuardrails(tenant) {
+  const allowedDomains = [...new Set([...JSON.parse(tenant.origins).map(origin => new URL(origin).hostname), ...JSON.parse(tenant.resource_hosts)])];
+  if (!allowedDomains.length || allowedDomains.length > 50 || allowedDomains.some(host => !/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(host))) throw new Error('검사 호스트 설정을 확인하세요.');
+  return { allowedDomains };
 }
