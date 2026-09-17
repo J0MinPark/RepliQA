@@ -1,0 +1,36 @@
+{
+  "completedAt": "2026-09-17T16:27:50.704Z",
+  "version": "0.2.4",
+  "environment": "Actual Cloudflare Browser Run via deployed authenticated API",
+  "basic": {
+    "passed": true,
+    "status": "passed",
+    "checks": 12,
+    "durationMs": 6962,
+    "accessibilityEngine": {
+      "name": "axe-core",
+      "version": "4.13.0"
+    },
+    "violations": 0,
+    "incomplete": 0
+  },
+  "journey": {
+    "passed": true,
+    "status": "passed",
+    "steps": 4,
+    "durationMs": 6722
+  },
+  "providerUsedSecondsBefore": 15.547999999999998,
+  "providerUsedSecondsAfter": 26.219,
+  "providerDailyFreeSeconds": 600,
+  "activeSessionsAfter": 0,
+  "globalUsedAfter": 4,
+  "globalDailyLimit": 4,
+  "ordinaryTenantDailyLimit": 2,
+  "operatorExtraReservations": 2,
+  "allocation": "User-authorized one-off operator reservations from the two remaining global slots. No quota records deleted, no extra account, normal execution authentication/fingerprint/claim kept.",
+  "productionSourceChanged": false,
+  "paidServicesAdded": 0,
+  "externalAiCalls": 0,
+  "scope": "Synthetic deployment smoke tests, not independent general accuracy evaluation or production readiness certification"
+}

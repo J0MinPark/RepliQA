@@ -22,11 +22,6 @@
       "sha256": "db381d8e90de901a94e4d32c2d89ae87c4e870bfe17be0d46477f3b5509f5c59"
     },
     {
-      "file": "README.md",
-      "bytes": 3138,
-      "sha256": "47d215e8561246f7921db46ee7d250defaff51360833f7e189f166ec5c827738"
-    },
-    {
       "file": "SECURITY.md",
       "bytes": 653,
       "sha256": "0a4b32889d261fdd66e609eebf739bbe8b85ea3653fcce00eedf6dedc9d79dd7"
@@ -360,11 +355,43 @@
       "file": "evaluation/run.mjs",
       "bytes": 12419,
       "sha256": "ff931536fa5aef7ce8b9bf6bcb6cdd3b5a7d9730cf27d7697a7ea12587d76231"
+    },
+    {
+      "file": "docs/CLOUDFLARE-REVALIDATION.md",
+      "bytes": 2196,
+      "sha256": "107c33ee8d54067a2fd81d5a123e3eccb42dcf6bdc450ac0e712e7c893cd83d5"
+    },
+    {
+      "file": "docs/FREE-HOSTING-OPTIONS.md",
+      "bytes": 3729,
+      "sha256": "0037f7204a536a31813ce4967343a87438cea070afd6c9896fa3b1e13458de2e"
+    },
+    {
+      "file": "docs/evidence/cloud-revalidation/basic.json",
+      "bytes": 14961,
+      "sha256": "29d652c7904254d1b3cfd7cea1f0a890bc1d7fe3db046b3c69315dea1bea0902"
+    },
+    {
+      "file": "docs/evidence/cloud-revalidation/journey.json",
+      "bytes": 13227,
+      "sha256": "224eff31e422913c3118d3b404afd40a84e53ac1e2d9611496227bf7aa38548a"
+    },
+    {
+      "file": "docs/evidence/cloud-revalidation/summary.json",
+      "bytes": 1172,
+      "sha256": "1cfbbcac2c51839e2814ef2ecf962c829cb751dd00ff7f98f237b7d6fec1d51e"
+    },
+    {
+      "file": "README.md",
+      "bytes": 3138,
+      "sha256": "47d215e8561246f7921db46ee7d250defaff51360833f7e189f166ec5c827738"
     }
   ],
   "findings": [],
   "passed": true,
   "scope": "Allowlist export + known credential patterns and local invite comparison. Not a complete secret/security audit. No repository history or customer evidence copied.",
-  "published": false,
-  "sealedAt": "2026-09-17T16:00:06.567Z"
+  "published": true,
+  "sealedAt": "2026-09-17T16:00:06.567Z",
+  "repository": "https://github.com/J0MinPark/RepliQA",
+  "updatedAt": "2026-09-17T16:28:24.580Z"
 }
