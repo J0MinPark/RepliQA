@@ -7,6 +7,7 @@ if (config.vars.FREE_PLAN_CONFIRMED !== 'true' || /^0+-0+-0+-0+-0+$/.test(config
   throw new Error('먼저 Cloudflare Workers Free 계정과 D1 데이터베이스를 설정하세요. cloud/README.md를 참고하세요. 유료 계정 배포는 이 무료 파일럿에서 지원하지 않습니다.');
 }
 const root = new URL('../', import.meta.url);
+if(!config.durable_objects?.bindings?.some(b=>b.name==='NETWORK_RELAY'&&b.class_name==='NetworkRelay')||!config.migrations?.some(m=>m.new_sqlite_classes?.includes('NetworkRelay'))||!config.compatibility_flags?.includes('global_fetch_strictly_public'))throw Error('Deployment requires the SQLite network relay and strictly public fetch.');
 const cli = new URL('../node_modules/wrangler/bin/wrangler.js', import.meta.url);
 // A previous green report cannot authorize shipping a different browser engine.
 // This is a regression gate for a declared corpus, not a general accuracy certificate.

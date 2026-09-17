@@ -1,0 +1,41 @@
+{
+  "recordedAt": "2026-09-17T18:37:54.335Z",
+  "engineVersion": "0.2.6",
+  "sources": {
+    "cloud/src/runner.mjs": "b395613f0576c84f6d073434d37a246fa51d483e92b6c9b63ea81e3e22e05937",
+    "cloud/src/outcomes.mjs": "befeb1f9ad5c287a47eb6c270a58025ccebd4fd511b645283229c74a288b36ba",
+    "cloud/src/assertions.mjs": "4a789c47fb6a2908a017c012f07bcd70d9c8c074aeaf9d6787a9e82b97d10a7c",
+    "cloud/src/target-guard.mjs": "847284972a1bbcb39304acb6a72e2f04d4632c079e8d91497128d144b45439bc",
+    "cloud/src/actions.mjs": "10d566d93fbd70fa3450213dc83a36c7632374cf9152fa923a08875a485c648d",
+    "cloud/src/basic-checks.mjs": "0b85e88277bb9760d9f8c96f7e1b311b5de894fd30377adf25b01db63b97281c",
+    "cloud/src/schema.mjs": "35aec4a8afa2d0cf11aac13715e3a89e4586d59e673d3a8f4a40cff31cdc155b",
+    "backend/src/design/actions.js": "42819f16dc0ea172f7222dc5bc9620a004eef17be34c3d5f3053b767d9fe4a00",
+    "desktop/src/browser-flow.cjs": "f3b926f4b4af1201c4200b1cf97853bf07d524be13ac11b6097a3f14badfe94d",
+    "evaluation/real-sites/run.mjs": "245b0be1a9b1eb5be43d90c141d3ebc5ad45d396e95fbe95c685faaccf2ed63a",
+    "cloud/test/live-site-adaptation.test.mjs": "f8aeae2c045102689444a5c9300423dcebf1da3c20de034fbef4e9a0ddcc2502",
+    "cloud/test/target-guard.test.mjs": "18397869cb1e832b7c5eeb0e841b298f0d3d8d76ca4dd3e5f78ceca39f79f545",
+    "cloud/package.json": "6323069416b748ebefcdd080bc3b152399e0c4d02d6dc7a68af88e12c3ac673f",
+    "cloud/package-lock.json": "b7082d385e434644102630d3a053b79b0e17ba4683cec066595fc342b46c4273"
+  },
+  "commands": [
+    {
+      "command": "npm test --prefix cloud",
+      "exitCode": 0,
+      "tests": 39,
+      "passed": 39,
+      "failed": 0
+    },
+    {
+      "command": "npm run build --prefix cloud",
+      "exitCode": 0
+    },
+    {
+      "command": "node evaluation/review/verify.mjs evaluation/review-packs/20260918-v4",
+      "exitCode": 0,
+      "integrity": true,
+      "externalReview": false
+    }
+  ],
+  "productionDeployed": false,
+  "scope": "Receipt recorded from completed command outputs. Local regression and cloud execution evidence are separate."
+}

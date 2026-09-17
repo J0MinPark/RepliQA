@@ -1,0 +1,20 @@
+{
+  "startedAt": "2026-09-17T19:13:36.834Z",
+  "origin": "https://repliqa-pilot.repliqa-cloud.workers.dev",
+  "cloudBrowserRuns": 0,
+  "externalAiCalls": 0,
+  "runReservations": 0,
+  "passed": true,
+  "checks": [
+    "authenticated plan validation",
+    "unauthenticated request rejected",
+    "unregistered target rejected",
+    "file export/import",
+    "review reset",
+    "no execution or quota reservation",
+    "mobile overflow",
+    "logout",
+    "operator contact"
+  ],
+  "finishedAt": "2026-09-17T19:13:45.717Z"
+}

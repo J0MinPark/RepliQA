@@ -23,6 +23,9 @@ try{await fs.access(new URL('manifest.json',output));throw new Error('Measuremen
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const sourcePaths=['evaluation/cases.mjs','evaluation/run.mjs','evaluation/gate.mjs','evaluation/metrics.mjs','evaluation/package-lock.json','cloud/src/runner.mjs','cloud/src/outcomes.mjs','cloud/src/schema.mjs','cloud/src/actions.mjs','cloud/src/report.mjs','cloud/src/basic-checks.mjs','cloud/src/target-guard.mjs','cloud/src/worker.mjs','cloud/public/qa-catalog.js','desktop/src/browser-flow.cjs','desktop/src/privacy.cjs','desktop/src/scroll.cjs','backend/src/design/actions.js','backend/src/engine/paymentSafety.js'];
 const sources={};
+sourcePaths.push('cloud/test/live-site-adaptation.test.mjs');
+sourcePaths.push('cloud/src/network-relay.mjs','cloud/test/network-relay.test.mjs');
+sourcePaths.push('cloud/src/repository.mjs','cloud/src/restore-policy.mjs','cloud/test/security-operations.test.mjs','cloud/test/target-guard.test.mjs');
 sourcePaths.push('cloud/src/assertions.mjs','cloud/src/accessibility.mjs','cloud/src/axe-source.mjs','cloud/scripts/sync-axe-source.mjs','cloud/package-lock.json','cloud/public/reproduction.js','cloud/public/app.js','cloud/public/index.html');
 sourcePaths.push('cloud/public/plans.js','cloud/public/beta.html','cloud/test/portal.test.mjs','cloud/test/plans.test.mjs','cloud/test/checked-action.test.mjs','cloud/scripts/deploy.mjs','cloud/scripts/check-deployment.mjs');
 for(const source of sourcePaths){const bytes=await fs.readFile(new URL(`../${source}`,import.meta.url));sources[source]=hash(bytes);await fs.mkdir(new URL(`sources/${path.dirname(source)}/`,output),{recursive:true});await fs.writeFile(new URL(`sources/${source}`,output),bytes);}

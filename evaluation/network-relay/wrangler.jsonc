@@ -1,0 +1,31 @@
+{
+  "name": "repliqa-relay-your-diagnostic",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-09-11",
+  "compatibility_flags": [
+    "nodejs_compat",
+    "global_fetch_strictly_public"
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "NETWORK_RELAY",
+        "class_name": "NetworkRelay"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "NetworkRelay"
+      ]
+    }
+  ],
+  "observability": {
+    "enabled": false
+  },
+  "browser": {
+    "binding": "BROWSER"
+  }
+}

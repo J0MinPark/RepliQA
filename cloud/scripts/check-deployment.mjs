@@ -5,7 +5,7 @@ if(!origin||new URL(origin).protocol!=='https:')throw new Error('Set REPLIQA_PUB
 const url=new URL('/api/health',origin).href;
 const response=await fetch(`${url}?release=${encodeURIComponent(version)}&check=${Date.now()}`,{cache:'no-store',signal:AbortSignal.timeout(15000)});
 const actual=await response.json();
-const receipt={checkedAt:new Date().toISOString(),url,expectedVersion:version,actualVersion:actual.version,httpStatus:response.status,aiEnabled:actual.aiEnabled,passed:response.ok&&actual.version===version&&actual.aiEnabled===false};
+const receipt={checkedAt:new Date().toISOString(),url,expectedVersion:version,actualVersion:actual.version,httpStatus:response.status,aiEnabled:actual.aiEnabled,networkRelay:actual.networkRelay,passed:response.ok&&actual.version===version&&actual.aiEnabled===false&&actual.networkRelay===true&&actual.ready===true};
 const dir=new URL('../../docs/evidence/qa-evaluation/',import.meta.url);await fs.mkdir(dir,{recursive:true});
 await fs.writeFile(new URL('public-version.json',dir),JSON.stringify(receipt,null,2));
 console.log(JSON.stringify(receipt));

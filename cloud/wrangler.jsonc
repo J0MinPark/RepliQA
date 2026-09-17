@@ -3,7 +3,8 @@
   "main": "src/worker.mjs",
   "compatibility_date": "2026-09-11",
   "compatibility_flags": [
-    "nodejs_compat"
+    "nodejs_compat",
+    "global_fetch_strictly_public"
   ],
   "workers_dev": true,
   "preview_urls": false,
@@ -15,6 +16,22 @@
   "browser": {
     "binding": "BROWSER"
   },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "NETWORK_RELAY",
+        "class_name": "NetworkRelay"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "network-relay-v1",
+      "new_sqlite_classes": [
+        "NetworkRelay"
+      ]
+    }
+  ],
   "d1_databases": [
     {
       "binding": "DB",

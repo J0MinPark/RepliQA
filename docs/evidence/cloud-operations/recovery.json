@@ -1,0 +1,18 @@
+{
+  "at": "2026-09-17T17:11:57.550Z",
+  "platform": "Cloudflare remote D1 / production storage engine",
+  "source": "production database SQL export",
+  "restoredInto": "isolated unbound drill database",
+  "backupSha256": "cc5dea56256692eb58666fe7cb05bcfad71d831ba9d5d96e18822c6193512f50",
+  "restoredAggregatesMatch": true,
+  "simulatedLossRemovedMarker": true,
+  "timeTravelRestoredMarker": true,
+  "quarantine": {
+    "activeKeys": 0,
+    "exposedRuns": 0
+  },
+  "productionMutations": 0,
+  "productionBindingSwitched": false,
+  "passed": true,
+  "scope": "Remote restore and Time Travel drill on isolated copy of production data; not an in-place production failover or measured end-to-end RTO."
+}

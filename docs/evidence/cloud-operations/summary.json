@@ -1,0 +1,35 @@
+{
+  "at": "2026-09-17T17:30:34.733Z",
+  "liveVersion": "0.2.5",
+  "deploymentId": "f4044ad6-b42d-4599-9c52-fa8e828f8839",
+  "stagingBrowserChecks": {
+    "basic": "passed",
+    "journey": "passed"
+  },
+  "productionBrowserReservations": 0,
+  "productionPortalChecksPassed": true,
+  "network": {
+    "allowedPublicHost": 200,
+    "deniedPublicHost": 403,
+    "ipv4Loopback": "blocked",
+    "ipv6Loopback": "blocked",
+    "samplePrivateIp": 403,
+    "workerGlobalFetchPrivateSamples": 403,
+    "dnsRebindingProven": false
+  },
+  "recovery": "production SQL export restored to isolated remote D1; Time Travel and quarantine passed",
+  "temporaryResourcesDeleted": true,
+  "providerBrowserSecondsBefore": 26.219,
+  "providerBrowserSecondsAfter": 58.662,
+  "paidServicesEnabled": false,
+  "productionConfigSha256": "0d3b3fa8b5a74e767ef15b364a9847eb3d66f0ec7fa05def0d9a38f3197ec5b1",
+  "externalReviewer": null,
+  "realCompanyQa": {
+    "sites": 3,
+    "runs": 6,
+    "passed": 1,
+    "inconclusive": 5,
+    "environment": "RTX 4060 local Chromium",
+    "independentDefectGroundTruth": false
+  }
+}

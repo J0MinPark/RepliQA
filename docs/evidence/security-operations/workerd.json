@@ -1,0 +1,94 @@
+{
+  "at": "2026-09-17T16:52:20.183Z",
+  "version": "0.2.5",
+  "environment": "RTX 4060 server; local workerd and D1 emulator",
+  "passed": true,
+  "cloudBrowserCalls": 0,
+  "externalAiCalls": 0,
+  "checks": [
+    {
+      "path": "/runs/11111111-1111-4111-8111-111111111111",
+      "method": "GET",
+      "tenant": "b",
+      "expected": 404,
+      "actual": 404
+    },
+    {
+      "path": "/runs/11111111-1111-4111-8111-111111111111/screenshot",
+      "method": "GET",
+      "tenant": "b",
+      "expected": 404,
+      "actual": 404
+    },
+    {
+      "path": "/runs/11111111-1111-4111-8111-111111111111/cancel",
+      "method": "POST",
+      "tenant": "b",
+      "expected": 404,
+      "actual": 404
+    },
+    {
+      "path": "/runs/11111111-1111-4111-8111-111111111111",
+      "method": "DELETE",
+      "tenant": "b",
+      "expected": 404,
+      "actual": 404
+    },
+    {
+      "path": "/runs/11111111-1111-4111-8111-111111111111/execute",
+      "method": "POST",
+      "tenant": "b",
+      "expected": 404,
+      "actual": 404
+    },
+    {
+      "path": "/runs/11111111-1111-4111-8111-111111111111",
+      "method": "GET",
+      "tenant": "a",
+      "expected": 200,
+      "actual": 200
+    },
+    {
+      "path": "/runs/11111111-1111-4111-8111-111111111111/screenshot",
+      "method": "GET",
+      "tenant": "a",
+      "expected": 200,
+      "actual": 200
+    },
+    {
+      "path": "/runs/11111111-1111-4111-8111-111111111111",
+      "method": "GET",
+      "tenant": "x",
+      "expected": 401,
+      "actual": 401
+    },
+    {
+      "path": "/runs/11111111-1111-4111-8111-111111111111",
+      "method": "GET",
+      "tenant": "a",
+      "expected": 403,
+      "actual": 403
+    },
+    {
+      "path": "/runs/11111111-1111-4111-8111-111111111111",
+      "method": "DELETE",
+      "tenant": "a",
+      "expected": 200,
+      "actual": 200
+    },
+    {
+      "path": "/runs/11111111-1111-4111-8111-111111111111",
+      "method": "GET",
+      "tenant": "a",
+      "expected": 404,
+      "actual": 404
+    },
+    {
+      "path": "/runs/11111111-1111-4111-8111-111111111111/screenshot",
+      "method": "GET",
+      "tenant": "a",
+      "expected": 404,
+      "actual": 404
+    }
+  ]
+}

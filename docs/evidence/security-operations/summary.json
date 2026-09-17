@@ -1,0 +1,48 @@
+{
+  "at": "2026-09-17T16:59:32.465Z",
+  "hardware": "NVIDIA GeForce RTX 4060 / 8188 MiB",
+  "candidateVersion": "0.2.5",
+  "liveVersion": "0.2.4",
+  "deployed": false,
+  "unitAndBrowserTests": {
+    "passed": 31,
+    "failed": 0,
+    "securityAndOperationsSubset": 13
+  },
+  "localWorkerdHttpChecks": {
+    "passed": 12,
+    "failed": 0
+  },
+  "regression": {
+    "uniqueCases": 55,
+    "engines": 2,
+    "repeats": 2,
+    "observations": 220,
+    "mismatches": 0,
+    "gatePassed": true
+  },
+  "buildDryRunPassed": true,
+  "cloudBrowserCalls": 0,
+  "externalAiCalls": 0,
+  "externalReviewer": null,
+  "independentEvaluationComplete": false,
+  "newFrozenCases": 28,
+  "newCasesEngineMeasured": false,
+  "stage2": "local verification complete; cloud and transport isolation verification pending",
+  "stage3": "frozen reviewer pack ready; external truth review and measurement pending",
+  "remaining": [
+    "Cloudflare 0.2.5 basic/journey and guardrails validation within existing quota",
+    "Transport-level private-IP protection / DNS rebinding proof",
+    "Production D1 recovery drill",
+    "External reviewer truth confirmation before measuring the new pack"
+  ],
+  "evidenceHashes": {
+    "all-tests.txt": "0e6d0e6e9cc93b0ebf9efd0c20739b1e60faf37e6a9bf418a210563cab4e6044",
+    "security-tests.txt": "9f7abd73b811ab5a8709ac5944bb38604b64f4e892ddd092322ca8c753df472b",
+    "build.txt": "ddd075aa78a45e21f3e86f6d752616df0337bb4399123023bd1b6a49fe73a86e",
+    "workerd.json": "e4b3737fd209a40af120b0f7f6bcd1fe76be963319ab02ba31144e8155ff59fb",
+    "regression.json": "8daa884944f74c19692ab092809443eee7450a0280fd0fb28bb844858ae48560",
+    "gate.json": "dd515c3215000788f4be9eaa569fe9b41cb1ca05194f07c65ea5b0166cf17cdb",
+    "review-readiness.json": "fffc91ecead58d1c8d210f0d03655e1d0a97b29b70ecdc4c3c70be429be56da8"
+  }
+}

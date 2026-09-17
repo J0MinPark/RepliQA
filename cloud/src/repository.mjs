@@ -30,6 +30,6 @@ export async function reserve(db, tenant, key, fingerprint, now = Date.now()) {
 }
 export async function ownedRun(db, tenant, id) { return db.prepare('SELECT id, status, fingerprint, cancel_requested, report, created_at, expires_at FROM runs WHERE tenant_id = ? AND id = ?').bind(tenant, id).first(); }
 export async function finish(db, tenant, id, report, screenshot, status = 'done', now = Date.now()) {
-  return db.prepare("UPDATE runs SET status = ?, report = ?, screenshot = ?, finished_at = ? WHERE tenant_id = ? AND id = ? AND status = 'running' AND cancel_requested = 0")
-    .bind(status, JSON.stringify(report), screenshot ? new Uint8Array(screenshot) : null, now, tenant, id).run();
+  return db.prepare("UPDATE runs SET status = ?, report = ?, screenshot = ?, finished_at = ? WHERE tenant_id = ? AND id = ? AND status = 'running' AND cancel_requested = 0 AND EXISTS (SELECT 1 FROM tenants WHERE tenants.id = runs.tenant_id AND disabled = 0 AND expires_at > ?)")
+    .bind(status, JSON.stringify(report), screenshot ? new Uint8Array(screenshot) : null, now, tenant, id, now).run();
 }

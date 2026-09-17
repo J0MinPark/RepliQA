@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-09-17T19:08:51.544Z",
+  "worker": "repliqa-relay-probe",
+  "deleted": true,
+  "verifyStatus": 404,
+  "deletedClasses": [
+    "RelayProbe",
+    "NetworkRelay"
+  ],
+  "remainingDiagnosticNamespaces": 0,
+  "passed": true
+}

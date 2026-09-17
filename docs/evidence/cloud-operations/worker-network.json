@@ -1,0 +1,22 @@
+{
+  "at": "2026-09-17T17:27:20.528Z",
+  "path": "Cloudflare Worker global fetch with global_fetch_strictly_public",
+  "rows": [
+    {
+      "url": "https://example.com/",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1/",
+      "status": 403
+    },
+    {
+      "url": "http://[::1]/",
+      "status": 403
+    },
+    {
+      "url": "https://10.255.255.254/",
+      "status": 403
+    }
+  ]
+}
