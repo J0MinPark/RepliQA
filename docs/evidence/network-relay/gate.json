@@ -1,0 +1,6 @@
+{
+  "checkedAt": "2026-09-17T19:13:19.287Z",
+  "passed": true,
+  "scope": "Release regression gate for this authored corpus only. Does not certify general accuracy or SaaS readiness.",
+  "issues": []
+}

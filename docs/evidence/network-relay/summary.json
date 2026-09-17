@@ -1,0 +1,96 @@
+{
+  "updatedAt": "2026-09-17T19:14:58.784Z",
+  "version": "0.2.7",
+  "productionVersionId": "2ed629c7-7916-49af-a7e7-5e266128784b",
+  "localTests": {
+    "passed": 46,
+    "failed": 0,
+    "relayTests": 7
+  },
+  "build": "passed",
+  "regression": {
+    "observations": 220,
+    "uniqueAuthoredCases": 55,
+    "repeats": 2,
+    "engines": [
+      "repliqa",
+      "playwright"
+    ],
+    "mismatches": [],
+    "disagreements": [],
+    "sources": {
+      "evaluation/cases.mjs": "7f09828c9e782d1ce8983b88d17088a48d8ad836c0e3156064ee5ac470ebf67e",
+      "evaluation/run.mjs": "f81a625fdf23be9b786e0d58aa6267967cb80b2ad81b01ee7cf5c181164ee395",
+      "evaluation/gate.mjs": "2a0b14bc6e0dec6bedb24f11e3824481e3c4ff1ccf0b4774f11e88069c471298",
+      "evaluation/metrics.mjs": "dc539541cdf21f7468baa6eaf48debcd124e20b579c763151ec4710b10b610bc",
+      "evaluation/package-lock.json": "712e74f29df65ea6cac1ed86b8814a457a3748264f9f62e77acc5cef41ade504",
+      "cloud/src/runner.mjs": "6c67552d5af9f1c277f447decf541d2f3a74bd8b12231c047a065cb173d66653",
+      "cloud/src/outcomes.mjs": "befeb1f9ad5c287a47eb6c270a58025ccebd4fd511b645283229c74a288b36ba",
+      "cloud/src/schema.mjs": "35aec4a8afa2d0cf11aac13715e3a89e4586d59e673d3a8f4a40cff31cdc155b",
+      "cloud/src/actions.mjs": "10d566d93fbd70fa3450213dc83a36c7632374cf9152fa923a08875a485c648d",
+      "cloud/src/report.mjs": "9be073667a287ded18f405dbcecd0b9713a86263980e6cf22742b32ca6b37fc9",
+      "cloud/src/basic-checks.mjs": "0b85e88277bb9760d9f8c96f7e1b311b5de894fd30377adf25b01db63b97281c",
+      "cloud/src/target-guard.mjs": "2a2aac935aa7bc2fc3c74d7791e9effe8e7ff947dab16f418995bec72cbf7afd",
+      "cloud/src/worker.mjs": "c909f896e2ad6251a1ae564c8bf294e8a456502f85ff7beee1b34ffd0cad42bc",
+      "cloud/public/qa-catalog.js": "50efcf94c354f6a80c0c0a1d8189daba9c1c9467adc77e9fc510478e99e5f97e",
+      "desktop/src/browser-flow.cjs": "f3b926f4b4af1201c4200b1cf97853bf07d524be13ac11b6097a3f14badfe94d",
+      "desktop/src/privacy.cjs": "6b7792401e34dd1b643e41d1f6137147013d8649dfa68799607263af50ae2d27",
+      "desktop/src/scroll.cjs": "845857857b0ddd710ffc32d496ccca8f0fad65b1fbbd24a5255727895803c931",
+      "backend/src/design/actions.js": "42819f16dc0ea172f7222dc5bc9620a004eef17be34c3d5f3053b767d9fe4a00",
+      "backend/src/engine/paymentSafety.js": "f74df81b33e437deaba10b8b22ea6c98dcc326c596ee270176c35dad68ec6626",
+      "cloud/test/live-site-adaptation.test.mjs": "f8aeae2c045102689444a5c9300423dcebf1da3c20de034fbef4e9a0ddcc2502",
+      "cloud/src/network-relay.mjs": "61672f77ad8a60bce4bc97b19b0831a5cb7c889101a3de6403e719b634c86318",
+      "cloud/test/network-relay.test.mjs": "d0af86f980c2d0298506ec4491251508a1435c63ddd578745704dbbe43e4ffcf",
+      "cloud/src/repository.mjs": "637dbf5640df88c7f577857852be16fa7251d0da86aaea6a64afeb56abb62e6e",
+      "cloud/src/restore-policy.mjs": "dc0d179bf78b62040655a5a8b4741baf1fa7540e43f37d8b265221671c8ddd77",
+      "cloud/test/security-operations.test.mjs": "b25c30a7b2628c0090fa6b1fe9ec091cbc1c99222bdbeab92e10a9594445cf54",
+      "cloud/test/target-guard.test.mjs": "18397869cb1e832b7c5eeb0e841b298f0d3d8d76ca4dd3e5f78ceca39f79f545",
+      "cloud/src/assertions.mjs": "4a789c47fb6a2908a017c012f07bcd70d9c8c074aeaf9d6787a9e82b97d10a7c",
+      "cloud/src/accessibility.mjs": "9560a92cc91e39558ded6dfe3517c145b8c082a0f827613175aba6bd4d448b91",
+      "cloud/src/axe-source.mjs": "a598fb849374821768a29821d4aa9ab83dc3791e8e7d718fcfcae13f509893a9",
+      "cloud/scripts/sync-axe-source.mjs": "185d1404bef413c7ffe1f61bc2fdceb584fe4fefd5b8deb26ae65898148df73b",
+      "cloud/package-lock.json": "806d6bf914cb54c2c7ed47423a283370a847223f4716a060b6857a635bd14600",
+      "cloud/public/reproduction.js": "528e188da3052eb97ca78fafde3239511356f93ba47cf54818b8315b4ad2116f",
+      "cloud/public/app.js": "e56c8267e27c3805e5aa17d7fa7a5b720608038b73cb9026d19a93399db49f12",
+      "cloud/public/index.html": "b7cedefc56018748b1623de167c2db887154bfa889396510c4daeab43f348368",
+      "cloud/public/plans.js": "74d12c9aeae40cba731dbbb6dd576d5ed86bb6e44f279d7d512a416bae7693fb",
+      "cloud/public/beta.html": "918bb12f4342c606e12eb36c8810d206b312d18185297cf852b69f6dc1c7f90a",
+      "cloud/test/portal.test.mjs": "0fe010d81650a98fd35a4d54423f277ba910f1d4d1a1778b68b67b153fc27b67",
+      "cloud/test/plans.test.mjs": "45df5c3ba801efe732834276214bad06d2deba2465811471dc3cc234bc7e0be8",
+      "cloud/test/checked-action.test.mjs": "6ffada75d02c32482b7ce6008c50a7b2c55eb780e4f7405edcdf6e76d0e56575",
+      "cloud/scripts/deploy.mjs": "97dc7b433e98b3fe5c817c76de59fdb6cf736d906a9e64c6a627dd41ea8ef4a6",
+      "cloud/scripts/check-deployment.mjs": "edddd151d50d0de676bdc9e1858262cafdf7dd6c77baf53288c403ddfdb49073"
+    },
+    "scope": "Authored local regression, not independent accuracy or deployed relay performance"
+  },
+  "deployedBrowser": {
+    "fixture": "fixture-release-027.json",
+    "github": "github-release-027-r2.json",
+    "nextjs": "vercel-release-027.json",
+    "basic": [
+      "github-basic-release-027.json",
+      "vercel-basic-release-027.json"
+    ],
+    "preserved429": "github-release-027.json",
+    "productionReservations": 0,
+    "externalAiCalls": 0
+  },
+  "security": {
+    "cloudPassed": 8,
+    "cloudTotal": 8,
+    "controlledDnsRebinding": "pending"
+  },
+  "deployment": {
+    "health": "production-version.json",
+    "portal": "production-flow.json",
+    "fullProductionRun": "Not repeated after deployment: daily production quota already exhausted",
+    "initialFailure": "Wrangler OS keyring dependency unavailable in npm execution environment; resolved using existing credential in child process memory without new authorization"
+  },
+  "cleanup": "cleanup.json",
+  "independentEvaluation": {
+    "pack": "20260918-v5",
+    "cases": 28,
+    "externalReview": false,
+    "engineMeasured": false
+  }
+}

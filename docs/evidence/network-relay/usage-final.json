@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-09-17T19:08:28.240Z",
+  "limits": {
+    "activeSessions": [],
+    "maxConcurrentSessions": 4,
+    "allowedBrowserAcquisitions": 1,
+    "timeUntilNextAllowedBrowserAcquisition": 0,
+    "usedBrowserTimeSeconds": 295.00199999999995
+  },
+  "sessions": [],
+  "sourceHash": "2d0127d86674baaf07c6a3b2528d092a7b1cac63259f761847f85433b9ffd0f0"
+}

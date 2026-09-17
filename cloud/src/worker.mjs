@@ -3,6 +3,8 @@ import { authenticate, hash, reserve, recover, ownedRun, finish } from './reposi
 import { installGuard, validateUrl, sessionGuardrails } from './target-guard.mjs';
 import { runBrowser } from './runner.mjs';
 import { reviewScreen } from './ai.mjs';
+import {createNetworkRelay} from './network-relay.mjs';
+export {NetworkRelay} from './network-relay.mjs';
 
 const headers = { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'referrer-policy': 'no-referrer', 'content-security-policy': "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'" };
 function json(value, status = 200) { return Response.json(value, { status, headers }); }
@@ -20,7 +22,7 @@ export async function handle(request, env, runtime = {}) {
     for (const [key, value] of Object.entries(headers)) secured.headers.set(key, value);
     return secured;
   }
-  if (url.pathname === '/api/health') return json({ service: 'RepliQA Cloud Pilot', version:'0.2.6', ready: env.FREE_PLAN_CONFIRMED === 'true', localGpuRequired: false, aiEnabled: env.CLOUD_AI_ENABLED === 'true',inspectionModes:['basic','journey'] });
+  if (url.pathname === '/api/health') return json({ service: 'RepliQA Cloud Pilot', version:'0.2.7', ready: env.FREE_PLAN_CONFIRMED === 'true' && Boolean(env.NETWORK_RELAY), networkRelay: Boolean(env.NETWORK_RELAY), localGpuRequired: false, aiEnabled: env.CLOUD_AI_ENABLED === 'true',inspectionModes:['basic','journey'] });
   if (env.FREE_PLAN_CONFIRMED !== 'true') return json({ error: '무료 요금제 확인 후 서비스를 열 수 있습니다.' }, 503);
   if (request.headers.get('origin') && request.headers.get('origin') !== url.origin) return json({ error: '허용하지 않은 출처입니다.' }, 403);
   const tenant = await authenticate(env.DB, request.headers.get('authorization'));
@@ -79,9 +81,12 @@ export async function handle(request, env, runtime = {}) {
       try { const state = await ownedRun(env.DB, tenant.id, id); const active = await authenticate(env.DB, request.headers.get('authorization')); if (!active || !state || state.cancel_requested || state.status !== 'running') controller.abort(); }
       catch { controller.abort(); } finally { polling = false; }
     }, 2000);
+    let relay;
     try {
       controller.signal.throwIfAborted();
-      const execution = (runtime.runBrowser || runBrowser)(job, { launch: async () => (await import('@cloudflare/playwright')).launch(env.BROWSER, { guardrails: sessionGuardrails(tenant) }), guard: (context) => installGuard(context, tenant), signal: controller.signal,
+      relay=runtime.runBrowser?null:await createNetworkRelay(env.NETWORK_RELAY,tenant,id);
+      controller.signal.throwIfAborted();
+      const execution = (runtime.runBrowser || runBrowser)(job, { launch: async () => (await import('@cloudflare/playwright')).launch(env.BROWSER, { guardrails: sessionGuardrails(tenant) }), guard: (context) => installGuard(context, tenant,fetch,relay), signal: controller.signal,
         review: env.CLOUD_AI_ENABLED === 'true' ? (data, screenshot) => reviewScreen(env.AI, data, screenshot) : null });
       const aborted = new Promise((_, reject) => { const stop = () => reject(new Error('검사가 중단되었습니다.')); if (controller.signal.aborted) stop(); else controller.signal.addEventListener('abort', stop, { once: true }); });
       const { report, screenshot } = await Promise.race([execution, aborted]);
@@ -91,7 +96,7 @@ export async function handle(request, env, runtime = {}) {
       // If persistence is down, leave the lease for recovery; never report a client 400.
       try { await finish(env.DB, tenant.id, id, { status: 'inconclusive', error: '실행이 중단되었습니다. 대상 상태를 확인하세요.' }, null, 'interrupted'); } catch {}
       return json({ id, error: '검사가 중단되었습니다. 실행 내역에서 상태를 확인하세요.' }, 503);
-    } finally { clearTimeout(deadline); clearInterval(poll); request.signal.removeEventListener('abort', disconnected); }
+    } finally { clearTimeout(deadline); clearInterval(poll); request.signal.removeEventListener('abort', disconnected); await relay?.close().catch(()=>{}); }
   }
   if (!parts[3] && request.method === 'GET') return json({ ...run, report: run.report ? JSON.parse(run.report) : null });
   return json({ error: '지원하지 않는 요청입니다.' }, 405);

@@ -12,7 +12,7 @@ import { assertionActions, checkStep } from './assertions.mjs';
 export async function runBrowser(job, { launch, guard, signal, onStep = async () => {}, review }) {
   const started = Date.now(); let browser; let timer; let page; let networkGuard;
   const secrets = [...job.redactValues, ...job.steps.filter((step) => ['fill','assertValue'].includes(step.action) || step.sensitive).map((step) => step.value).filter(Boolean)];
-  const report = { title: job.title, status: 'inconclusive', checks: [], steps: [], ai: null, coverage: { browser: false, deterministic: false, ai: false }, mode: job.inspectionMode==='basic'?'automatic-basic':job.cloudAiConsent ? 'cloud-ai' : 'browser-contracts',engineVersion:'0.2.6' };
+  const report = { title: job.title, status: 'inconclusive', checks: [], steps: [], ai: null, coverage: { browser: false, deterministic: false, ai: false }, mode: job.inspectionMode==='basic'?'automatic-basic':job.cloudAiConsent ? 'cloud-ai' : 'browser-contracts',engineVersion:'0.2.7' };
   report.contract = { url: job.url, requirement: job.requirement, expectedPath: job.expectedPath, expectedTexts: job.expectedTexts, resultSelector: job.resultSelector, requireResultChange: job.requireResultChange, steps: job.steps.map(step => ({...step})) };
   let screenshot;
   const stop = () => { networkGuard?.finish?.(); void browser?.close().catch(() => {}); };

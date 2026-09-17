@@ -1,0 +1,16 @@
+import fs from 'node:fs/promises';
+const root=new URL('../../docs/',import.meta.url),dir=new URL('evidence/network-relay/',root);
+const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const names=['fixture-release-027','github-release-027-r2','vercel-release-027','github-basic-release-027','vercel-basic-release-027'];
+let html='<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>RepliQA 0.2.7 deployed network relay evidence</title><style>body{font:16px/1.65 system-ui;max-width:1050px;margin:40px auto;padding:0 20px;color:#172238;background:#f8fafc}section{background:white;border:1px solid #dbe1e9;border-radius:12px;padding:24px;margin:24px 0}table{border-collapse:collapse;width:100%}td,th{border:1px solid #dbe1e9;padding:8px;text-align:left}img{max-width:100%;height:auto}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}h1,h2{line-height:1.25}</style><h1>RepliQA 0.2.7: deployed relay evidence</h1><p>2026-09-18 KST. Actual Cloudflare Free Worker + SQLite Durable Object + Cloudflare Browser. No external AI calls. These are configured journeys and page checks, not whole-site accuracy or an independent benchmark.</p><p><a href="NETWORK-RELAY.md">Architecture, limitations and release evidence</a>. A 429 browser-start attempt and earlier implementation failures remain in the raw evidence.</p>';
+for(const name of names){
+  const receipt=JSON.parse(await fs.readFile(new URL(name+'.json',dir),'utf8')),r=receipt.report;
+  html+=`<section><h2>${escape(r.title)}: ${escape(r.status)}</h2><p>${escape(receipt.job.url)}<br>Measured ${escape(receipt.measuredAt)}; engine ${escape(r.engineVersion)}; browser ${(r.durationMs/1000).toFixed(3)} s; request ${(receipt.wallMs/1000).toFixed(3)} s.</p><p>Completed steps: ${r.scope.completedSteps}/${r.scope.plannedSteps}. Network: ${escape(JSON.stringify(r.network))}.</p><table><thead><tr><th>Action / check</th><th>Target</th><th>Status</th><th>Evidence</th></tr></thead><tbody>`;
+  for(const item of [...(r.steps||[]),...(r.checks||[])])html+=`<tr><td>${escape(item.action||item.title||item.id)}</td><td>${escape(item.target)}</td><td>${escape(item.status)}</td><td>${escape(item.message)}</td></tr>`;
+  html+='</tbody></table>';
+  try{const bytes=await fs.readFile(new URL(name+'.jpg',dir));html+=`<details><summary>Final masked screenshot</summary><img alt="Final observed browser page" src="data:image/jpeg;base64,${bytes.toString('base64')}"></details>`;}catch{html+='<p>No screenshot captured.</p>';}
+  html+=`<details><summary>Full recorded checks and evidence</summary><pre>${escape(JSON.stringify(r,null,2))}</pre></details><p><a href="evidence/network-relay/${name}.json">Raw receipt and source hashes</a></p></section>`;
+}
+html+='<p>Basic inconclusive findings require review; they are not confirmed site defects. Unsupported or blocked work never counts as a pass. No customer credentials, account actions or payments were used in these public documentation journeys.</p></html>';
+await fs.writeFile(new URL('NETWORK-RELAY-REPORT.html',root),html);
+console.log(JSON.stringify({report:'docs/NETWORK-RELAY-REPORT.html',runs:names.length}));

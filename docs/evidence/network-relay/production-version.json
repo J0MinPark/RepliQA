@@ -1,0 +1,10 @@
+{
+  "checkedAt": "2026-09-17T19:13:27.681Z",
+  "url": "https://repliqa-pilot.repliqa-cloud.workers.dev/api/health",
+  "expectedVersion": "0.2.7",
+  "actualVersion": "0.2.7",
+  "httpStatus": 200,
+  "aiEnabled": false,
+  "networkRelay": true,
+  "passed": true
+}

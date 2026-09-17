@@ -1,0 +1,170 @@
+[
+  {
+    "id": "0a77251c3fa68f50",
+    "truth": "normal",
+    "expected": "passed",
+    "proof": "Enter two spaces, Alpha, two spaces. Save draft. Visible output must be exactly Alpha; extra suffix is a defect."
+  },
+  {
+    "id": "0f517d1e3a98eb28",
+    "truth": "defect",
+    "expected": "failed",
+    "proof": "Edit both fields before Reset. Both must return to defaults, not just the title."
+  },
+  {
+    "id": "2bb8b4abd7ee324d",
+    "truth": "normal",
+    "expected": "passed",
+    "proof": "Visible angle brackets must remain. Rendering bold draft loses the literal input."
+  },
+  {
+    "id": "2cfdf8a89d3862ce",
+    "truth": "normal",
+    "expected": "passed",
+    "proof": "Read 4, click twice. 5 is correct; 6 violates the stated maximum."
+  },
+  {
+    "id": "2e1a71bf575cada0",
+    "truth": "defect",
+    "expected": "failed",
+    "proof": "Visible angle brackets must remain. Rendering bold draft loses the literal input."
+  },
+  {
+    "id": "2f314679ce954d28",
+    "truth": "defect",
+    "expected": "failed",
+    "proof": "Zero is explicitly allowed. A truthiness fallback to 10 violates this contract."
+  },
+  {
+    "id": "340bc5c2038f6ac3",
+    "truth": "normal",
+    "expected": "passed",
+    "proof": "All three positions matter; correct first item alone is not success."
+  },
+  {
+    "id": "49aa9efe12989f9f",
+    "truth": "normal",
+    "expected": "passed",
+    "proof": "Zero is explicitly allowed. A truthiness fallback to 10 violates this contract."
+  },
+  {
+    "id": "5622752f3a72ecd4",
+    "truth": "defect",
+    "expected": "failed",
+    "proof": "Read 4, click twice. 5 is correct; 6 violates the stated maximum."
+  },
+  {
+    "id": "5b18c5b2e9df3710",
+    "truth": "normal",
+    "expected": "passed",
+    "proof": "Inspect the options after selecting West and refreshing. A single option is incomplete."
+  },
+  {
+    "id": "672777a364702445",
+    "truth": "unresolved",
+    "expected": "inconclusive",
+    "proof": "Two result elements share the selector. Do not pick the first and report success."
+  },
+  {
+    "id": "804d3fcb9158f466",
+    "truth": "defect",
+    "expected": "failed",
+    "proof": "Enter two spaces, Alpha, two spaces. Save draft. Visible output must be exactly Alpha; extra suffix is a defect."
+  },
+  {
+    "id": "80fc9865ab5d3a80",
+    "truth": "normal",
+    "expected": "passed",
+    "proof": "Do not type a name. Accepted on an empty required field violates the contract."
+  },
+  {
+    "id": "82dee719c85c50e7",
+    "truth": "normal",
+    "expected": "passed",
+    "proof": "Both inputs are checked before preview. Counting only one is a defect."
+  },
+  {
+    "id": "832709469ff3cce1",
+    "truth": "defect",
+    "expected": "failed",
+    "proof": "All three positions matter; correct first item alone is not success."
+  },
+  {
+    "id": "9c88daa6a8427a77",
+    "truth": "normal",
+    "expected": "passed",
+    "proof": "Edit both fields before Reset. Both must return to defaults, not just the title."
+  },
+  {
+    "id": "9e186edbc6ef45e3",
+    "truth": "normal",
+    "expected": "passed",
+    "proof": "Check intermediate 1 and final 100. Final 10 indicates a scale error."
+  },
+  {
+    "id": "a4d7d90dbb4b972b",
+    "truth": "normal",
+    "expected": "passed",
+    "proof": "Inspect both visible summary and editable field. Undo of the summary alone is insufficient."
+  },
+  {
+    "id": "aeb25007d1155567",
+    "truth": "unresolved",
+    "expected": "inconclusive",
+    "proof": "Two equally named buttons make the requested action ambiguous. No write may be guessed."
+  },
+  {
+    "id": "bc20a83e0e8e4bb8",
+    "truth": "defect",
+    "expected": "failed",
+    "proof": "Both inputs are checked before preview. Counting only one is a defect."
+  },
+  {
+    "id": "c0cf39e4713bd92d",
+    "truth": "defect",
+    "expected": "failed",
+    "proof": "Check intermediate 1 and final 100. Final 10 indicates a scale error."
+  },
+  {
+    "id": "cf4a7fe6eb933102",
+    "truth": "defect",
+    "expected": "failed",
+    "proof": "This is arithmetic preview only. Decimal truncation produces 8.00 and is a defect."
+  },
+  {
+    "id": "e1206701e2af6a60",
+    "truth": "unresolved",
+    "expected": "inconclusive",
+    "proof": "The control is disabled; the test has no contract saying it must be enabled. Report inconclusive."
+  },
+  {
+    "id": "ed89ce79e190ff85",
+    "truth": "defect",
+    "expected": "failed",
+    "proof": "Inspect both visible summary and editable field. Undo of the summary alone is insufficient."
+  },
+  {
+    "id": "f47eca3906e70338",
+    "truth": "normal",
+    "expected": "passed",
+    "proof": "This is arithmetic preview only. Decimal truncation produces 8.00 and is a defect."
+  },
+  {
+    "id": "f6e1c615ce71b5d4",
+    "truth": "defect",
+    "expected": "failed",
+    "proof": "Inspect the options after selecting West and refreshing. A single option is incomplete."
+  },
+  {
+    "id": "f70978fb11a0797a",
+    "truth": "unresolved",
+    "expected": "inconclusive",
+    "proof": "The named control is absent. The contract cannot be executed; this alone does not prove a site defect."
+  },
+  {
+    "id": "fc4262b2ba8711c3",
+    "truth": "defect",
+    "expected": "failed",
+    "proof": "Do not type a name. Accepted on an empty required field violates the contract."
+  }
+]

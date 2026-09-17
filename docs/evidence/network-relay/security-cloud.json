@@ -1,0 +1,58 @@
+{
+  "measuredAt": "2026-09-17T19:05:56.959Z",
+  "runtime": "Deployed Free Worker and SQLite Durable Objects",
+  "sourceHash": "2d0127d86674baaf07c6a3b2528d092a7b1cac63259f761847f85433b9ffd0f0",
+  "checks": [
+    {
+      "name": "foreign-run-capability",
+      "status": 403,
+      "reason": "session-unavailable",
+      "passed": true
+    },
+    {
+      "name": "public-response",
+      "status": 200,
+      "reason": null,
+      "passed": true,
+      "body": "relay-probe-ok"
+    },
+    {
+      "name": "duplicate-request",
+      "status": 409,
+      "reason": "duplicate-request",
+      "passed": true
+    },
+    {
+      "name": "private-literal",
+      "status": 403,
+      "reason": "private-address",
+      "passed": true
+    },
+    {
+      "name": "redirect-to-private",
+      "status": 403,
+      "reason": "redirect",
+      "passed": true
+    },
+    {
+      "name": "unregistered-host",
+      "status": 403,
+      "reason": "policy",
+      "passed": true
+    },
+    {
+      "name": "closed-run",
+      "status": 403,
+      "reason": "session-unavailable",
+      "passed": true
+    },
+    {
+      "name": "other-run-still-open",
+      "status": 200,
+      "reason": null,
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "scope": "Actual deployed namespace isolation, public fetch and policy rejection. Not controlled DNS-rebinding proof."
+}

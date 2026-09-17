@@ -16,6 +16,22 @@
   "browser": {
     "binding": "BROWSER"
   },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "NETWORK_RELAY",
+        "class_name": "NetworkRelay"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "network-relay-v1",
+      "new_sqlite_classes": [
+        "NetworkRelay"
+      ]
+    }
+  ],
   "d1_databases": [
     {
       "binding": "DB",

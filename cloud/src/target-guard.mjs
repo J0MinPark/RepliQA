@@ -5,7 +5,7 @@ export function validateUrl(value, origins) {
   return url;
 }
 export function publicAddress(value) { try { return ipaddr.process(value).range() === 'unicast'; } catch { return false; } }
-async function publicHost(host, fetchImpl) {
+export async function publicHost(host, fetchImpl) {
   if (ipaddr.isValid(host)) return publicAddress(host);
   const records = await Promise.all(['A', 'AAAA'].map(async (type) => {
     const response = await fetchImpl(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(host)}&type=${type}`, { headers: { accept: 'application/dns-json' }, signal: AbortSignal.timeout(4000) });
@@ -16,7 +16,7 @@ async function publicHost(host, fetchImpl) {
   }));
   const addresses = records.flat(); return addresses.length > 0 && addresses.every(publicAddress);
 }
-export async function installGuard(context, tenant, fetchImpl = fetch) {
+export async function installGuard(context, tenant, fetchImpl = fetch, relay = null) {
   const origins = JSON.parse(tenant.origins); const hosts = new Set([...origins.map((origin) => new URL(origin).hostname), ...JSON.parse(tenant.resource_hosts)]);
   let stopping=false;
   // Coalesce only concurrent lookups. Do not retain resolved DNS answers:
@@ -32,10 +32,10 @@ export async function installGuard(context, tenant, fetchImpl = fetch) {
     return dnsInFlight.get(host);
   };
   const state = { blockedRequests: 0, failedRequests: 0, cancelledAtShutdown: 0, events: [], finish:()=>{stopping=true;} };
-  const record=(kind,request)=>{
+  const record=(kind,request,reason)=>{
     if(state.events.length>=20)return;
     let origin;try{origin=new URL(request?.url()).origin;}catch{}
-    state.events.push({kind,origin,resourceType:request?.resourceType?.()});
+    state.events.push({kind,origin,resourceType:request?.resourceType?.(),...(reason?{reason}:{})});
   };
   // WebSocket journeys are unsupported; never connect upstream.
   await context.routeWebSocket('**/*', socket => { if(!stopping){state.blockedRequests++;record('websocket');} return socket.close(); });
@@ -46,6 +46,7 @@ export async function installGuard(context, tenant, fetchImpl = fetch) {
       const url = new URL(request.url());
       if (url.protocol !== 'https:' || url.username || url.password || (url.port && url.port !== '443') || !hosts.has(url.hostname)) throw new Error('허용하지 않은 요청');
       if (request.isNavigationRequest()) validateUrl(url.href, origins);
+      if(relay){stage='transport';try{await relay.fetchRoute(route);}catch(error){if(['policy','private-address','redirect'].includes(error.relayKind))stage='policy';throw error;}return;}
       // Recheck each request. This is preflight, not transport-level IP pinning.
       stage='dns';
       const isPublic=await checkHost(url.hostname);
@@ -60,9 +61,9 @@ export async function installGuard(context, tenant, fetchImpl = fetch) {
         stage='transport';
         await route.fulfill({ response });
       } finally { await response.dispose(); }
-    } catch {
+    } catch (error) {
       if(stopping)state.cancelledAtShutdown++;
-      else {if(['policy','redirect'].includes(stage))state.blockedRequests++;else state.failedRequests++;record(stage,request);}
+      else {if(['policy','redirect'].includes(stage))state.blockedRequests++;else state.failedRequests++;record(stage,request,error.relayKind);}
       await route.abort('blockedbyclient').catch(()=>{});
     }
   });

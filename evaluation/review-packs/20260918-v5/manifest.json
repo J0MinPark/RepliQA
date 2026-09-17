@@ -1,0 +1,47 @@
+{
+  "label": "20260918-v5",
+  "frozenAt": "2026-09-17T19:04:26.302Z",
+  "engineVersion": "0.2.7",
+  "uniqueCases": 28,
+  "counts": {
+    "normal": 12,
+    "defect": 12,
+    "unresolved": 4
+  },
+  "artifacts": {
+    "cases.json": "ed0967b5ab9e94ddfaff5e63aee980682a7f6af7551f180937781f22351d149f",
+    "proposed-oracle.json": "e49f71cf7eb76f6f9af39e8e4eeb7fd8123465e042f358434db130538a70e748",
+    "review-template.json": "e1557869d5d67b0ecc4c38414ffccab914e1092dffb3ea8a2ae5ac943c32b0b6"
+  },
+  "sources": {
+    "cloud/src/accessibility.mjs": "9560a92cc91e39558ded6dfe3517c145b8c082a0f827613175aba6bd4d448b91",
+    "cloud/src/actions.mjs": "10d566d93fbd70fa3450213dc83a36c7632374cf9152fa923a08875a485c648d",
+    "cloud/src/ai.mjs": "daa5a5a01caba8cd39d7ec1480fe6eb9d37136ae1c812b6994a20ff751c8f2f1",
+    "cloud/src/assertions.mjs": "4a789c47fb6a2908a017c012f07bcd70d9c8c074aeaf9d6787a9e82b97d10a7c",
+    "cloud/src/axe-source.mjs": "a598fb849374821768a29821d4aa9ab83dc3791e8e7d718fcfcae13f509893a9",
+    "cloud/src/basic-checks.mjs": "0b85e88277bb9760d9f8c96f7e1b311b5de894fd30377adf25b01db63b97281c",
+    "cloud/src/network-relay.mjs": "61672f77ad8a60bce4bc97b19b0831a5cb7c889101a3de6403e719b634c86318",
+    "cloud/src/outcomes.mjs": "befeb1f9ad5c287a47eb6c270a58025ccebd4fd511b645283229c74a288b36ba",
+    "cloud/src/report.mjs": "9be073667a287ded18f405dbcecd0b9713a86263980e6cf22742b32ca6b37fc9",
+    "cloud/src/repository.mjs": "637dbf5640df88c7f577857852be16fa7251d0da86aaea6a64afeb56abb62e6e",
+    "cloud/src/restore-policy.mjs": "dc0d179bf78b62040655a5a8b4741baf1fa7540e43f37d8b265221671c8ddd77",
+    "cloud/src/runner.mjs": "6c67552d5af9f1c277f447decf541d2f3a74bd8b12231c047a065cb173d66653",
+    "cloud/src/schema.mjs": "35aec4a8afa2d0cf11aac13715e3a89e4586d59e673d3a8f4a40cff31cdc155b",
+    "cloud/src/target-guard.mjs": "2a2aac935aa7bc2fc3c74d7791e9effe8e7ff947dab16f418995bec72cbf7afd",
+    "cloud/src/worker.mjs": "c909f896e2ad6251a1ae564c8bf294e8a456502f85ff7beee1b34ffd0cad42bc",
+    "cloud/public/qa-catalog.js": "50efcf94c354f6a80c0c0a1d8189daba9c1c9467adc77e9fc510478e99e5f97e",
+    "desktop/src/browser-flow.cjs": "f3b926f4b4af1201c4200b1cf97853bf07d524be13ac11b6097a3f14badfe94d",
+    "desktop/src/privacy.cjs": "6b7792401e34dd1b643e41d1f6137147013d8649dfa68799607263af50ae2d27",
+    "desktop/src/scroll.cjs": "845857857b0ddd710ffc32d496ccca8f0fad65b1fbbd24a5255727895803c931",
+    "backend/src/design/actions.js": "42819f16dc0ea172f7222dc5bc9620a004eef17be34c3d5f3053b767d9fe4a00",
+    "backend/src/engine/paymentSafety.js": "f74df81b33e437deaba10b8b22ea6c98dcc326c596ee270176c35dad68ec6626",
+    "evaluation/review/cases.mjs": "8e27ce3ad19e9543f2e6311f4e6a63e420bf3540a8453a90f22939b55b198dba",
+    "evaluation/review/freeze.mjs": "e17d2c9d7c90b6c9a032196a94f35d5180742b88799ca0b39a15b691dd89540e",
+    "evaluation/review/run.mjs": "2a230f6945d1bc6a08089f8653744dd72b948a814c65b630a98183203a04aa44",
+    "evaluation/review/serve.mjs": "1566ecca9b069d03c05525e0c91d020ab915e1abfa610e3c161ecae6643c6640",
+    "evaluation/review/verify.mjs": "d9c7dbfa65cec15e433e0be873f4f6da40ae0379820882e5a3be74d1051035b4"
+  },
+  "reviewStatus": "pending",
+  "engineMeasured": false,
+  "independence": "Author-generated proposals, no external reviewer yet. External truth review is required; this is not a blind independent corpus."
+}

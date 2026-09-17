@@ -1,8 +1,8 @@
 # RepliQA — evidence-based web QA (alpha)
 
-Development candidate 0.2.6 improves rendered-result resolution, delayed action targets, SPA history readiness and network failure accounting. [Real-site results and remaining cloud execution blocker](docs/LIVE-QA-ADAPTATION.md). The production pilot remains 0.2.5: deployed Free Worker tests still hit the subrequest limit on asset-heavy sites. This candidate is not a production-ready autonomous QA service.
+The invite pilot runs **0.2.7** with a per-run SQLite Durable Object network relay. Deployed Cloudflare tests passed the unchanged 9-step GitHub Docs and Next.js journeys, plus a 120-resource fixture. [Architecture and exact scope](docs/NETWORK-RELAY.md), [browser reports and screenshots](docs/NETWORK-RELAY-REPORT.html). Basic inspections remain inconclusive where accessibility review is needed. This alpha is not a production-ready autonomous QA service.
 
-The invite pilot now runs 0.2.5. See [live cloud, network and recovery validation](docs/CLOUD-OPERATIONS-VALIDATION.md), [usage](docs/REPLIQA-USAGE.md), and the [real company website execution report](docs/ENTERPRISE-QA-REPORT-20260918.html). Controlled DNS-rebinding validation and [external truth review](docs/EXTERNAL-REVIEW-PACK.md) remain pending. This is not a general-availability or accuracy certification.
+See earlier [cloud, network and recovery validation](docs/CLOUD-OPERATIONS-VALIDATION.md) and [usage](docs/REPLIQA-USAGE.md). Controlled DNS-rebinding validation and [external truth review](docs/EXTERNAL-REVIEW-PACK.md) remain pending. This is not a general-availability or accuracy certification.
 
 Live Cloudflare 0.2.4 browser revalidation passed: [results and scope](docs/CLOUDFLARE-REVALIDATION.md). See also [free hosting options](docs/FREE-HOSTING-OPTIONS.md).
 
@@ -44,6 +44,8 @@ Set REPLIQA_PUBLIC_ORIGIN to your own HTTPS deployment origin before deploying.
 Set REPLIQA_EVALUATION_RECEIPT to your current local measurement result.json.
 The deploy command requires a matching regression gate. Deployment and provider
 authorization are separate from local testing. No hosted-service SLA is included.
+The config includes the required SQLite Durable Object migration and private
+NETWORK_RELAY binding. Do not remove either to work around a failed deployment.
 
 For local UI development, use the synthetic local fixture in cloud/test and
 Wrangler local mode. Never apply local-fixture.sql to a remote database.
