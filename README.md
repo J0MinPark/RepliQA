@@ -1,6 +1,6 @@
 # RepliQA — evidence-based web QA (alpha)
 
-0.2.5 is a security review candidate, not the live deployment. See the [security and operations review](docs/SECURITY-OPERATIONS-REVIEW.md) and [external reviewer instructions](docs/EXTERNAL-REVIEW-PACK.md). Live cloud validation of this candidate and external truth review are pending.
+The invite pilot now runs 0.2.5. See [live cloud, network and recovery validation](docs/CLOUD-OPERATIONS-VALIDATION.md), [usage](docs/REPLIQA-USAGE.md), and the [real company website execution report](docs/ENTERPRISE-QA-REPORT-20260918.html). Controlled DNS-rebinding validation and [external truth review](docs/EXTERNAL-REVIEW-PACK.md) remain pending. This is not a general-availability or accuracy certification.
 
 Live Cloudflare 0.2.4 browser revalidation passed: [results and scope](docs/CLOUDFLARE-REVALIDATION.md). See also [free hosting options](docs/FREE-HOSTING-OPTIONS.md).
 

@@ -1,0 +1,322 @@
+{
+  "frozenAt": "2026-09-17T17:20:03.831Z",
+  "sources": {
+    "cloud/src/runner.mjs": "200b0431a61818405a6d654ff34956623d6ec15666c57a0df8815f5eb6a5b384",
+    "cloud/src/target-guard.mjs": "bc3907562245571dd206d96194dc23647d1f66c61eabf31d943fe3723bf9759f",
+    "cloud/src/actions.mjs": "bd0e2b999c7484709a1e3e9e6537c6c7d9858ab4cae825022651b86c540eda74",
+    "cloud/src/basic-checks.mjs": "0b85e88277bb9760d9f8c96f7e1b311b5de894fd30377adf25b01db63b97281c",
+    "cloud/src/schema.mjs": "35aec4a8afa2d0cf11aac13715e3a89e4586d59e673d3a8f4a40cff31cdc155b",
+    "evaluation/real-sites/run.mjs": "e0f906f3f7c5f040ac7b0e15703257201fcfcb52c919add70aaebb4060689136"
+  },
+  "cases": [
+    {
+      "site": {
+        "id": "github",
+        "company": "GitHub",
+        "url": "https://docs.github.com/en",
+        "heading": "GitHub Docs",
+        "link": "Migrations",
+        "destination": "/en/migrations",
+        "hosts": [
+          "docs.github.com",
+          "collector.githubapp.com"
+        ]
+      },
+      "mode": "basic",
+      "job": {
+        "inspectionMode": "basic",
+        "url": "https://docs.github.com/en",
+        "title": "GitHub basic",
+        "requirement": "Inspect the current public document.",
+        "steps": [],
+        "expectedTexts": [],
+        "requireResultChange": false,
+        "maskSelectors": [],
+        "redactValues": [],
+        "cloudAiConsent": false,
+        "reviewed": true
+      }
+    },
+    {
+      "site": {
+        "id": "github",
+        "company": "GitHub",
+        "url": "https://docs.github.com/en",
+        "heading": "GitHub Docs",
+        "link": "Migrations",
+        "destination": "/en/migrations",
+        "hosts": [
+          "docs.github.com",
+          "collector.githubapp.com"
+        ]
+      },
+      "mode": "journey",
+      "job": {
+        "inspectionMode": "journey",
+        "url": "https://docs.github.com/en",
+        "title": "GitHub journey",
+        "requirement": "Open the named documentation link, scroll, navigate back/forward, reload, return and confirm the homepage heading. No forms or account actions.",
+        "steps": [
+          {
+            "action": "assertText",
+            "target": "h1",
+            "value": "GitHub Docs"
+          },
+          {
+            "action": "click",
+            "target": "Migrations"
+          },
+          {
+            "action": "assertUrl",
+            "target": "/en/migrations"
+          },
+          {
+            "action": "scroll",
+            "target": "down",
+            "value": "600"
+          },
+          {
+            "action": "back",
+            "target": "/en"
+          },
+          {
+            "action": "forward",
+            "target": "/en/migrations"
+          },
+          {
+            "action": "reload",
+            "target": "/en/migrations"
+          },
+          {
+            "action": "back",
+            "target": "/en"
+          },
+          {
+            "action": "assertText",
+            "target": "h1",
+            "value": "GitHub Docs"
+          }
+        ],
+        "expectedPath": "/en",
+        "expectedTexts": [
+          "GitHub Docs"
+        ],
+        "resultSelector": "h1",
+        "requireResultChange": false,
+        "maskSelectors": [],
+        "redactValues": [],
+        "cloudAiConsent": false,
+        "reviewed": true
+      }
+    },
+    {
+      "site": {
+        "id": "cloudflare",
+        "company": "Cloudflare",
+        "url": "https://developers.cloudflare.com/",
+        "heading": "Cloudflare Developer Docs",
+        "link": "Create your first Worker",
+        "destination": "/workers/get-started/guide/",
+        "hosts": [
+          "developers.cloudflare.com",
+          "ot.www.cloudflare.com",
+          "static.cloudflareinsights.com",
+          "geolocation.onetrust.com"
+        ]
+      },
+      "mode": "basic",
+      "job": {
+        "inspectionMode": "basic",
+        "url": "https://developers.cloudflare.com/",
+        "title": "Cloudflare basic",
+        "requirement": "Inspect the current public document.",
+        "steps": [],
+        "expectedTexts": [],
+        "requireResultChange": false,
+        "maskSelectors": [],
+        "redactValues": [],
+        "cloudAiConsent": false,
+        "reviewed": true
+      }
+    },
+    {
+      "site": {
+        "id": "cloudflare",
+        "company": "Cloudflare",
+        "url": "https://developers.cloudflare.com/",
+        "heading": "Cloudflare Developer Docs",
+        "link": "Create your first Worker",
+        "destination": "/workers/get-started/guide/",
+        "hosts": [
+          "developers.cloudflare.com",
+          "ot.www.cloudflare.com",
+          "static.cloudflareinsights.com",
+          "geolocation.onetrust.com"
+        ]
+      },
+      "mode": "journey",
+      "job": {
+        "inspectionMode": "journey",
+        "url": "https://developers.cloudflare.com/",
+        "title": "Cloudflare journey",
+        "requirement": "Open the named documentation link, scroll, navigate back/forward, reload, return and confirm the homepage heading. No forms or account actions.",
+        "steps": [
+          {
+            "action": "assertText",
+            "target": "h1",
+            "value": "Cloudflare Developer Docs"
+          },
+          {
+            "action": "click",
+            "target": "Create your first Worker"
+          },
+          {
+            "action": "assertUrl",
+            "target": "/workers/get-started/guide/"
+          },
+          {
+            "action": "scroll",
+            "target": "down",
+            "value": "600"
+          },
+          {
+            "action": "back",
+            "target": "/"
+          },
+          {
+            "action": "forward",
+            "target": "/workers/get-started/guide/"
+          },
+          {
+            "action": "reload",
+            "target": "/workers/get-started/guide/"
+          },
+          {
+            "action": "back",
+            "target": "/"
+          },
+          {
+            "action": "assertText",
+            "target": "h1",
+            "value": "Cloudflare Developer Docs"
+          }
+        ],
+        "expectedPath": "/",
+        "expectedTexts": [
+          "Cloudflare Developer Docs"
+        ],
+        "resultSelector": "h1",
+        "requireResultChange": false,
+        "maskSelectors": [],
+        "redactValues": [],
+        "cloudAiConsent": false,
+        "reviewed": true
+      }
+    },
+    {
+      "site": {
+        "id": "vercel",
+        "company": "Vercel / Next.js",
+        "url": "https://nextjs.org/docs",
+        "heading": "Next.js Docs",
+        "link": "Installation",
+        "destination": "/docs/app/getting-started/installation",
+        "hosts": [
+          "nextjs.org",
+          "cdn.cr-relay.com",
+          "api.cr-relay.com"
+        ]
+      },
+      "mode": "basic",
+      "job": {
+        "inspectionMode": "basic",
+        "url": "https://nextjs.org/docs",
+        "title": "Vercel / Next.js basic",
+        "requirement": "Inspect the current public document.",
+        "steps": [],
+        "expectedTexts": [],
+        "requireResultChange": false,
+        "maskSelectors": [],
+        "redactValues": [],
+        "cloudAiConsent": false,
+        "reviewed": true
+      }
+    },
+    {
+      "site": {
+        "id": "vercel",
+        "company": "Vercel / Next.js",
+        "url": "https://nextjs.org/docs",
+        "heading": "Next.js Docs",
+        "link": "Installation",
+        "destination": "/docs/app/getting-started/installation",
+        "hosts": [
+          "nextjs.org",
+          "cdn.cr-relay.com",
+          "api.cr-relay.com"
+        ]
+      },
+      "mode": "journey",
+      "job": {
+        "inspectionMode": "journey",
+        "url": "https://nextjs.org/docs",
+        "title": "Vercel / Next.js journey",
+        "requirement": "Open the named documentation link, scroll, navigate back/forward, reload, return and confirm the homepage heading. No forms or account actions.",
+        "steps": [
+          {
+            "action": "assertText",
+            "target": "h1",
+            "value": "Next.js Docs"
+          },
+          {
+            "action": "click",
+            "target": "Installation"
+          },
+          {
+            "action": "assertUrl",
+            "target": "/docs/app/getting-started/installation"
+          },
+          {
+            "action": "scroll",
+            "target": "down",
+            "value": "600"
+          },
+          {
+            "action": "back",
+            "target": "/docs"
+          },
+          {
+            "action": "forward",
+            "target": "/docs/app/getting-started/installation"
+          },
+          {
+            "action": "reload",
+            "target": "/docs/app/getting-started/installation"
+          },
+          {
+            "action": "back",
+            "target": "/docs"
+          },
+          {
+            "action": "assertText",
+            "target": "h1",
+            "value": "Next.js Docs"
+          }
+        ],
+        "expectedPath": "/docs",
+        "expectedTexts": [
+          "Next.js Docs"
+        ],
+        "resultSelector": "h1",
+        "requireResultChange": false,
+        "maskSelectors": [],
+        "redactValues": [],
+        "cloudAiConsent": false,
+        "reviewed": true
+      }
+    }
+  ],
+  "environment": "RTX 4060 server / local Chromium / production network guard",
+  "repeats": 1,
+  "groundTruth": "No independent site defect oracle. Requirements are read-only navigation contracts based on a prior public-page observation."
+}

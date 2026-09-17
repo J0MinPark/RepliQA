@@ -1,5 +1,5 @@
 {
-  "createdAt": "2026-09-17T16:59:32.649Z",
+  "createdAt": "2026-09-17T17:31:18.702Z",
   "files": [
     {
       "file": "LICENSE",
@@ -338,8 +338,8 @@
     },
     {
       "file": "README.md",
-      "bytes": 3595,
-      "sha256": "6bdd0d0434db55ec86a4285c140aa7b6ca0a3876188a14d49eab8c9eccb94109"
+      "bytes": 3723,
+      "sha256": "ca9c00e1e630301017800ace72c0c82131674ab659c1b362a74ed7379ac4548a"
     },
     {
       "file": "evaluation/review/cases.mjs",
@@ -388,8 +388,8 @@
     },
     {
       "file": "docs/SECURITY-OPERATIONS-REVIEW.md",
-      "bytes": 4933,
-      "sha256": "4bdc43d1eeab785ccb9580ff020efaa41ba8bc57ceb7f2eeab675abc436e1f98"
+      "bytes": 5329,
+      "sha256": "3807f69a5907e6ca67187654fcad6314e7f5c71e3c46c516c189977325bd29f8"
     },
     {
       "file": "docs/EXTERNAL-REVIEW-PACK.md",
@@ -420,6 +420,131 @@
       "file": "docs/evidence/security-operations/gate.json",
       "bytes": 201,
       "sha256": "dd515c3215000788f4be9eaa569fe9b41cb1ca05194f07c65ea5b0166cf17cdb"
+    },
+    {
+      "file": "evaluation/real-sites/render.mjs",
+      "bytes": 6004,
+      "sha256": "e2e2e2b875a1bb0b1b7bfadb73d014a7530f473f027575c90ab047969d0153e6"
+    },
+    {
+      "file": "evaluation/real-sites/run.mjs",
+      "bytes": 4956,
+      "sha256": "e0f906f3f7c5f040ac7b0e15703257201fcfcb52c919add70aaebb4060689136"
+    },
+    {
+      "file": "docs/REPLIQA-USAGE.md",
+      "bytes": 4192,
+      "sha256": "84c4ae87df8289218bce63d2ab12fedb29a620391432a98d1b0b7dd97358b9ca"
+    },
+    {
+      "file": "docs/CLOUD-OPERATIONS-VALIDATION.md",
+      "bytes": 4907,
+      "sha256": "8a3e27e39e473324d04e5b1a94b6c1c516391ef533c24700e23782b7ced8beac"
+    },
+    {
+      "file": "docs/ENTERPRISE-QA-REPORT-20260918.html",
+      "bytes": 634220,
+      "sha256": "d096892ac286e8dab21f400f2a150e62f7513ba540cf1050e022e5e5e16bcbc5"
+    },
+    {
+      "file": "docs/evidence/cloud-operations/summary.json",
+      "bytes": 1091,
+      "sha256": "fd3ac9b8eb91816d6bf0656a63f6e8172f339d0f2915af2f4f63766327ccd6b3"
+    },
+    {
+      "file": "docs/evidence/cloud-operations/basic.json",
+      "bytes": 14823,
+      "sha256": "12663f7316457cc2875eed4898325f5b2de27ee6c842e092bd60a052aff35bdb"
+    },
+    {
+      "file": "docs/evidence/cloud-operations/journey.json",
+      "bytes": 13319,
+      "sha256": "cd415da35c3a3dd53105635b5c402b78f46bd61bb5ddf32fcb7a222a080b2b77"
+    },
+    {
+      "file": "docs/evidence/cloud-operations/basic-before-config-fix.json",
+      "bytes": 26532,
+      "sha256": "cc6f5d04c769e959a28cd1b6978aea73ae1da74aecd45278760157efde5a63b8"
+    },
+    {
+      "file": "docs/evidence/cloud-operations/journey-before-config-fix.json",
+      "bytes": 18125,
+      "sha256": "41a4439fbc6eb83c0e9f1618bb0a5fc467a388609eb136fdc6ef75557e9f8600"
+    },
+    {
+      "file": "docs/evidence/cloud-operations/network-diagnostics.json",
+      "bytes": 2454,
+      "sha256": "42ce6879bf1d033fa02912f9fb4b491120b7be515f658d73cad95f52fd4621f7"
+    },
+    {
+      "file": "docs/evidence/cloud-operations/worker-network.json",
+      "bytes": 405,
+      "sha256": "907416406e012041cd120e19d25b823cdf25f0793a2db41aaa595d926d056db0"
+    },
+    {
+      "file": "docs/evidence/cloud-operations/recovery.json",
+      "bytes": 699,
+      "sha256": "1efa548b582935b18aebee92b654730afc7ff45893778ef7a25a85d4da7c462a"
+    },
+    {
+      "file": "docs/evidence/cloud-operations/cleanup.json",
+      "bytes": 177,
+      "sha256": "e7c3e3953e175101b1b080a955347442de596c27b0903f95e6341255f6ca0caa"
+    },
+    {
+      "file": "docs/evidence/cloud-operations/production-version.json",
+      "bytes": 235,
+      "sha256": "b6ca19cd3f3da2f797e9eea95ac7c9a562746fab663cd9a39d6c5bf4fafd9918"
+    },
+    {
+      "file": "docs/evidence/cloud-operations/production-flow.json",
+      "bytes": 522,
+      "sha256": "fd05d732b40b3550478ad8fa0bc178e6a70ea13a5426b89a53c87971b3e6f084"
+    },
+    {
+      "file": "docs/evidence/cloud-operations/deployment-gate.json",
+      "bytes": 201,
+      "sha256": "b6c3b6c12bf834fb5cad00eb04c4dab42b591a32ca3eb5f7b3d7a1ff16056cf6"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-20260918-first/manifest.json",
+      "bytes": 9469,
+      "sha256": "8a262ea13079c09d8b0379d3eba11fea6b544b2243f04b6b61e463daad3fa586"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-20260918-first/result.json",
+      "bytes": 106521,
+      "sha256": "b846fd04936c722b3714c06880ed4c77807aa6485e5d30f89a53a573b93e8937"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-20260918-first/github-basic.json",
+      "bytes": 16220,
+      "sha256": "f2d231689787f0437a58f1275808f0073b87975a4d3322d32317b5e23464975b"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-20260918-first/github-journey.json",
+      "bytes": 16109,
+      "sha256": "5a75cf26d49a0faf4e6a87a1697bb228ec87f05cd84ce802c0bf1909f71cc718"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-20260918-first/cloudflare-basic.json",
+      "bytes": 17740,
+      "sha256": "65fb8958c7a711dee2e38db119a40c93cf14618855acedcf02447e5b5df8f6b4"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-20260918-first/cloudflare-journey.json",
+      "bytes": 13255,
+      "sha256": "d5ab8264238a0a02524f71f9d7ac2a62bfecf2bcd9befd8b6f1f1a68115de25a"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-20260918-first/vercel-basic.json",
+      "bytes": 17365,
+      "sha256": "39da70adcbd1ba065cd697999219ac4e116440c9e308ed8362d2c468067448a5"
+    },
+    {
+      "file": "docs/evidence/real-sites/enterprise-20260918-first/vercel-journey.json",
+      "bytes": 14069,
+      "sha256": "033ba2e737cc5a78400b936dd0c25af470c7d77945cab534625c40b1eb366caf"
     },
     {
       "file": "docs/INDEPENDENT-EVALUATION.md",
@@ -478,8 +603,8 @@
     },
     {
       "file": "cloud/wrangler.jsonc",
-      "bytes": 687,
-      "sha256": "068b37d34afcea7788a1d3f8e8041453ba3e21b58515f6f0addf5f47ec38660b"
+      "bytes": 723,
+      "sha256": "1d9a549db2210570058c39526cfe43d8b69771370390d25526be039351bc7563"
     }
   ],
   "findings": [],

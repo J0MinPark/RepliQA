@@ -1,0 +1,53 @@
+{
+  "at": "2026-09-17T17:23:16.401Z",
+  "rows": [
+    {
+      "kind": "browser-network",
+      "url": "https://repliqa-verification.repliqa-cloud.workers.dev/demo",
+      "status": 200
+    },
+    {
+      "kind": "browser-network",
+      "url": "https://example.com/",
+      "status": 403,
+      "mitigated": "guardrails",
+      "reason": "not-in-allowlist"
+    },
+    {
+      "kind": "browser-network",
+      "url": "http://127.0.0.1/",
+      "error": "page.goto: net::ERR_BLOCKED_BY_ADMINISTRATOR at http://127.0.0.1/\nCall log:\n  - navigating to \"http://127.0.0.1/\", waiting until \"domcontentloaded\"\n"
+    },
+    {
+      "kind": "browser-network",
+      "url": "https://10.255.255.254/",
+      "status": 403
+    },
+    {
+      "kind": "browser-network",
+      "url": "http://[::1]/",
+      "error": "page.goto: net::ERR_BLOCKED_BY_ADMINISTRATOR at http://[::1]/\nCall log:\n  - navigating to \"http://[::1]/\", waiting until \"domcontentloaded\"\n"
+    },
+    {
+      "kind": "route-fetch",
+      "url": "https://repliqa-verification.repliqa-cloud.workers.dev/demo",
+      "status": 200,
+      "headers": {},
+      "sample": "<!doctype html>\n<html lang=\"ko\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>RepliQA · 장바구니 테스트 예제</title><link rel=\"stylesheet\" href=\"/style.css\"></head>\n<body><main><header><a class=\"brand\" href=\"/\">RepliQA<span>테스트 예제</span></a></header>\n<"
+    },
+    {
+      "kind": "route-fetch",
+      "url": "https://repliqa-verification.repliqa-cloud.workers.dev/style.css",
+      "status": 200,
+      "headers": {},
+      "sample": ":root{font-family:system-ui,-apple-system,sans-serif;color:#202034;background:#f4f5fa;font-size:15px;line-height:1.6}*{box-sizing:border-box}body{margin:0}main{max-width:870px;margin:auto;padding:40px 20px}header{margin-bottom:32px}.brand{text-decoration:none;color:#4f43b7;font-size:28px;font-weight"
+    },
+    {
+      "kind": "route-fetch",
+      "url": "https://repliqa-verification.repliqa-cloud.workers.dev/demo.js",
+      "status": 200,
+      "headers": {},
+      "sample": "document.getElementById('add-cart').addEventListener('click', () => {\n  const quantity = Number(document.getElementById('quantity').value);\n  document.getElementById('cart-result').textContent = `장바구니 ${quantity}개 · 합계 ${(12000 * quantity).toLocaleString('ko-KR')}원`;\n});\n"
+    }
+  ]
+}
