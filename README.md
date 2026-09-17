@@ -1,5 +1,7 @@
 # RepliQA — evidence-based web QA (alpha)
 
+Live Cloudflare 0.2.4 browser revalidation passed: [results and scope](docs/CLOUDFLARE-REVALIDATION.md). See also [free hosting options](docs/FREE-HOSTING-OPTIONS.md).
+
 RepliQA runs explicit browser journeys and page checks using Playwright. Reports
 separate passed conditions, mismatches, review candidates, and inconclusive work.
 The cloud engine does not require an LLM or a running local GPU.
